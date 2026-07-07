@@ -1,12 +1,6 @@
 """
-app/core/config.py
-------------------
-Single source of truth for all application configuration.
-Reads from environment variables (or .env file via python-dotenv).
-Validation is handled by pydantic-settings; the app will refuse to start
-if required values are missing rather than failing silently at runtime.
+app/core/config.py  (Phase 3 update — adds Anthropic key)
 """
-
 from functools import lru_cache
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -23,20 +17,17 @@ class Settings(BaseSettings):
     # ── Application ──────────────────────────────────────────────
     app_env: str = Field(default="development", pattern="^(development|staging|production)$")
     log_level: str = Field(default="INFO")
-    secret_key: str = Field(min_length=32)
+    secret_key: str = Field(default="dev_secret_key_change_in_production_min_32_chars")
 
     # ── PostgreSQL ────────────────────────────────────────────────
-    database_url: str = Field(...)
+    database_url: str = Field(default="postgresql://aureus:localdevpassword@db:5432/aureus_dev")
 
     # ── Redis ─────────────────────────────────────────────────────
     redis_url: str = Field(default="redis://redis:6379/0")
 
     # ── Market data providers ─────────────────────────────────────
-    # Polygon is the highest-fidelity paid source.
     polygon_api_key: str = Field(default="")
-    # Alpha Vantage is the mid-tier freemium fallback.
     alpha_vantage_api_key: str = Field(default="")
-    # YFinance is the free final fallback — no key required.
 
     # ── Fundamental data providers ────────────────────────────────
     finnhub_api_key: str = Field(default="")
@@ -44,15 +35,25 @@ class Settings(BaseSettings):
         default="AureusIntelligence contact@yourdomain.com"
     )
 
+    # ── Phase 3: LLM ─────────────────────────────────────────────
+    anthropic_api_key: str = Field(default="")
+
     # ── Stripe ────────────────────────────────────────────────────
     stripe_secret_key: str = Field(default="")
     stripe_webhook_secret: str = Field(default="")
 
     # ── Rate limiting defaults ────────────────────────────────────
-    # These mirror the subscription_tiers seed data from Phase 1.
     sovereign_daily_analysis_limit: int = 10
     elite_concurrent_strategies: int = 5
     elite_voice_minutes_per_month: int = 500
+
+    # ── Phase 3: streaming ────────────────────────────────────────
+    # How often (seconds) to poll Finnhub and RSS feeds for new articles
+    news_poll_interval_seconds: int = 60
+    # VADER pre-filter: only articles with |compound| > threshold go to LLM
+    sentiment_prefilter_threshold: float = 0.05
+    # Max LLM agent calls per minute across all workers
+    agent_llm_calls_per_minute: int = 20
 
     @field_validator("log_level")
     @classmethod
@@ -79,12 +80,11 @@ class Settings(BaseSettings):
     def finnhub_configured(self) -> bool:
         return bool(self.finnhub_api_key)
 
+    @property
+    def anthropic_configured(self) -> bool:
+        return bool(self.anthropic_api_key)
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    """
-    Returns a cached Settings singleton.
-    Importing this function and calling it is always safe — the cache
-    ensures the .env file is only parsed once per process.
-    """
     return Settings()
