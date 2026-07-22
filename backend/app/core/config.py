@@ -1,5 +1,5 @@
 """
-app/core/config.py  (Phase 3 update — adds Anthropic key)
+app/core/config.py  (Phase 4 update — adds Alpaca, OpenAI, HITL secret)
 """
 from functools import lru_cache
 from pydantic import Field, field_validator
@@ -8,52 +8,72 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=False,
-        extra="ignore",
+        env_file=".env", env_file_encoding="utf-8",
+        case_sensitive=False, extra="ignore",
     )
 
-    # ── Application ──────────────────────────────────────────────
+    # ── Application ───────────────────────────────────────────
     app_env: str = Field(default="development", pattern="^(development|staging|production)$")
     log_level: str = Field(default="INFO")
     secret_key: str = Field(default="dev_secret_key_change_in_production_min_32_chars")
 
-    # ── PostgreSQL ────────────────────────────────────────────────
+    # ── PostgreSQL ────────────────────────────────────────────
     database_url: str = Field(default="postgresql://aureus:localdevpassword@db:5432/aureus_dev")
 
-    # ── Redis ─────────────────────────────────────────────────────
+    # ── Redis ─────────────────────────────────────────────────
     redis_url: str = Field(default="redis://redis:6379/0")
 
-    # ── Market data providers ─────────────────────────────────────
+    # ── Market data ───────────────────────────────────────────
     polygon_api_key: str = Field(default="")
     alpha_vantage_api_key: str = Field(default="")
 
-    # ── Fundamental data providers ────────────────────────────────
+    # ── Fundamental data ──────────────────────────────────────
     finnhub_api_key: str = Field(default="")
-    sec_edgar_user_agent: str = Field(
-        default="AureusIntelligence contact@yourdomain.com"
-    )
+    sec_edgar_user_agent: str = Field(default="AureusIntelligence contact@yourdomain.com")
 
-    # ── Phase 3: LLM ─────────────────────────────────────────────
+    # ── LLM ──────────────────────────────────────────────────
     anthropic_api_key: str = Field(default="")
 
-    # ── Stripe ────────────────────────────────────────────────────
+    # ── Phase 4: Alpaca brokerage ─────────────────────────────
+    # Paper trading keys (from paper-api.alpaca.markets)
+    alpaca_paper_api_key: str = Field(default="")
+    alpaca_paper_secret_key: str = Field(default="")
+    # Live trading keys (from api.alpaca.markets) — only set when going live
+    alpaca_live_api_key: str = Field(default="")
+    alpaca_live_secret_key: str = Field(default="")
+
+    # ── Phase 4: OpenAI (Whisper STT + TTS) ──────────────────
+    openai_api_key: str = Field(default="")
+
+    # ── Phase 4: HITL signing secret ─────────────────────────
+    # HMAC-SHA256 key for signing trade-approval tokens.
+    # Must be at least 32 chars. Rotate this if ever compromised.
+    hitl_signing_secret: str = Field(default="change_this_hitl_secret_minimum_32_chars")
+
+    # ── Stripe ────────────────────────────────────────────────
     stripe_secret_key: str = Field(default="")
     stripe_webhook_secret: str = Field(default="")
 
-    # ── Rate limiting defaults ────────────────────────────────────
+    # ── Rate limiting defaults ────────────────────────────────
     sovereign_daily_analysis_limit: int = 10
     elite_concurrent_strategies: int = 5
     elite_voice_minutes_per_month: int = 500
 
-    # ── Phase 3: streaming ────────────────────────────────────────
-    # How often (seconds) to poll Finnhub and RSS feeds for new articles
+    # ── Phase 3: streaming ────────────────────────────────────
     news_poll_interval_seconds: int = 60
-    # VADER pre-filter: only articles with |compound| > threshold go to LLM
     sentiment_prefilter_threshold: float = 0.05
-    # Max LLM agent calls per minute across all workers
     agent_llm_calls_per_minute: int = 20
+
+    # ── Phase 4: execution guardrails ─────────────────────────
+    max_position_pct: float = 0.05        # 5% max per asset
+    default_stop_loss_pct: float = 0.07   # 7% below entry
+    default_take_profit_pct: float = 0.15 # 15% above entry
+    max_daily_loss_pct: float = 0.03      # halt if down 3% on the day
+    hitl_approval_timeout_seconds: int = 300  # 5-minute approval window
+
+    # ── Phase 4: voice ────────────────────────────────────────
+    voice_session_ttl_seconds: int = 7200  # 2-hour session
+    voice_max_context_turns: int = 20       # rolling window of turns kept in memory
 
     @field_validator("log_level")
     @classmethod
@@ -83,6 +103,18 @@ class Settings(BaseSettings):
     @property
     def anthropic_configured(self) -> bool:
         return bool(self.anthropic_api_key)
+
+    @property
+    def openai_configured(self) -> bool:
+        return bool(self.openai_api_key)
+
+    @property
+    def alpaca_paper_configured(self) -> bool:
+        return bool(self.alpaca_paper_api_key and self.alpaca_paper_secret_key)
+
+    @property
+    def alpaca_live_configured(self) -> bool:
+        return bool(self.alpaca_live_api_key and self.alpaca_live_secret_key)
 
 
 @lru_cache(maxsize=1)

@@ -1,0 +1,43 @@
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: production
+    app:         aureus-intelligence
+
+rule_files: []
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []  # configure alertmanager here in production
+
+scrape_configs:
+  # ── Aureus FastAPI backend ────────────────────────────────────────────────
+  - job_name: aureus_backend
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # ── Celery workers (via prometheus-client push or flower) ─────────────────
+  # Uncomment if you add Celery Flower:
+  # - job_name: celery_flower
+  #   static_configs:
+  #     - targets: ['flower:5555']
+  #   metrics_path: /metrics
+
+  # ── Redis ─────────────────────────────────────────────────────────────────
+  - job_name: redis
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  - job_name: postgres
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # ── Prometheus self-monitoring ────────────────────────────────────────────
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']

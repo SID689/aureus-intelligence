@@ -1,5 +1,4 @@
 services:
-  # ── PostgreSQL (unchanged from Phase 1) ──────────────────────
   db:
     image: postgres:16
     restart: always
@@ -17,7 +16,6 @@ services:
       timeout: 5s
       retries: 10
 
-  # ── Redis (Celery broker + rate-limit cache) ──────────────────
   redis:
     image: redis:7-alpine
     restart: always
@@ -29,7 +27,6 @@ services:
       timeout: 3s
       retries: 5
 
-  # ── FastAPI backend ───────────────────────────────────────────
   backend:
     build:
       context: ./backend
@@ -43,9 +40,8 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./backend:/app   # hot-reload in development
+      - ./backend:/app
 
-  # ── Celery worker: market-data + news ingestion ───────────────
   celery-worker:
     build:
       context: ./backend
@@ -64,7 +60,6 @@ services:
     volumes:
       - ./backend:/app
 
-  # ── Celery worker: agent orchestration (isolated pool) ────────
   celery-agent-worker:
     build:
       context: ./backend
@@ -83,7 +78,6 @@ services:
     volumes:
       - ./backend:/app
 
-  # ── Celery Beat: periodic ingestion scheduler ─────────────────
   celery-beat:
     build:
       context: ./backend
@@ -97,6 +91,23 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+
+  # Phase 4: Next.js 15 frontend
+  frontend:
+    build:
+      context: ./frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
 
 volumes:
   aureus_pgdata:

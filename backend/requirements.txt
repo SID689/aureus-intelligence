@@ -30,9 +30,16 @@ langgraph>=0.1.0
 feedparser>=6.0.10
 beautifulsoup4>=4.12.0
 vaderSentiment>=3.3.2
-
-# ── Phase 3: WebSocket client ─────────────────────────────────
 websockets>=12.0
+
+# ── Phase 4: Broker execution ─────────────────────────────────
+alpaca-py>=0.20.0
+
+# ── Phase 4: Voice (STT / TTS via OpenAI) ────────────────────
+openai>=1.30.0
+
+# ── Phase 4: Cryptographic HITL signing ──────────────────────
+cryptography>=42.0.0
 
 # ── Config & Validation ───────────────────────────────────────
 pydantic>=2.7.0
@@ -48,3 +55,9 @@ python-dateutil>=2.9.0
 # ── Testing ───────────────────────────────────────────────────
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
+
+
+# ── Phase 5: Billing + Metrics ────────────────────────────────────────────────
+stripe>=10.0.0
+bcrypt>=4.1.0
+prometheus-client>=0.20.0

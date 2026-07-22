@@ -219,8 +219,12 @@ class AlphaVantageProvider(MarketDataProvider):
 class YFinanceProvider(MarketDataProvider):
     """
     Yahoo Finance via the yfinance library.
-    No API key required. Best-effort, no SLA.  Used only as a final fallback.
-    Back-off is conservative — Yahoo has opaque IP-based rate limits.
+    No API key required. Best-effort, no SLA. Used only as a final fallback.
+
+    Uses yf.Ticker().history() rather than yf.download() because newer
+    yfinance versions (0.2.x) return multi-level column headers from download()
+    for single tickers, which breaks simple column name normalization.
+    history() always returns a flat single-level DataFrame.
     """
 
     @property
@@ -242,34 +246,58 @@ class YFinanceProvider(MarketDataProvider):
         interval = interval_map[frequency]
 
         try:
-            df = yf.download(
-                ticker,
+            t = yf.Ticker(ticker)
+            df = t.history(
                 start=start.isoformat(),
                 end=end.isoformat(),
                 interval=interval,
                 auto_adjust=True,
-                progress=False,
-                show_errors=False,
             )
         except Exception as exc:
-            raise ProviderUnavailableError(f"YFinance download error: {exc}", provider=self.name)
+            raise ProviderUnavailableError(
+                f"YFinance error for {ticker}: {exc}", provider=self.name
+            )
 
         if df is None or df.empty:
-            raise DataNotFoundError(f"YFinance: no data for {ticker}", provider=self.name)
+            raise DataNotFoundError(
+                f"YFinance: no data for {ticker} ({start} → {end})", provider=self.name
+            )
 
+        # history() returns clean single-level columns: Open, High, Low, Close, Volume
         df.columns = [c.lower() for c in df.columns]
-        df.index = pd.to_datetime(df.index, utc=True)
-        df = df[["open", "high", "low", "close", "volume"]].astype(float)
+
+        # Ensure index is UTC-aware DatetimeIndex
+        if df.index.tz is None:
+            df.index = df.index.tz_localize("UTC")
+        else:
+            df.index = df.index.tz_convert("UTC")
+
+        # Select only the columns we need — history() may include Dividends, Stock Splits
+        available = [c for c in ["open", "high", "low", "close", "volume"] if c in df.columns]
+        if "close" not in available:
+            raise DataNotFoundError(
+                f"YFinance: unexpected column schema for {ticker}: {df.columns.tolist()}",
+                provider=self.name,
+            )
+        df = df[available].astype(float)
 
         logger.info("YFinance bars fetched", extra={"ticker": ticker, "rows": len(df)})
         return MarketDataResult(ticker=ticker, provider=self.name, frequency=frequency, bars=df)
 
     def fetch_latest_price(self, ticker: str) -> float:
         try:
-            info = yf.Ticker(ticker).fast_info
-            price = getattr(info, "last_price", None) or getattr(info, "regularMarketPrice", None)
-            if price is None:
-                raise DataNotFoundError(f"YFinance: no price for {ticker}", provider=self.name)
+            t = yf.Ticker(ticker)
+            # fast_info is the lightest call — no full quote download
+            fast = t.fast_info
+            price = getattr(fast, "last_price", None)
+            if price is None or (isinstance(price, float) and price != price):  # NaN check
+                # Fallback: pull last close from a tiny history window
+                hist = t.history(period="2d", auto_adjust=True)
+                if hist.empty:
+                    raise DataNotFoundError(
+                        f"YFinance: no price data for {ticker}", provider=self.name
+                    )
+                price = float(hist["Close"].iloc[-1])
             return float(price)
         except DataNotFoundError:
             raise
