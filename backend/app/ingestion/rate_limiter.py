@@ -148,6 +148,47 @@ def with_exponential_backoff(
 
 # ── Helper: classify HTTP status codes into exception types ────────────────────
 
+class RedisTokenBucket:
+    """
+    Distributed rate limiter shared across all Celery workers and API
+    processes, backed by Redis. Used to keep Polygon's free-tier 5-calls/min
+    limit from being silently exhausted — instead of making a doomed call
+    and waiting for a 429, callers check `allow()` first and skip straight
+    to the fallback provider if the bucket is empty. This is what makes
+    "mostly use Polygon" actually sustainable instead of burning the free
+    quota on the first few chart loads and falling back to YFinance for
+    the rest of the session.
+
+    Implementation: fixed-window counter (INCR + EXPIRE) — simple, and
+    good enough at this call volume.
+    """
+
+    def __init__(self, key: str, max_calls: int, window_seconds: int):
+        self.key = f"ratelimit:{key}"
+        self.max_calls = max_calls
+        self.window_seconds = window_seconds
+
+    def allow(self) -> bool:
+        """Returns True if a call is permitted right now, and consumes one slot if so."""
+        try:
+            from app.core.redis_client import get_redis_client
+            client = get_redis_client()
+            current = client.incr(self.key)
+            if current == 1:
+                client.expire(self.key, self.window_seconds)
+            return current <= self.max_calls
+        except Exception:
+            return True  # fail open if Redis itself is unavailable
+
+    def remaining(self) -> int:
+        try:
+            from app.core.redis_client import get_redis_client
+            current = int(get_redis_client().get(self.key) or 0)
+            return max(0, self.max_calls - current)
+        except Exception:
+            return self.max_calls
+
+
 def raise_for_status(status_code: int, body: str, provider: str) -> None:
     """
     Map an HTTP error response to the correct Aureus exception type.

@@ -40,6 +40,10 @@ export default function AnalysisPanel() {
   const r = result?.result;
   const signal = r?.signal;
   const ss = signal ? SIGNAL_STYLE[signal] : null;
+  const weights = r?.module_weights_used || {};
+  const weightsAreStandard =
+    Math.abs((weights.fundamental ?? 0.35) - 0.35) < 0.02 &&
+    Math.abs((weights.technical ?? 0.35) - 0.35) < 0.02;
 
   return (
     <div className="space-y-4">
@@ -53,7 +57,7 @@ export default function AnalysisPanel() {
             onChange={(e) => setTicker(e.target.value.toUpperCase())}
             onKeyDown={(e) => e.key === "Enter" && handleAnalyse()}
             placeholder="AAPL"
-            maxLength={5}
+            maxLength={10}
             className="w-full bg-transparent border border-aureus-border rounded px-3 py-2
                        text-white text-sm focus:outline-none focus:border-aureus-gold transition-colors"
           />
@@ -95,7 +99,7 @@ export default function AnalysisPanel() {
           {/* Signal header */}
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-aureus-muted text-sm">{r.ticker} · {result?.result && horizon.replace("_", " ")}</span>
+              <span className="text-aureus-muted text-sm">{r.ticker} · {horizon.replace("_", " ")}</span>
               <div className="flex items-center gap-3 mt-1">
                 <span className={`text-3xl font-bold ${ss.text}`}>{signal}</span>
                 <span className={`text-sm font-medium ${ss.text} opacity-70`}>{r.signal_strength}</span>
@@ -128,19 +132,45 @@ export default function AnalysisPanel() {
             </div>
           </div>
 
-          {/* Module scores */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: "Fundamental", score: r.fundamental_score },
-              { label: "Technical",   score: r.technical_score   },
-              { label: "Quantitative",score: r.quantitative_score},
-            ].map(({ label, score }) => (
-              <div key={label} className="rounded border border-aureus-border p-3 text-center"
-                   style={{ background: "var(--bg)" }}>
-                <div className="text-xs text-aureus-muted mb-1">{label}</div>
-                <div className="text-xl font-bold text-white">{score.toFixed(1)}</div>
+          {/* Reasoning — the direct fix for "scores need explanations" */}
+          {r.reasoning && (
+            <div className="rounded-lg border border-aureus-border p-4" style={{ background: "var(--bg)" }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-aureus-gold uppercase tracking-wide">
+                  Why this score
+                </span>
+                <span className="text-xs text-aureus-muted">
+                  {r.reasoning_source === "llm_polished" ? "AI-composed" : "Rule-based"}
+                </span>
               </div>
-            ))}
+              <p className="text-sm text-gray-300 leading-relaxed">{r.reasoning}</p>
+            </div>
+          )}
+
+          {/* Module scores with weighting transparency */}
+          <div>
+            {!weightsAreStandard && (
+              <p className="text-xs text-aureus-muted mb-2">
+                ⚠ Module weights adjusted from the standard 35/35/30 split because some data
+                sources didn&apos;t return complete figures for this ticker — see percentages below.
+              </p>
+            )}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Fundamental",  score: r.fundamental_score,  weight: weights.fundamental,  completeness: result?.result?.overall_data_completeness },
+                { label: "Technical",    score: r.technical_score,    weight: weights.technical },
+                { label: "Quantitative", score: r.quantitative_score, weight: weights.quantitative },
+              ].map(({ label, score, weight }) => (
+                <div key={label} className="rounded border border-aureus-border p-3 text-center"
+                     style={{ background: "var(--bg)" }}>
+                  <div className="text-xs text-aureus-muted mb-1">{label}</div>
+                  <div className="text-xl font-bold text-white">{score.toFixed(1)}</div>
+                  {weight !== undefined && (
+                    <div className="text-xs text-aureus-muted mt-1">{(weight * 100).toFixed(0)}% weight</div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Disclaimer */}

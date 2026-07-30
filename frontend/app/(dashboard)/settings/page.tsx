@@ -5,12 +5,14 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import UpgradeModal from "@/components/billing/UpgradeModal";
+import LearningLevelCard from "@/components/dashboard/LearningLevelCard";
 import { TIER_FEATURES } from "@/types";
 import type { TierName } from "@/types";
 import { Check, X } from "lucide-react";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
+  const userId = session?.user?.id ?? "";
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const tier = (session?.user?.tier ?? "sovereign") as TierName;
@@ -89,6 +91,9 @@ export default function SettingsPage() {
           ))}
         </CardContent>
       </Card>
+
+      {/* Learning level */}
+      <LearningLevelCard userId={userId} />
 
       {/* Billing management */}
       {tier !== "sovereign" && (

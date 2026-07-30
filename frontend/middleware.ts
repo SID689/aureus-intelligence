@@ -38,7 +38,7 @@ export default withAuth(
     callbacks: {
       // Allow public pages; protect everything under (dashboard)
       authorized: ({ token, req }) => {
-        const publicPaths = ["/sign-in", "/sign-up", "/api/auth", "/api/webhooks"];
+        const publicPaths = ["/welcome", "/sign-in", "/sign-up", "/api/auth", "/api/webhooks"];
         const isPublic    = publicPaths.some((p) => req.nextUrl.pathname.startsWith(p));
         return isPublic || !!token;
       },
@@ -48,6 +48,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sign-in|sign-up|api/auth|api/webhooks).*)",
+    "/((?!_next/static|_next/image|favicon.ico|welcome|sign-in|sign-up|api/auth|api/webhooks).*)",
   ],
 };

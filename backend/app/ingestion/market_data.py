@@ -26,6 +26,7 @@ from app.ingestion.rate_limiter import (
     FallbackExhaustedError,
     ProviderUnavailableError,
     RateLimitError,
+    RedisTokenBucket,
     raise_for_status,
     with_exponential_backoff,
 )
@@ -34,6 +35,13 @@ logger = logging.getLogger("aureus.ingestion.market_data")
 
 POLYGON_BASE = "https://api.polygon.io"
 AV_BASE      = "https://www.alphavantage.co/query"
+
+# Shared across every PolygonProvider instance and every process (Redis-backed),
+# so the free tier's 5-calls/min cap is respected globally, not per-process.
+# This is what lets Polygon actually be the dominant data source in practice:
+# without this, a handful of concurrent chart loads would exhaust the quota
+# in one burst and every subsequent call would silently fall back to YFinance.
+_polygon_bucket = RedisTokenBucket("polygon_api", max_calls=5, window_seconds=60)
 
 
 # ── 1. Polygon.io ─────────────────────────────────────────────────────────────
@@ -65,6 +73,12 @@ class PolygonProvider(MarketDataProvider):
         end: date,
         frequency: Literal["1d", "1h", "5m"] = "1d",
     ) -> MarketDataResult:
+        if not _polygon_bucket.allow():
+            raise RateLimitError(
+                "Polygon.io free-tier rate limit (5/min) reached — deferring to next provider",
+                status_code=429, provider=self.name,
+            )
+
         settings = get_settings()
         timespan_map = {"1d": ("day", 1), "1h": ("hour", 1), "5m": ("minute", 5)}
         timespan, multiplier = timespan_map[frequency]
@@ -126,6 +140,12 @@ class PolygonProvider(MarketDataProvider):
         Try real-time last trade (paid tier).
         On 403, fall back to previous-session close (free tier).
         """
+        if not _polygon_bucket.allow():
+            raise RateLimitError(
+                "Polygon.io free-tier rate limit (5/min) reached — deferring to next provider",
+                status_code=429, provider=self.name,
+            )
+
         settings = get_settings()
         api_key  = settings.polygon_api_key
 
@@ -313,7 +333,25 @@ class YFinanceProvider(MarketDataProvider):
 
 # ── Fallback orchestrator ─────────────────────────────────────────────────────
 
+def _bars_cache_key(ticker: str, start: date, end: date, frequency: str) -> str:
+    return f"marketdata:bars:{ticker}:{frequency}:{start.isoformat()}:{end.isoformat()}"
+
+
+# Daily bars barely change intra-day after the first fetch; cache generously.
+# Intraday frequencies get a much shorter TTL since they go stale fast.
+_BARS_CACHE_TTL = {"1d": 900, "1h": 180, "5m": 60}  # seconds
+
+
 class MarketDataService:
+    """
+    Tries providers in priority order: Polygon.io → Alpha Vantage → YFinance.
+    Polygon is intentionally listed first and is the intended primary source —
+    the RedisTokenBucket above plus this caching layer are both specifically
+    there to keep Polygon serving the majority of requests without tripping
+    its free-tier rate limit, rather than every other request silently
+    degrading to YFinance.
+    """
+
     def __init__(self) -> None:
         self._providers: list[MarketDataProvider] = [
             PolygonProvider(),
@@ -322,18 +360,57 @@ class MarketDataService:
         ]
 
     def fetch_bars(self, ticker: str, start: date, end: date, frequency: Literal["1d","1h","5m"] = "1d") -> MarketDataResult:
+        cache_key = _bars_cache_key(ticker, start, end, frequency)
+        cached = self._read_cache(cache_key)
+        if cached is not None:
+            return cached
+
         attempted: list[str] = []
         for provider in self._providers:
             if not provider.is_available():
                 continue
             attempted.append(provider.name)
             try:
-                return provider.fetch_bars(ticker, start, end, frequency)
+                result = provider.fetch_bars(ticker, start, end, frequency)
+                self._write_cache(cache_key, result, frequency)
+                return result
             except FallbackExhaustedError:
                 raise
             except Exception as exc:
                 logger.warning(f"{provider.name} bars failed — next", extra={"ticker": ticker, "error": str(exc)})
         raise FallbackExhaustedError(ticker, attempted)
+
+    def _read_cache(self, cache_key: str) -> MarketDataResult | None:
+        try:
+            from app.core.redis_client import get_redis_client
+            raw = get_redis_client().get(cache_key)
+            if not raw:
+                return None
+            import json
+            payload = json.loads(raw)
+            df = pd.read_json(payload["bars_json"], orient="records")
+            df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+            df = df.set_index("timestamp")
+            return MarketDataResult(
+                ticker=payload["ticker"], provider=f"{payload['provider']} (cached)",
+                frequency=payload["frequency"], bars=df,
+            )
+        except Exception:
+            return None
+
+    def _write_cache(self, cache_key: str, result: MarketDataResult, frequency: str) -> None:
+        try:
+            from app.core.redis_client import get_redis_client
+            import json
+            bars_json = result.bars.reset_index().to_json(orient="records", date_format="iso")
+            payload = json.dumps({
+                "ticker": result.ticker, "provider": result.provider,
+                "frequency": result.frequency, "bars_json": bars_json,
+            })
+            ttl = _BARS_CACHE_TTL.get(frequency, 300)
+            get_redis_client().setex(cache_key, ttl, payload)
+        except Exception as exc:
+            logger.debug("Bars cache write failed (non-fatal)", extra={"error": str(exc)})
 
     def fetch_latest_price(self, ticker: str) -> float:
         attempted: list[str] = []

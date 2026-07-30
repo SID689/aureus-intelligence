@@ -40,6 +40,7 @@ export interface SupportResistanceLevel {
 // ── Portfolio ─────────────────────────────────────────────────────────────────
 
 export interface Holding {
+  id: string;
   ticker: string;
   quantity: number;
   average_cost_basis: number;

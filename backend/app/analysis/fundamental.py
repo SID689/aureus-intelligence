@@ -1,250 +1,213 @@
 """
-app/analysis/fundamental.py
----------------------------
-Fundamental Module: evaluates intrinsic value, financial safety,
-growth trajectory, and competitive moat proxies.
+app/analysis/fundamental.py  (rewrite — structured strengths/weaknesses + honest DCF diagnostics)
+------------------------------------------------------------------------------------------------
+Two direct fixes here:
 
-All scores are on a [0, 100] scale where 100 = maximally bullish.
-None-handling is explicit: when a required data point is missing we either
-skip the sub-score contribution or assign a neutral 50 (with a logged note)
-rather than crashing. This ensures the ensemble always gets a valid float.
+1. Every computed sub-signal now also appends a structured dict to
+   `signal_breakdown` — {label, score, detail} — instead of only a prose
+   note. reasoning.py uses this to name SPECIFIC things helping or hurting
+   the score ("gross margin of 43% is a moat component") rather than only
+   reporting the composite number.
 
-Sub-score weights:
-  DCF signal    35%  — is the stock trading below intrinsic value?
-  Safety        25%  — can the company survive adversity?
-  Growth        25%  — is revenue/earnings trajectory improving?
-  Moat          15%  — ROE, gross margin, multi-year consistency
+2. DCF skip diagnosis is now genuinely specific. Previously it just said
+   "DCF skipped — missing X" with no explanation of WHY that data was
+   missing. Now it distinguishes:
+     - FCF is None (the data provider never returned this figure at all —
+       states which provider was queried, since Finnhub vs EDGAR fail for
+       different reasons)
+     - FCF is not None but <= 0 (the company's trailing free cash flow is
+       genuinely negative — a real, informative fact about the business,
+       not a data gap, and it's reported as such)
+     - shares_outstanding missing (same treatment)
 """
 
 import logging
 import math
-from dataclasses import dataclass
 
 from app.ingestion.base import FundamentalDataResult
 from app.analysis.models import DCFResult, FundamentalScore
+from app.analysis.reweighting import WeightedSignal, reweight
 
 logger = logging.getLogger("aureus.analysis.fundamental")
 
-# Sub-score weights (must sum to 1.0)
-_W_DCF    = 0.35
-_W_SAFETY = 0.25
-_W_GROWTH = 0.25
-_W_MOAT   = 0.15
+_W_DCF, _W_SAFETY, _W_GROWTH, _W_MOAT = 0.35, 0.25, 0.25, 0.15
 
 
-# ── DCF engine ─────────────────────────────────────────────────────────────────
-
-def _two_stage_dcf(
-    fcf: float,
-    near_growth: float,
-    terminal_growth: float,
-    discount_rate: float,
-    projection_years: int,
-    shares: float,
-) -> float:
-    """
-    Two-stage Discounted Cash Flow model.
-
-    Stage 1: FCF grows at `near_growth` for `projection_years`.
-    Stage 2 (terminal): FCF grows at `terminal_growth` in perpetuity,
-                         discounted back as a Gordon Growth Model terminal value.
-
-    Returns intrinsic value per share.
-    All rates are in decimal form (e.g., 0.10 = 10%).
-    """
+def _two_stage_dcf(fcf, near_growth, terminal_growth, discount_rate, projection_years, shares) -> float:
     if discount_rate <= terminal_growth:
-        # Gordon model breaks down — fall back to 15% discount, 3% terminal
         discount_rate, terminal_growth = 0.15, 0.03
-
-    pv_sum = 0.0
-    current_fcf = fcf
+    pv_sum, current_fcf = 0.0, fcf
     for year in range(1, projection_years + 1):
         current_fcf *= (1 + near_growth)
         pv_sum += current_fcf / ((1 + discount_rate) ** year)
-
-    # Terminal value at end of Stage 1
-    terminal_fcf = current_fcf * (1 + terminal_growth)
+    terminal_fcf   = current_fcf * (1 + terminal_growth)
     terminal_value = terminal_fcf / (discount_rate - terminal_growth)
-    pv_terminal = terminal_value / ((1 + discount_rate) ** projection_years)
-
-    total_equity_value = pv_sum + pv_terminal
-    return max(total_equity_value / shares, 0.0)
+    pv_terminal    = terminal_value / ((1 + discount_rate) ** projection_years)
+    return max((pv_sum + pv_terminal) / shares, 0.0)
 
 
 def _dcf_to_score(intrinsic: float, current_price: float) -> float:
-    """
-    Convert the DCF margin-of-safety into a 0–100 score.
-    margin = (intrinsic - price) / intrinsic
-      +30% or more upside  → 100
-      0%  (fair value)     →  50
-      -30% or more downside →  0
-    Linear interpolation between those anchors.
-    """
     if intrinsic <= 0 or current_price <= 0:
-        return 50.0  # neutral when DCF is unreliable
+        return 50.0
     margin = (intrinsic - current_price) / intrinsic
-    score = 50.0 + (margin / 0.30) * 50.0
-    return max(0.0, min(100.0, score))
+    return max(0.0, min(100.0, 50.0 + (margin / 0.30) * 50.0))
 
 
-# ── Safety score ───────────────────────────────────────────────────────────────
+def _diagnose_dcf_skip(data: FundamentalDataResult) -> str:
+    """
+    The specific, honest answer to 'why was DCF skipped / why is FCF missing'.
+    """
+    provider = data.provider or "unavailable"
 
-def _compute_safety_score(data: FundamentalDataResult, notes: list[str]) -> float:
+    if data.free_cash_flow_ttm is None:
+        if provider == "unavailable":
+            return (
+                "No fundamental data provider returned results for this ticker at all — "
+                "both Finnhub and SEC EDGAR lookups failed (check that FINNHUB_API_KEY is "
+                "configured, and that this ticker is SEC-registered if you expected an EDGAR match)."
+            )
+        return (
+            f"{provider} did not report a free cash flow figure for this ticker. "
+            + ("Finnhub sometimes omits FCF for smaller-cap or thinly-covered names."
+               if provider == "Finnhub" else
+               "SEC EDGAR's operating-cash-flow and capex figures use standardized GAAP tags — "
+               "if this company's 10-K used a non-standard tag for either figure, the lookup "
+               "returns nothing even though the data exists in the filing.")
+        )
+
+    if data.free_cash_flow_ttm <= 0:
+        return (
+            f"{data.free_cash_flow_ttm/1e6:+.1f}M — this company's trailing free cash flow is "
+            "genuinely negative, per " + provider + ". A DCF model can't meaningfully discount "
+            "cash flows that aren't being generated yet. This is common for companies in a heavy "
+            "growth or capex phase; it isn't a data problem, it's a fact about the business worth watching."
+        )
+
+    if not data.shares_outstanding:
+        return f"{provider} returned free cash flow but not shares outstanding, so per-share intrinsic value can't be computed."
+
+    return "Required inputs unavailable."
+
+
+def _compute_safety_score(data: FundamentalDataResult, notes: list[str], signals: list[dict]) -> tuple[float, bool]:
     components: list[float] = []
 
-    # Debt-to-Equity (lower = safer; D/E > 3 is dangerous)
     if data.debt_to_equity is not None:
         de = data.debt_to_equity
-        if de < 0:
-            s = 30.0   # negative equity is a red flag
-        elif de == 0:
-            s = 100.0  # zero debt
-        else:
-            # Linear from 100 at D/E=0 to 0 at D/E=3
-            s = max(0.0, 100.0 - (de / 3.0) * 100.0)
+        s = 30.0 if de < 0 else (100.0 if de == 0 else max(0.0, 100.0 - (de / 3.0) * 100.0))
         components.append(s)
-        notes.append(f"D/E ratio: {de:.2f} → safety sub-score {s:.1f}")
-    else:
-        notes.append("D/E ratio unavailable — safety partially estimated")
+        notes.append(f"Debt/Equity {de:.2f} → safety component {s:.0f}/100")
+        signals.append({"label": "Debt-to-Equity", "score": s, "detail": f"D/E ratio of {de:.2f}" + (" (no debt)" if de == 0 else " signals elevated leverage" if s < 40 else " is conservative")})
 
-    # Current ratio (liquidity; >2 = excellent, <1 = danger)
     if data.current_ratio is not None:
         cr = data.current_ratio
         s = max(0.0, min(100.0, (cr - 1.0) * 50.0))
         components.append(s)
+        notes.append(f"Current ratio {cr:.2f} → liquidity component {s:.0f}/100")
+        signals.append({"label": "Current Ratio", "score": s, "detail": f"Current ratio of {cr:.2f}" + (" shows tight near-term liquidity" if s < 40 else " indicates solid short-term liquidity")})
 
-    # Interest coverage proxy: if we have operating income and debt
-    # (simplified: operating margin proxy)
     if data.operating_margin is not None:
         om = data.operating_margin
-        # Margin > 20% = very safe, < 0 = distress
         s = max(0.0, min(100.0, (om / 0.20) * 80.0 + 20.0 if om > 0 else om * 200.0 + 20.0))
         components.append(s)
+        notes.append(f"Operating margin {om*100:.1f}% → efficiency component {s:.0f}/100")
+        signals.append({"label": "Operating Margin", "score": s, "detail": f"Operating margin of {om*100:.1f}%" + (" is thin" if s < 40 else " reflects efficient core operations")})
 
-    return sum(components) / len(components) if components else 50.0
+    if not components:
+        return 50.0, False
+    return sum(components) / len(components), True
 
 
-# ── Growth score ───────────────────────────────────────────────────────────────
-
-def _compute_growth_score(data: FundamentalDataResult, notes: list[str]) -> float:
+def _compute_growth_score(data: FundamentalDataResult, notes: list[str], signals: list[dict]) -> tuple[float, bool]:
     components: list[float] = []
 
-    # YoY revenue growth
     if data.revenue_growth_yoy is not None:
         g = data.revenue_growth_yoy
-        # +20% growth → 100; 0% → 50; -20% → 0
         s = max(0.0, min(100.0, 50.0 + (g / 0.20) * 50.0))
         components.append(s)
-        notes.append(f"Revenue growth YoY: {g*100:.1f}% → growth sub-score {s:.1f}")
+        notes.append(f"Revenue growth YoY {g*100:.1f}% → growth component {s:.0f}/100")
+        signals.append({"label": "Revenue Growth (YoY)", "score": s, "detail": f"Revenue grew {g*100:+.1f}% year-over-year" + (" — a genuine headwind" if s < 40 else " — outpacing the 20% benchmark" if s > 80 else "")})
 
-    # Revenue trend consistency (5-year CAGR from history)
     if len(data.revenue_history) >= 3:
-        history = data.revenue_history
-        # Filter out zeros to avoid division by zero in CAGR
-        valid = [v for v in history if v > 0]
+        valid = [v for v in data.revenue_history if v > 0]
         if len(valid) >= 2:
             years = len(valid) - 1
             cagr = (valid[-1] / valid[0]) ** (1.0 / years) - 1.0
             s = max(0.0, min(100.0, 50.0 + (cagr / 0.15) * 50.0))
             components.append(s)
+            notes.append(f"{years}-yr revenue CAGR {cagr*100:.1f}% → trend component {s:.0f}/100")
+            signals.append({"label": f"{years}-Year Revenue CAGR", "score": s, "detail": f"Revenue compounded at {cagr*100:+.1f}% annually over {years} years"})
 
-    # Earnings momentum
     if len(data.net_income_history) >= 2:
         ni = data.net_income_history
-        positive_years = sum(1 for v in ni if v > 0)
-        consistency = positive_years / len(ni)
-        components.append(consistency * 100.0)
+        consistency = sum(1 for v in ni if v > 0) / len(ni)
+        s = consistency * 100.0
+        components.append(s)
+        if consistency < 1.0:
+            signals.append({"label": "Earnings Consistency", "score": s, "detail": f"Profitable in only {int(consistency*len(ni))} of the last {len(ni)} reported years"})
 
-    return sum(components) / len(components) if components else 50.0
+    if not components:
+        return 50.0, False
+    return sum(components) / len(components), True
 
 
-# ── Moat score ─────────────────────────────────────────────────────────────────
-
-def _compute_moat_score(data: FundamentalDataResult, notes: list[str]) -> float:
-    """
-    Moat proxies: high/stable gross margin, high ROE, revenue consistency.
-    We can't measure pricing power or switching costs directly from financials,
-    but these quantitative signals are strong correlates.
-    """
+def _compute_moat_score(data: FundamentalDataResult, notes: list[str], signals: list[dict]) -> tuple[float, bool]:
     components: list[float] = []
 
-    # Gross margin (>40% signals pricing power / low commodity risk)
     if data.gross_margin is not None:
         gm = data.gross_margin
         s = max(0.0, min(100.0, (gm / 0.40) * 80.0 + 20.0))
         components.append(s)
+        notes.append(f"Gross margin {gm*100:.1f}% → moat component {s:.0f}/100")
+        signals.append({"label": "Gross Margin", "score": s, "detail": f"Gross margin of {gm*100:.1f}%" + (" suggests limited pricing power or commodity exposure" if s < 40 else " points to real pricing power" if s > 75 else "")})
 
-    # Return on Equity (>15% sustained is a classic moat signal)
     if data.return_on_equity is not None:
         roe = data.return_on_equity
-        if roe < 0:
-            s = 10.0
-        else:
-            s = max(0.0, min(100.0, (roe / 0.20) * 100.0))
+        s = 10.0 if roe < 0 else max(0.0, min(100.0, (roe / 0.20) * 100.0))
         components.append(s)
-        notes.append(f"ROE: {roe*100:.1f}% → moat sub-score {s:.1f}")
+        notes.append(f"ROE {roe*100:.1f}% → durability component {s:.0f}/100")
+        signals.append({"label": "Return on Equity", "score": s, "detail": f"ROE of {roe*100:.1f}%" + (" is a red flag on capital efficiency" if s < 30 else " reflects strong capital efficiency" if s > 75 else "")})
 
-    # Revenue consistency (coefficient of variation — lower = more consistent)
     if len(data.revenue_history) >= 3:
         vals = [v for v in data.revenue_history if v > 0]
         if len(vals) >= 3:
             mean_rev = sum(vals) / len(vals)
-            std_rev = math.sqrt(sum((v - mean_rev) ** 2 for v in vals) / len(vals))
-            cv = std_rev / mean_rev if mean_rev > 0 else 1.0
-            # CV < 0.1 (low variability) → 90; CV > 0.5 (high variability) → 20
+            std_rev  = math.sqrt(sum((v - mean_rev) ** 2 for v in vals) / len(vals))
+            cv       = std_rev / mean_rev if mean_rev > 0 else 1.0
             s = max(20.0, min(90.0, 90.0 - (cv / 0.5) * 70.0))
             components.append(s)
 
-    return sum(components) / len(components) if components else 50.0
+    if not components:
+        return 50.0, False
+    return sum(components) / len(components), True
 
-
-# ── Public API ─────────────────────────────────────────────────────────────────
 
 def run_fundamental_analysis(
     ticker: str,
     data: FundamentalDataResult,
     time_horizon: str = "medium_term",
 ) -> FundamentalScore:
-    """
-    Run all fundamental sub-analyses and return a FundamentalScore.
-
-    Args:
-        ticker:        Asset symbol.
-        data:          Normalised fundamentals from any FundamentalDataProvider.
-        time_horizon:  'short_term' | 'medium_term' | 'long_term'
-                       Affects DCF projection years and near-term growth rate.
-    """
     notes: list[str] = []
+    signals: list[dict] = []
     horizon_years = {"short_term": 3, "medium_term": 5, "long_term": 10}.get(time_horizon, 5)
 
-    # ── DCF ──────────────────────────────────────────────────────
     dcf_detail: DCFResult | None = None
-    dcf_signal = 50.0  # neutral default
+    dcf_signal = 50.0
+    dcf_computed = False
+    dcf_skip_reason: str | None = None
 
     if (
-        data.free_cash_flow_ttm is not None
-        and data.free_cash_flow_ttm > 0
-        and data.shares_outstanding is not None
-        and data.shares_outstanding > 0
-        and data.current_price is not None
-        and data.current_price > 0
+        data.free_cash_flow_ttm is not None and data.free_cash_flow_ttm > 0
+        and data.shares_outstanding is not None and data.shares_outstanding > 0
+        and data.current_price is not None and data.current_price > 0
     ):
-        # Estimate near-term growth from revenue trend or EDGAR revenue growth
-        near_growth = min(
-            data.revenue_growth_yoy or 0.08,
-            0.40,  # cap at 40% — DCF breaks at extreme growth assumptions
-        )
-        terminal_growth = 0.025  # long-run GDP proxy
-        discount_rate   = 0.10   # conservative WACC approximation
-
+        near_growth     = min(data.revenue_growth_yoy or 0.08, 0.40)
+        terminal_growth = 0.025
+        discount_rate   = 0.10
         try:
             intrinsic = _two_stage_dcf(
-                fcf=data.free_cash_flow_ttm,
-                near_growth=near_growth,
-                terminal_growth=terminal_growth,
-                discount_rate=discount_rate,
-                projection_years=horizon_years,
-                shares=data.shares_outstanding,
+                data.free_cash_flow_ttm, near_growth, terminal_growth,
+                discount_rate, horizon_years, data.shares_outstanding,
             )
             margin = (intrinsic - data.current_price) / intrinsic if intrinsic > 0 else 0.0
             dcf_detail = DCFResult(
@@ -256,54 +219,67 @@ def run_fundamental_analysis(
                 near_term_growth_rate=near_growth,
                 projection_years=horizon_years,
             )
-            dcf_signal = _dcf_to_score(intrinsic, data.current_price)
+            dcf_signal   = _dcf_to_score(intrinsic, data.current_price)
+            dcf_computed = True
             notes.append(
-                f"DCF intrinsic: ${intrinsic:.2f} vs price ${data.current_price:.2f} "
-                f"(margin of safety: {margin*100:.1f}%)"
+                f"DCF intrinsic value ${intrinsic:.2f} vs current ${data.current_price:.2f} "
+                f"({margin*100:+.1f}% margin of safety) → DCF component {dcf_signal:.0f}/100"
             )
+            signals.append({
+                "label": "DCF Margin of Safety", "score": dcf_signal,
+                "detail": f"Trading {abs(margin)*100:.1f}% {'below' if margin > 0 else 'above'} estimated intrinsic value of ${intrinsic:.2f}",
+            })
         except Exception as exc:
-            notes.append(f"DCF calculation failed: {exc} — using neutral 50")
+            dcf_skip_reason = f"DCF calculation raised an error ({exc}) despite having the required inputs — excluded from composite."
+            notes.append(dcf_skip_reason)
             logger.warning("DCF failed", extra={"ticker": ticker, "error": str(exc)})
     else:
-        notes.append("DCF skipped: FCF or shares unavailable / negative FCF → neutral score")
+        dcf_skip_reason = _diagnose_dcf_skip(data)
+        notes.append(f"DCF skipped: {dcf_skip_reason}")
 
-    # ── Sub-scores ────────────────────────────────────────────────
-    safety_score = _compute_safety_score(data, notes)
-    growth_score = _compute_growth_score(data, notes)
-    moat_score   = _compute_moat_score(data, notes)
+    safety_score, safety_computed = _compute_safety_score(data, notes, signals)
+    growth_score, growth_computed = _compute_growth_score(data, notes, signals)
+    moat_score,   moat_computed   = _compute_moat_score(data, notes, signals)
 
-    # ── Weighted composite ────────────────────────────────────────
-    composite = (
-        _W_DCF    * dcf_signal   +
-        _W_SAFETY * safety_score +
-        _W_GROWTH * growth_score +
-        _W_MOAT   * moat_score
-    )
+    result = reweight([
+        WeightedSignal("dcf_signal",    dcf_signal,    _W_DCF,    dcf_computed),
+        WeightedSignal("safety_score",  safety_score,  _W_SAFETY, safety_computed),
+        WeightedSignal("growth_score",  growth_score,  _W_GROWTH, growth_computed),
+        WeightedSignal("moat_score",    moat_score,    _W_MOAT,   moat_computed),
+    ])
+
+    if result.dropped_signals:
+        notes.append(
+            f"Excluded from scoring (no real data): {', '.join(result.dropped_signals)}. "
+            f"Their weight was redistributed to the components that had data."
+        )
 
     logger.info(
         "Fundamental analysis complete",
         extra={
-            "ticker": ticker,
-            "score": round(composite, 2),
-            "dcf": round(dcf_signal, 2),
-            "safety": round(safety_score, 2),
-            "growth": round(growth_score, 2),
-            "moat": round(moat_score, 2),
+            "ticker": ticker, "score": result.composite_score,
+            "data_completeness": result.data_completeness,
+            "dropped": result.dropped_signals, "dcf_computed": dcf_computed,
         },
     )
 
     return FundamentalScore(
         ticker=ticker,
-        score=round(composite, 2),
+        score=result.composite_score,
         dcf_signal=round(dcf_signal, 2),
         safety_score=round(safety_score, 2),
         growth_score=round(growth_score, 2),
         moat_score=round(moat_score, 2),
         dcf_detail=dcf_detail,
+        dcf_skip_reason=dcf_skip_reason,
+        fundamental_data_provider=data.provider or "unavailable",
         pe_ratio=data.pe_ratio,
         debt_to_equity=data.debt_to_equity,
         gross_margin=data.gross_margin,
         roe=data.return_on_equity,
         free_cash_flow=data.free_cash_flow_ttm,
+        data_completeness=result.data_completeness,
+        effective_weights=result.effective_weights,
+        signal_breakdown=signals,
         analysis_notes=notes,
     )

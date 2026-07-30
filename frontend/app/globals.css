@@ -1,59 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --bg:      #0a0a0f;
-  --surface: #12121a;
-  --border:  #1e1e2e;
-  --gold:    #d4a843;
-  --green:   #22c55e;
-  --red:     #ef4444;
-  --muted:   #6b7280;
-  --text:    #e2e8f0;
+  /* Warm near-black, not blue-black — like aged ledger leather */
+  --ink:       #0b0d09;
+  --panel:     #14160f;
+  --panel-lift: #191c13;
+  --rule:      #2e2c22;
+  --rule-soft: #201f18;
+
+  /* Antique gold, used sparingly — not flooding every border */
+  --gold:      #b8935a;
+  --gold-bright: #d4ac74;
+
+  /* Oxidized-bronze green / ledger-ink red, not flat traffic-light colors */
+  --verdigris: #6fa089;
+  --verdigris-bright: #8bbfa6;
+  --oxblood:   #a14545;
+  --oxblood-bright: #c05f5f;
+
+  --text:      #e8e4d8;
+  --text-muted: #8a8676;
+
+  /* legacy aliases so existing components using var(--bg)/var(--surface)/var(--border) still resolve */
+  --bg: var(--ink);
+  --surface: var(--panel);
+  --border: var(--rule);
+  --muted: var(--text-muted);
+  --green: var(--verdigris);
+  --red: var(--oxblood);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background: var(--bg);
+  background: var(--ink);
   color: var(--text);
-  font-family: Inter, system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ── Typography roles ────────────────────────────────────────────────── */
+.font-display {
+  font-family: 'Fraunces', Georgia, serif;
+  font-optical-sizing: auto;
+}
+.font-mono-num {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ── Signature element: guilloché engraving texture ─────────────────────
+   The wavy engine-turned line pattern used on currency and stock
+   certificates as anti-counterfeit engraving. Used sparingly — corner
+   accents only, low opacity — as the one throughline aesthetic risk. */
+.guilloche-corner {
+  position: relative;
+  overflow: hidden;
+}
+.guilloche-corner::before {
+  content: "";
+  position: absolute;
+  top: -20px; right: -20px;
+  width: 140px; height: 140px;
+  opacity: 0.07;
+  pointer-events: none;
+  background-image: repeating-radial-gradient(
+    circle at 100% 0%,
+    var(--gold) 0px,
+    transparent 1.5px,
+    transparent 6px
+  );
 }
 
 /* Scrollbars */
 ::-webkit-scrollbar       { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: var(--surface); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar-track { background: var(--panel); }
+::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 2px; }
 
 /* Recharts dark overrides */
-.recharts-cartesian-axis-tick-value { fill: #6b7280 !important; }
+.recharts-cartesian-axis-tick-value { fill: var(--text-muted) !important; font-family: 'JetBrains Mono', monospace !important; }
 .recharts-tooltip-wrapper .recharts-default-tooltip {
-  background: var(--bg) !important;
-  border: 1px solid var(--border) !important;
+  background: var(--ink) !important;
+  border: 1px solid var(--rule) !important;
   border-radius: 8px !important;
 }
 
 /* Animations */
-@keyframes pulse-gold {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.3; }
-}
-.pulse-gold { animation: pulse-gold 2s ease-in-out infinite; }
+@keyframes pulse-gold { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.pulse-gold { animation: pulse-gold 2.2s ease-in-out infinite; }
 
-@keyframes voice-bar {
-  0%, 100% { transform: scaleY(0.3); }
-  50%       { transform: scaleY(1); }
-}
+@keyframes voice-bar { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
 .voice-bar { animation: voice-bar 0.8s ease-in-out infinite; transform-origin: bottom; }
 .voice-bar:nth-child(2) { animation-delay: 0.1s; }
 .voice-bar:nth-child(3) { animation-delay: 0.2s; }
 .voice-bar:nth-child(4) { animation-delay: 0.3s; }
 .voice-bar:nth-child(5) { animation-delay: 0.4s; }
 
-@keyframes slide-in {
-  from { transform: translateX(100%); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
-}
+@keyframes slide-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 .slide-in { animation: slide-in 0.3s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-gold, .voice-bar, .slide-in { animation: none; }
+}

@@ -1,9 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { connectAlertStream } from "@/lib/websocket";
-import { approveOrder, rejectOrder, getProposalStatus } from "@/lib/api";
-
-const USER_ID = "00000000-0000-0000-0000-000000000001";
+import { approveOrder, rejectOrder } from "@/lib/api";
 
 interface Proposal {
   proposal_id: string;
@@ -19,12 +18,15 @@ interface Proposal {
 }
 
 export default function TradeApproval() {
+  const { data: session } = useSession();
+  const USER_ID = session?.user?.id ?? "";
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading,   setLoading]   = useState<string | null>(null);
   const [result,    setResult]    = useState<{ id: string; msg: string; ok: boolean } | null>(null);
 
   // Listen for HITL approval requests via WebSocket
   useEffect(() => {
+    if (!USER_ID) return;
     const ws = connectAlertStream(USER_ID, (msg) => {
       if (msg.type === "hitl_approval_required") {
         const p = msg as unknown as Proposal;
@@ -35,7 +37,7 @@ export default function TradeApproval() {
       }
     });
     return () => ws.close();
-  }, []);
+  }, [USER_ID]);
 
   const handleApprove = async (p: Proposal) => {
     setLoading(p.proposal_id);

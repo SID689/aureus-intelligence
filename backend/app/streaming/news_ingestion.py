@@ -38,26 +38,33 @@ logger = logging.getLogger("aureus.streaming.ingestion")
 
 # ── RSS feed registry ──────────────────────────────────────────────────────────
 # These are publicly available financial news feeds — no key required.
+# NOTE (Phase 6): the original feed list included feeds.reuters.com and
+# finance.yahoo.com/rss/topfinstories, both of which have been discontinued
+# for years — this was silently starving the news pipeline. Replaced with
+# currently-active sources, plus SEC EDGAR's own live filing feed, which
+# as a direct government source is the most durable of the group.
 RSS_FEEDS = [
     {
-        "name": "Reuters Business",
-        "url": "https://feeds.reuters.com/reuters/businessNews",
-    },
-    {
         "name": "MarketWatch Top Stories",
-        "url": "https://feeds.marketwatch.com/marketwatch/topstories/",
+        "url": "https://feeds.content.dowjones.io/public/rss/mw_topstories",
     },
     {
-        "name": "Yahoo Finance",
-        "url": "https://finance.yahoo.com/rss/topfinstories",
+        "name": "MarketWatch Market Pulse",
+        "url": "https://feeds.content.dowjones.io/public/rss/mw_marketpulse",
     },
     {
         "name": "CNBC Top News",
-        "url": "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+        "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114",
     },
     {
-        "name": "Seeking Alpha Market News",
-        "url": "https://seekingalpha.com/market_currents.xml",
+        "name": "Nasdaq Stocks",
+        "url": "https://www.nasdaq.com/feed/rssoutbound?category=Stocks",
+    },
+    {
+        # SEC EDGAR's live feed of newly-filed 8-K (material event) filings.
+        # Government-run, will not go stale like a media RSS endpoint can.
+        "name": "SEC EDGAR 8-K Filings",
+        "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&company=&dateb=&owner=include&count=100&output=atom",
     },
 ]
 
@@ -196,10 +203,25 @@ class RSSNewsPoller:
         messages: list[RawNewsMessage] = []
 
         try:
-            parsed = feedparser.parse(url)
+            # A browser-like User-Agent is required — several financial
+            # news sites (including some used here) reject requests with
+            # Python's default urllib User-Agent string with a silent 403,
+            # which feedparser reports as an empty feed, not an error.
+            parsed = feedparser.parse(
+                url,
+                agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            )
             if parsed.bozo and not parsed.entries:
                 logger.warning("RSS parse error", extra={"feed": name, "error": str(parsed.bozo_exception)})
                 return []
+
+            status = getattr(parsed, "status", None)
+            if status and status >= 400:
+                logger.warning("RSS feed returned an HTTP error", extra={"feed": name, "status": status})
+                return []
+            if not parsed.entries:
+                logger.info("RSS feed returned zero entries this cycle", extra={"feed": name, "status": status})
 
             for entry in parsed.entries:
                 entry_url = entry.get("link", "")
@@ -217,13 +239,13 @@ class RSSNewsPoller:
                 elif hasattr(entry, "summary"):
                     content = entry.summary or ""
 
-                # Parse published timestamp
+                # Parse published timestamp — RSS uses published_parsed,
+                # Atom feeds (like SEC EDGAR's) use updated_parsed instead.
                 published_at = datetime.now(tz=timezone.utc).isoformat()
-                if hasattr(entry, "published_parsed") and entry.published_parsed:
+                time_struct = getattr(entry, "published_parsed", None) or getattr(entry, "updated_parsed", None)
+                if time_struct:
                     try:
-                        published_at = datetime(
-                            *entry.published_parsed[:6], tzinfo=timezone.utc
-                        ).isoformat()
+                        published_at = datetime(*time_struct[:6], tzinfo=timezone.utc).isoformat()
                     except Exception:
                         pass
 

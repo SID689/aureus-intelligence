@@ -1,25 +1,21 @@
 """
-app/analysis/ensemble.py
-------------------------
-Ensemble Aggregation Engine: combines fundamental, technical, and quantitative
-scores into a single weighted Confidence Index and Buy/Hold/Sell signal.
+app/analysis/ensemble.py  (Phase 6 rewrite)
+---------------------------------------------
+Top-level ensemble aggregation now uses the SAME dynamic-reweighting
+logic as each individual module (see reweighting.py). If, say, the
+fundamental module had near-zero data completeness for a given ticker
+(common for smaller/foreign tickers where EDGAR/Finnhub don't return
+much), its 35% baseline weight is proportionally redistributed to
+technical and quantitative — both of which only need price history,
+which is far more reliably available. This is what actually fixes the
+"everything is HOLD with similar scores" bug: previously, a broken
+fundamental leg would silently pull every score toward 50 at full
+weight; now a broken leg gets discounted, and the signal that remains
+is driven by data that's genuinely known about that specific stock.
 
-Weighting rationale:
-  Fundamental 35% — intrinsic value and balance sheet health are the
-                     strongest long-run predictors of return.
-  Technical   35% — price action and momentum are most relevant for entry
-                     timing, which is critical at all horizons.
-  Quantitative 30% — statistical/ML signals act as a cross-check and
-                      catch factor exposures the other two modules miss.
-
-Signal thresholds (tuned against typical score distributions):
-  ≥ 65 → BUY   (≥ 80: STRONG, 65-79: MODERATE)
-  35-64 → HOLD  (NEUTRAL)
-  < 35  → SELL  (< 20: STRONG, 20-34: MODERATE)
-
-The entry point for all external callers is `run_ensemble_analysis()`.
-It handles all data fetching internally so callers only need a ticker and
-time horizon — not pre-fetched DataFrames or FundamentalDataResult objects.
+Also generates `reasoning` — a grounded explanation of the score,
+optionally polished by an LLM and validated through the guardrails
+(see analysis/reasoning.py).
 """
 
 import logging
@@ -31,134 +27,63 @@ import pandas as pd
 from app.analysis.fundamental import run_fundamental_analysis
 from app.analysis.models import EnsembleSignal, FundamentalScore, QuantitativeScore, TechnicalScore
 from app.analysis.quantitative import run_quantitative_analysis
+from app.analysis.reasoning import generate_reasoning
+from app.analysis.reweighting import WeightedSignal, reweight
 from app.analysis.technical import run_technical_analysis
 from app.ingestion.fundamentals import FundamentalDataService
 from app.ingestion.market_data import MarketDataService
 
 logger = logging.getLogger("aureus.analysis.ensemble")
 
-# Module weights — must sum to 1.0
-_W_FUNDAMENTAL  = 0.35
-_W_TECHNICAL    = 0.35
-_W_QUANTITATIVE = 0.30
+_W_FUNDAMENTAL, _W_TECHNICAL, _W_QUANTITATIVE = 0.35, 0.35, 0.30
 
-# Signal thresholds
-_BUY_THRESHOLD      = 65.0
-_SELL_THRESHOLD     = 35.0
-_STRONG_BUY_THRESH  = 80.0
-_STRONG_SELL_THRESH = 20.0
+_BUY_THRESHOLD, _SELL_THRESHOLD = 65.0, 35.0
+_STRONG_BUY_THRESH, _STRONG_SELL_THRESH = 80.0, 20.0
 
-
-# ── Horizon → lookback mapping ─────────────────────────────────────────────────
+# Minimum data completeness for a module to count as "computed" at all
+# for reweighting purposes at the ensemble level. Below this, the module
+# is so thin it shouldn't influence which way the signal leans.
+_MODULE_COMPLETENESS_FLOOR = 0.15
 
 _HORIZON_CONFIG: dict[str, dict] = {
-    "short_term": {
-        "lookback_days": 90,
-        "frequency": "1d",
-        "label": "Short Term (1–4 weeks)",
-    },
-    "medium_term": {
-        "lookback_days": 365,
-        "frequency": "1d",
-        "label": "Medium Term (1–6 months)",
-    },
-    "long_term": {
-        "lookback_days": 365 * 3,
-        "frequency": "1d",
-        "label": "Long Term (6 months – 2 years)",
-    },
+    "short_term":  {"lookback_days": 90,       "frequency": "1d", "label": "Short Term (1-4 weeks)"},
+    "medium_term": {"lookback_days": 365,      "frequency": "1d", "label": "Medium Term (1-6 months)"},
+    "long_term":   {"lookback_days": 365 * 3,  "frequency": "1d", "label": "Long Term (6 months - 2 years)"},
 }
 
 
-# ── Signal classification ──────────────────────────────────────────────────────
-
-def _classify_signal(
-    score: float,
-) -> tuple[Literal["BUY", "HOLD", "SELL"], Literal["STRONG", "MODERATE", "WEAK"]]:
+def _classify_signal(score: float) -> tuple[Literal["BUY", "HOLD", "SELL"], Literal["STRONG", "MODERATE", "WEAK"]]:
     if score >= _BUY_THRESHOLD:
-        strength = "STRONG" if score >= _STRONG_BUY_THRESH else "MODERATE"
-        return "BUY", strength
+        return "BUY", "STRONG" if score >= _STRONG_BUY_THRESH else "MODERATE"
     if score < _SELL_THRESHOLD:
-        strength = "STRONG" if score < _STRONG_SELL_THRESH else "MODERATE"
-        return "SELL", strength
+        return "SELL", "STRONG" if score < _STRONG_SELL_THRESH else "MODERATE"
     return "HOLD", "WEAK"
 
-
-# ── Weighted composite ─────────────────────────────────────────────────────────
-
-def _compute_confidence_index(
-    fundamental_score: float,
-    technical_score: float,
-    quantitative_score: float,
-) -> float:
-    """
-    Weighted mean of the three module scores.
-    All inputs are expected on [0, 100]. Output is clamped to [0, 100].
-    """
-    raw = (
-        _W_FUNDAMENTAL  * fundamental_score  +
-        _W_TECHNICAL    * technical_score    +
-        _W_QUANTITATIVE * quantitative_score
-    )
-    return round(max(0.0, min(100.0, raw)), 2)
-
-
-# ── Main orchestrator ──────────────────────────────────────────────────────────
 
 def run_ensemble_analysis(
     ticker: str,
     time_horizon: Literal["short_term", "medium_term", "long_term"] = "medium_term",
+    use_llm_reasoning: bool = True,
 ) -> EnsembleSignal:
-    """
-    Full pipeline entry point.
+    ticker = ticker.upper().strip()
+    cfg = _HORIZON_CONFIG.get(time_horizon, _HORIZON_CONFIG["medium_term"])
+    lookback, frequency, horizon_label = cfg["lookback_days"], cfg["frequency"], cfg["label"]
 
-    1. Fetch market bars (with provider fallback chain).
-    2. Fetch SPY bars for beta/alpha calculation.
-    3. Fetch fundamental data (with provider fallback chain).
-    4. Run fundamental, technical, and quantitative modules.
-    5. Compute weighted Confidence Index and classify signal.
-    6. Return a fully populated EnsembleSignal with all sub-breakdowns.
+    end_date, start_date = date.today(), date.today() - timedelta(days=lookback)
 
-    Args:
-        ticker:        Asset symbol (e.g., "AAPL", "MSFT").
-        time_horizon:  "short_term" | "medium_term" | "long_term"
+    logger.info("Ensemble analysis started", extra={"ticker": ticker, "horizon": time_horizon})
 
-    Raises:
-        FallbackExhaustedError: if all market data providers fail for `ticker`.
-        Any other exception propagates to the caller (Celery task or API handler).
-    """
-    ticker       = ticker.upper().strip()
-    cfg          = _HORIZON_CONFIG.get(time_horizon, _HORIZON_CONFIG["medium_term"])
-    lookback     = cfg["lookback_days"]
-    frequency    = cfg["frequency"]
-    horizon_label = cfg["label"]
+    market_svc, fundamental_svc = MarketDataService(), FundamentalDataService()
 
-    end_date   = date.today()
-    start_date = end_date - timedelta(days=lookback)
-
-    logger.info(
-        "Ensemble analysis started",
-        extra={"ticker": ticker, "horizon": time_horizon, "lookback_days": lookback},
-    )
-
-    market_svc      = MarketDataService()
-    fundamental_svc = FundamentalDataService()
-
-    # ── 1. Fetch asset bars ───────────────────────────────────────
     market_result = market_svc.fetch_bars(ticker, start_date, end_date, frequency=frequency)
     bars = market_result.bars
 
-    # ── 2. Fetch SPY bars (best-effort; don't fail the whole request) ──
     spy_bars: pd.DataFrame | None = None
     try:
-        spy_result = market_svc.fetch_bars("SPY", start_date, end_date, frequency=frequency)
-        spy_bars = spy_result.bars
+        spy_bars = market_svc.fetch_bars("SPY", start_date, end_date, frequency=frequency).bars
     except Exception as exc:
-        logger.warning("SPY fetch failed — alpha/beta will be skipped", extra={"error": str(exc)})
+        logger.warning("SPY fetch failed — alpha/beta skipped", extra={"error": str(exc)})
 
-    # ── 3. Fetch fundamental data ─────────────────────────────────
-    # Attach current price from market data to FundamentalDataResult
-    # so DCF can use it even if Finnhub/EDGAR don't provide it.
     current_price = float(bars["close"].iloc[-1])
     try:
         fund_data = fundamental_svc.fetch_fundamentals(ticker)
@@ -166,73 +91,58 @@ def run_ensemble_analysis(
             fund_data.current_price = current_price
         fundamental_provider = fund_data.provider
     except Exception as exc:
-        logger.error(
-            "Fundamental data fetch failed — fundamental score will be neutral",
-            extra={"ticker": ticker, "error": str(exc)},
-        )
-        # Create a minimal result so the analysis can still proceed
+        logger.error("Fundamental data fetch failed", extra={"ticker": ticker, "error": str(exc)})
         from app.ingestion.base import FundamentalDataResult
-        fund_data = FundamentalDataResult(
-            ticker=ticker,
-            provider="unavailable",
-            current_price=current_price,
-        )
+        fund_data = FundamentalDataResult(ticker=ticker, provider="unavailable", current_price=current_price)
         fundamental_provider = "unavailable"
 
-    # ── 4. Run analysis modules ───────────────────────────────────
-    fundamental_result: FundamentalScore = run_fundamental_analysis(
-        ticker=ticker,
-        data=fund_data,
-        time_horizon=time_horizon,
-    )
-
-    technical_result: TechnicalScore = run_technical_analysis(
-        ticker=ticker,
-        bars=bars,
-    )
-
+    fundamental_result: FundamentalScore = run_fundamental_analysis(ticker, fund_data, time_horizon)
+    technical_result: TechnicalScore = run_technical_analysis(ticker, bars)
     quantitative_result: QuantitativeScore = run_quantitative_analysis(
-        ticker=ticker,
-        bars=bars,
-        spy_bars=spy_bars,
-        rsi_value=technical_result.rsi_14,  # reuse pre-computed RSI
+        ticker, bars, spy_bars=spy_bars, rsi_value=technical_result.rsi_14,
     )
 
-    # ── 5. Ensemble aggregation ───────────────────────────────────
-    confidence_index = _compute_confidence_index(
-        fundamental_score=fundamental_result.score,
-        technical_score=technical_result.score,
-        quantitative_score=quantitative_result.score,
-    )
+    # ── Top-level dynamic reweighting (THE core bug fix) ────────────────
+    fund_computed  = fundamental_result.data_completeness  >= _MODULE_COMPLETENESS_FLOOR
+    tech_computed  = technical_result.data_completeness    >= _MODULE_COMPLETENESS_FLOOR
+    quant_computed = quantitative_result.data_completeness >= _MODULE_COMPLETENESS_FLOOR
+
+    top_result = reweight([
+        WeightedSignal("fundamental",  fundamental_result.score,  _W_FUNDAMENTAL,  fund_computed),
+        WeightedSignal("technical",    technical_result.score,    _W_TECHNICAL,    tech_computed),
+        WeightedSignal("quantitative", quantitative_result.score, _W_QUANTITATIVE, quant_computed),
+    ])
+
+    confidence_index = top_result.composite_score
     signal, strength = _classify_signal(confidence_index)
-
-    logger.info(
-        "Ensemble analysis complete",
-        extra={
-            "ticker":             ticker,
-            "signal":             signal,
-            "strength":           strength,
-            "confidence_index":   confidence_index,
-            "fundamental_score":  fundamental_result.score,
-            "technical_score":    technical_result.score,
-            "quantitative_score": quantitative_result.score,
-            "market_provider":    market_result.provider,
-            "fundamental_provider": fundamental_provider,
-        },
+    overall_completeness = round(
+        (fundamental_result.data_completeness + technical_result.data_completeness + quantitative_result.data_completeness) / 3,
+        3,
     )
+    module_weights_used = {
+        "fundamental":  top_result.effective_weights.get("fundamental", 0.0),
+        "technical":    top_result.effective_weights.get("technical", 0.0),
+        "quantitative": top_result.effective_weights.get("quantitative", 0.0),
+    }
+
+    reasoning_text, reasoning_source = generate_reasoning(
+        ticker=ticker, time_horizon_label=horizon_label, signal=signal, strength=strength,
+        confidence_index=confidence_index, fundamental=fundamental_result, technical=technical_result,
+        quantitative=quantitative_result, module_weights=module_weights_used, use_llm_polish=use_llm_reasoning,
+    )
+
+    logger.info("Ensemble analysis complete", extra={
+        "ticker": ticker, "signal": signal, "confidence_index": confidence_index,
+        "overall_completeness": overall_completeness, "module_weights": module_weights_used,
+    })
 
     return EnsembleSignal(
-        ticker=ticker,
-        time_horizon=horizon_label,
-        signal=signal,
-        signal_strength=strength,
+        ticker=ticker, time_horizon=horizon_label, signal=signal, signal_strength=strength,
         confidence_index=confidence_index,
-        fundamental_score=fundamental_result.score,
-        technical_score=technical_result.score,
+        fundamental_score=fundamental_result.score, technical_score=technical_result.score,
         quantitative_score=quantitative_result.score,
-        fundamental=fundamental_result,
-        technical=technical_result,
-        quantitative=quantitative_result,
-        market_data_provider=market_result.provider,
-        fundamental_data_provider=fundamental_provider,
+        fundamental=fundamental_result, technical=technical_result, quantitative=quantitative_result,
+        market_data_provider=market_result.provider, fundamental_data_provider=fundamental_provider,
+        reasoning=reasoning_text, reasoning_source=reasoning_source,
+        overall_data_completeness=overall_completeness, module_weights_used=module_weights_used,
     )

@@ -143,62 +143,32 @@ def _generate_alerts_deterministic(state: NewsProcessingState) -> list[dict]:
 
 def _write_to_database(state: NewsProcessingState, alerts: list[dict]) -> None:
     """
-    Write NewsAlert and PortfolioImpact rows.
-    Wrapped in a single transaction — either all writes succeed or none do.
+    Write PortfolioImpact rows only.
+
+    news_articles and news_alerts are now written unconditionally by
+    news_analyst.py's _write_general_news_record(), regardless of whether
+    any portfolio matched — that's the fix for general market news not
+    showing up when no user held the affected ticker. This function only
+    handles the genuinely user-specific portfolio_impacts table, looking
+    up the already-written news_alert row rather than re-inserting it.
     """
     if not alerts:
         return
 
     engine = _get_engine()
-    now    = datetime.now(tz=timezone.utc)
 
     try:
         with engine.begin() as conn:
-            # ── news_articles (upsert by source_url) ──────────────
-            conn.execute(
-                text("""
-                    INSERT INTO news_articles (id, source, source_url, headline, published_at, ingested_at)
-                    VALUES (gen_random_uuid(), :source, :source_url, :headline, :published_at, NOW())
-                    ON CONFLICT (source_url) DO NOTHING
-                """),
-                {
-                    "source":     state["source"],
-                    "source_url": state["source_url"],
-                    "headline":   state["headline"][:500],
-                    "published_at": state["published_at"],
-                },
-            )
-
-            # Fetch the article UUID we just inserted (or the existing one)
+            # Look up the article + alert that news_analyst.py already wrote
             row = conn.execute(
                 text("SELECT id FROM news_articles WHERE source_url = :url"),
                 {"url": state["source_url"]},
             ).fetchone()
             if row is None:
+                logger.warning("No news_articles row found — skipping portfolio_impacts", extra={"article_id": state["article_id"]})
                 return
             news_article_id = str(row[0])
 
-            # ── news_alerts (one per affected ticker) ──────────────
-            for ticker in state["affected_tickers"]:
-                conn.execute(
-                    text("""
-                        INSERT INTO news_alerts
-                          (id, news_article_id, ticker, sentiment_score,
-                           sentiment_model_version, summary, created_at)
-                        VALUES
-                          (gen_random_uuid(), :article_id, :ticker, :score,
-                           :model_version, :summary, NOW())
-                    """),
-                    {
-                        "article_id":    news_article_id,
-                        "ticker":        ticker,
-                        "score":         state["sentiment_score"],
-                        "model_version": "claude-sonnet-4-6",
-                        "summary":       state["analyst_summary"][:2000],
-                    },
-                )
-
-            # Fetch the news_alert id for the first ticker (for FK linkage)
             alert_row = conn.execute(
                 text("SELECT id FROM news_alerts WHERE news_article_id = :aid LIMIT 1"),
                 {"aid": news_article_id},

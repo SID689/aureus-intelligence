@@ -135,6 +135,70 @@ def _parse_and_validate(raw_json: str, article_id: str) -> dict:
 
 # ── LangGraph node ─────────────────────────────────────────────────────────────
 
+def _write_general_news_record(state: NewsProcessingState, sentiment_score: float, tickers: list[str], summary: str) -> None:
+    """
+    THE FIX for 'market news never loads': previously, news_articles and
+    news_alerts were only written inside advisory.py — which only runs
+    when a real user's portfolio holds the affected ticker. That meant
+    general market news (no portfolio match) never reached the database
+    at all, no matter how well ingestion/preprocessing worked upstream.
+
+    This runs unconditionally after every analyst pass, regardless of
+    whether any downstream portfolio match exists, so the general
+    "Market News" feed actually populates. advisory.py now only writes
+    portfolio_impacts (the genuinely user-specific table).
+    """
+    if not tickers:
+        return
+    try:
+        from sqlalchemy import create_engine, text as sql_text
+        from app.core.config import get_settings
+
+        engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+        with engine.begin() as conn:
+            conn.execute(
+                sql_text("""
+                    INSERT INTO news_articles (id, source, source_url, headline, published_at, ingested_at)
+                    VALUES (gen_random_uuid(), :source, :source_url, :headline, :published_at, NOW())
+                    ON CONFLICT (source_url) DO NOTHING
+                """),
+                {
+                    "source": state["source"], "source_url": state["source_url"],
+                    "headline": state["headline"][:500], "published_at": state["published_at"],
+                },
+            )
+            article_row = conn.execute(
+                sql_text("SELECT id FROM news_articles WHERE source_url = :url"),
+                {"url": state["source_url"]},
+            ).fetchone()
+            if not article_row:
+                return
+            news_article_id = str(article_row[0])
+
+            for ticker in tickers:
+                # Avoid duplicate alert rows if this article/ticker pair was already written
+                existing = conn.execute(
+                    sql_text("SELECT 1 FROM news_alerts WHERE news_article_id = :aid AND ticker = :t"),
+                    {"aid": news_article_id, "t": ticker},
+                ).fetchone()
+                if existing:
+                    continue
+                conn.execute(
+                    sql_text("""
+                        INSERT INTO news_alerts
+                          (id, news_article_id, ticker, sentiment_score, sentiment_model_version, summary, created_at)
+                        VALUES (gen_random_uuid(), :aid, :ticker, :score, :model, :summary, NOW())
+                    """),
+                    {
+                        "aid": news_article_id, "ticker": ticker, "score": sentiment_score,
+                        "model": "claude-sonnet-4-6", "summary": summary[:2000],
+                    },
+                )
+        engine.dispose()
+    except Exception as exc:
+        logger.error("General news DB write failed (non-fatal)", extra={"error": str(exc)})
+
+
 def news_analyst_node(state: NewsProcessingState) -> dict:
     """
     LangGraph node function.
@@ -167,6 +231,7 @@ def news_analyst_node(state: NewsProcessingState) -> dict:
             # JSON parse failed — neutral defaults, mark completed with warning
             errors = state["errors"] + [f"analyst: JSON parse failed for {article_id}"]
             logger.warning("Analyst returning neutral defaults due to parse failure")
+            _write_general_news_record(state, 0.0, state["candidate_tickers"], state["headline"])
             return {
                 "sentiment_score":   0.0,
                 "sentiment_evidence": "",
@@ -192,6 +257,8 @@ def news_analyst_node(state: NewsProcessingState) -> dict:
             },
         )
 
+        _write_general_news_record(state, parsed["sentiment_score"], parsed["affected_tickers"], parsed["analyst_summary"])
+
         return {
             **parsed,
             "analyst_completed": True,
@@ -202,6 +269,8 @@ def news_analyst_node(state: NewsProcessingState) -> dict:
         elapsed = time.monotonic() - start_time
         error_msg = f"analyst: LLM call failed for {article_id}: {exc}"
         logger.error(error_msg, extra={"elapsed_seconds": round(elapsed, 2)}, exc_info=True)
+
+        _write_general_news_record(state, 0.0, state["candidate_tickers"], state["headline"])
 
         return {
             "sentiment_score":   0.0,

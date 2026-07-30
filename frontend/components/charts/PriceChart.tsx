@@ -2,20 +2,21 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine, Scatter, Cell,
+  Tooltip, ResponsiveContainer, Scatter, Cell,
   type TooltipProps,
 } from "recharts";
-import type { PriceBar } from "@/types";
-import { runQuickAnalysis } from "@/lib/api";
+import type { PriceBar } from "@/lib/api";
+import { runQuickAnalysis, getBars } from "@/lib/api";
 
 interface Props {
   ticker:   string;
   horizon?: "short_term" | "medium_term" | "long_term";
+  days?:    number;
 }
 
 // ── Custom tooltip ──────────────────────────────────────────────────────────
 
-function PriceTooltip({ active, payload, label }: TooltipProps<number, string>) {
+function PriceTooltip({ active, payload }: TooltipProps<number, string>) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload as PriceBar;
   if (!d) return null;
@@ -32,7 +33,7 @@ function PriceTooltip({ active, payload, label }: TooltipProps<number, string>) 
           d.signal === "BUY"  ? "text-aureus-green font-bold" :
           d.signal === "SELL" ? "text-aureus-red font-bold"   : "text-aureus-gold font-bold"
         }>
-          ● {d.signal} {d.confidence != null ? `(${(d.confidence).toFixed(0)}%)` : ""}
+          ● {d.signal} {d.confidence != null ? `(${d.confidence.toFixed(0)}%)` : ""}
         </div>
       )}
     </div>
@@ -58,38 +59,6 @@ function SignalDot(props: { cx?: number; cy?: number; payload?: PriceBar }) {
   );
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-function generateMockBars(ticker: string, days = 90): PriceBar[] {
-  const bars: PriceBar[] = [];
-  let price = ticker === "AAPL" ? 185 : ticker === "MSFT" ? 420 : 150;
-  const now = new Date();
-
-  for (let i = days; i >= 0; i--) {
-    const d     = new Date(now);
-    d.setDate(d.getDate() - i);
-    if (d.getDay() === 0 || d.getDay() === 6) continue;
-
-    const change = (Math.random() - 0.48) * price * 0.025;
-    const open   = price;
-    price        = Math.max(price + change, 10);
-    const high   = Math.max(open, price) * (1 + Math.random() * 0.008);
-    const low    = Math.min(open, price) * (1 - Math.random() * 0.008);
-    const volume = Math.floor(20_000_000 + Math.random() * 40_000_000);
-
-    bars.push({
-      timestamp: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      date:      d.toISOString(),
-      open:      parseFloat(open.toFixed(2)),
-      high:      parseFloat(high.toFixed(2)),
-      low:       parseFloat(low.toFixed(2)),
-      close:     parseFloat(price.toFixed(2)),
-      volume,
-    });
-  }
-  return bars;
-}
-
 function injectSignal(bars: PriceBar[], signal: string, confidence: number): PriceBar[] {
   if (!bars.length) return bars;
   const last = bars.length - 1;
@@ -102,36 +71,39 @@ function injectSignal(bars: PriceBar[], signal: string, confidence: number): Pri
 
 // ── Main component ──────────────────────────────────────────────────────────
 
-export default function PriceChart({ ticker, horizon = "medium_term" }: Props) {
-  const [bars,    setBars]    = useState<PriceBar[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
+export default function PriceChart({ ticker, horizon = "medium_term", days = 180 }: Props) {
+  const [bars,     setBars]     = useState<PriceBar[]>([]);
+  const [provider, setProvider] = useState<string>("");
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState<string | null>(null);
 
   const loadChart = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Generate mock OHLCV data
-      const mockBars = generateMockBars(ticker);
+      // Real OHLCV data from the Polygon-first backend fallback chain —
+      // this replaces the old random-walk mock generator entirely.
+      const barsResponse = await getBars(ticker, days, "1d");
+      let bars = barsResponse.bars;
+      setProvider(barsResponse.provider);
 
-      // Fetch the latest signal from the analysis engine
+      // Overlay the latest ensemble signal on the most recent bar
       try {
         const result = await runQuickAnalysis(ticker, horizon);
         if (result.result) {
-          const { signal, confidence_index } = result.result;
-          setBars(injectSignal(mockBars, signal, confidence_index));
-        } else {
-          setBars(mockBars);
+          bars = injectSignal(bars, result.result.signal, result.result.confidence_index);
         }
       } catch {
-        setBars(mockBars);
+        // Chart still renders with real prices even if analysis fails
       }
+
+      setBars(bars);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Chart failed to load");
     } finally {
       setLoading(false);
     }
-  }, [ticker, horizon]);
+  }, [ticker, horizon, days]);
 
   useEffect(() => { loadChart(); }, [loadChart]);
 
@@ -145,14 +117,17 @@ export default function PriceChart({ ticker, horizon = "medium_term" }: Props) {
   if (loading) {
     return (
       <div className="h-80 flex items-center justify-center text-aureus-muted text-sm">
-        Loading {ticker} chart...
+        Loading {ticker} chart from live market data...
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="h-80 flex items-center justify-center text-aureus-red text-sm">{error}</div>
+      <div className="h-80 flex flex-col items-center justify-center gap-2 text-center px-4">
+        <span className="text-aureus-red text-sm">{error}</span>
+        <button onClick={loadChart} className="text-xs text-aureus-gold hover:underline">Retry</button>
+      </div>
     );
   }
 
@@ -174,10 +149,15 @@ export default function PriceChart({ ticker, horizon = "medium_term" }: Props) {
             </>
           )}
         </div>
-        <button onClick={loadChart}
-                className="text-xs text-aureus-muted hover:text-white transition-colors">
-          ↻ Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-aureus-muted">
+            {provider && `via ${provider}`}
+          </span>
+          <button onClick={loadChart}
+                  className="text-xs text-aureus-muted hover:text-white transition-colors">
+            ↻ Refresh
+          </button>
+        </div>
       </div>
 
       {/* Legend */}
@@ -197,7 +177,7 @@ export default function PriceChart({ ticker, horizon = "medium_term" }: Props) {
             tick={{ fill: "#6b7280", fontSize: 11 }}
             tickLine={false}
             axisLine={false}
-            interval={Math.floor(bars.length / 6)}
+            interval={Math.max(1, Math.floor(bars.length / 6))}
           />
           <YAxis
             yAxisId="price"
@@ -209,43 +189,17 @@ export default function PriceChart({ ticker, horizon = "medium_term" }: Props) {
             tickFormatter={(v) => `$${v.toFixed(0)}`}
             width={60}
           />
-          <YAxis
-            yAxisId="vol"
-            orientation="left"
-            domain={[0, volMax * 4]}
-            tick={false}
-            axisLine={false}
-            tickLine={false}
-            width={0}
-          />
+          <YAxis yAxisId="vol" orientation="left" domain={[0, volMax * 4]} tick={false} axisLine={false} tickLine={false} width={0} />
           <Tooltip content={<PriceTooltip />} />
 
-          {/* Volume bars */}
           <Bar yAxisId="vol" dataKey="volume" fill="#1e1e2e" opacity={0.7} radius={[1, 1, 0, 0]}>
-            {bars.map((b, i) => (
-              <Cell key={i}
-                    fill={b.close >= b.open ? "#22c55e22" : "#ef444422"} />
-            ))}
+            {bars.map((b, i) => <Cell key={i} fill={b.close >= b.open ? "#22c55e22" : "#ef444422"} />)}
           </Bar>
 
-          {/* Price line */}
-          <Line
-            yAxisId="price"
-            type="monotone"
-            dataKey="close"
-            stroke="#d4a843"
-            strokeWidth={1.5}
-            dot={false}
-            activeDot={{ r: 4, fill: "#d4a843" }}
-          />
+          <Line yAxisId="price" type="monotone" dataKey="close" stroke="#d4a843" strokeWidth={1.5}
+                dot={false} activeDot={{ r: 4, fill: "#d4a843" }} />
 
-          {/* Signal dots */}
-          <Scatter
-            yAxisId="price"
-            dataKey="close"
-            data={bars.filter((b) => b.signal)}
-            shape={<SignalDot />}
-          />
+          <Scatter yAxisId="price" dataKey="close" data={bars.filter((b) => b.signal)} shape={<SignalDot />} />
         </ComposedChart>
       </ResponsiveContainer>
 
@@ -253,9 +207,7 @@ export default function PriceChart({ ticker, horizon = "medium_term" }: Props) {
       <ResponsiveContainer width="100%" height={60}>
         <ComposedChart data={bars} margin={{ top: 0, right: 68, left: 0, bottom: 0 }}>
           <Bar dataKey="volume" radius={[1, 1, 0, 0]}>
-            {bars.map((b, i) => (
-              <Cell key={i} fill={b.close >= b.open ? "#22c55e55" : "#ef444455"} />
-            ))}
+            {bars.map((b, i) => <Cell key={i} fill={b.close >= b.open ? "#22c55e55" : "#ef444455"} />)}
           </Bar>
           <XAxis dataKey="timestamp" hide />
           <YAxis hide />

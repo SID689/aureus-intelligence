@@ -1,11 +1,5 @@
 """
-app/analysis/models.py
-----------------------
-Canonical output schemas for every analysis module.
-Using dataclasses with __post_init__ validation instead of Pydantic here
-because analysis results are purely internal — they get serialised to
-Pydantic models only at the API boundary (api/v1/analysis.py).
-This keeps the analysis layer dependency-free from FastAPI/Pydantic.
+app/analysis/models.py  (Phase 6 — adds data_completeness + reasoning fields)
 """
 
 from dataclasses import dataclass, field
@@ -21,107 +15,113 @@ DISCLAIMER = (
 )
 
 
-# ── Fundamental ────────────────────────────────────────────────────────────────
-
 @dataclass
 class DCFResult:
     intrinsic_value_per_share: float
     current_price: float
-    margin_of_safety: float          # (intrinsic - price) / intrinsic
-    discount_rate: float             # WACC approximation used
+    margin_of_safety: float
+    discount_rate: float
     terminal_growth_rate: float
     near_term_growth_rate: float
     projection_years: int
 
+
 @dataclass
 class FundamentalScore:
     ticker: str
-    score: float                     # 0–100
-    dcf_signal: float                # 0–100 sub-score
-    safety_score: float              # 0–100 (balance-sheet health)
-    growth_score: float              # 0–100 (revenue/earnings growth)
-    moat_score: float                # 0–100 (ROE, gross margin, consistency)
+    score: float
+    dcf_signal: float
+    safety_score: float
+    growth_score: float
+    moat_score: float
     dcf_detail: DCFResult | None
-    # Raw values for display
     pe_ratio: float | None
     debt_to_equity: float | None
     gross_margin: float | None
     roe: float | None
     free_cash_flow: float | None
+    data_completeness: float = 1.0          # NEW: 0-1, how much of this module was backed by real data
+    effective_weights: dict = field(default_factory=dict)  # NEW: which sub-signals actually contributed
+    # NEW (issue: "reasoning should mention specific things"): each computed
+    # sub-signal reports itself here as {label, score, detail, direction},
+    # so reasoning.py can point to the SPECIFIC line items driving the
+    # score up or down, rather than only the composite number.
+    signal_breakdown: list[dict] = field(default_factory=list)
+    # NEW: explicit, specific diagnosis of why DCF didn't run — distinguishes
+    # "the data provider never returned this figure" from "the company's FCF
+    # is genuinely negative" (a real, informative fact, not a data gap).
+    dcf_skip_reason: str | None = None
+    fundamental_data_provider: str = "unavailable"
     analysis_notes: list[str] = field(default_factory=list)
 
-
-# ── Technical ──────────────────────────────────────────────────────────────────
 
 @dataclass
 class SupportResistanceLevel:
     price: float
     level_type: Literal["support", "resistance"]
-    strength: float                  # number of touches/confirmation count
+    strength: float
+
 
 @dataclass
 class TechnicalScore:
     ticker: str
-    score: float                     # 0–100
-    rsi_score: float                 # 0–100 sub-score
-    macd_score: float                # 0–100
-    sr_score: float                  # 0–100 (support/resistance positioning)
-    volume_score: float              # 0–100
-    # Raw indicator values
+    score: float
+    rsi_score: float
+    macd_score: float
+    sr_score: float
+    volume_score: float
     rsi_14: float | None
     macd_histogram: float | None
     macd_line: float | None
     signal_line: float | None
     current_price: float | None
+    data_completeness: float = 1.0
+    effective_weights: dict = field(default_factory=dict)
+    signal_breakdown: list[dict] = field(default_factory=list)
     support_levels: list[SupportResistanceLevel] = field(default_factory=list)
     resistance_levels: list[SupportResistanceLevel] = field(default_factory=list)
     analysis_notes: list[str] = field(default_factory=list)
 
 
-# ── Quantitative ───────────────────────────────────────────────────────────────
-
 @dataclass
 class QuantitativeScore:
     ticker: str
-    score: float                     # 0–100
-    volatility_score: float          # 0–100 (lower vol = higher score)
-    alpha_score: float               # 0–100 (positive alpha vs SPY)
-    momentum_score: float            # 0–100 (medium-term price momentum)
-    ml_signal_score: float           # 0–100 (ridge regression signal)
-    # Raw metrics
-    rolling_volatility_30d: float | None   # annualised
+    score: float
+    volatility_score: float
+    alpha_score: float
+    momentum_score: float
+    ml_signal_score: float
+    rolling_volatility_30d: float | None
     beta_vs_spy: float | None
-    alpha_vs_spy: float | None             # annualised
+    alpha_vs_spy: float | None
     sharpe_ratio: float | None
-    momentum_12_1: float | None            # 12-month minus 1-month return
+    momentum_12_1: float | None
+    data_completeness: float = 1.0
+    effective_weights: dict = field(default_factory=dict)
+    signal_breakdown: list[dict] = field(default_factory=list)
     analysis_notes: list[str] = field(default_factory=list)
 
 
-# ── Ensemble ───────────────────────────────────────────────────────────────────
-
 @dataclass
 class EnsembleSignal:
-    """
-    The unified output surfaced to the user.
-    confidence_index is on a [0, 100] scale; it is NOT a probability
-    (explicitly to avoid implying any specific mathematical certainty).
-    """
     ticker: str
     time_horizon: str
     signal: Literal["BUY", "HOLD", "SELL"]
     signal_strength: Literal["STRONG", "MODERATE", "WEAK"]
-    confidence_index: float           # 0–100
-    # Module scores
+    confidence_index: float
     fundamental_score: float
     technical_score: float
     quantitative_score: float
-    # Full breakdowns
     fundamental: FundamentalScore
     technical: TechnicalScore
     quantitative: QuantitativeScore
-    # Provenance
     market_data_provider: str
     fundamental_data_provider: str
+    # NEW fields — this is the direct fix for "scores need explanations"
+    reasoning: str = ""                      # human-readable explanation of the score
+    reasoning_source: str = "deterministic"  # "deterministic" | "llm_polished"
+    overall_data_completeness: float = 1.0   # 0-1 across all three modules
+    module_weights_used: dict = field(default_factory=dict)  # actual top-level weights after reweighting
     generated_at: datetime = field(default_factory=datetime.utcnow)
     disclaimer: str = field(default=DISCLAIMER)
     uncertainty_note: str = field(
