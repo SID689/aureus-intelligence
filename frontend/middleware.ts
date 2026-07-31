@@ -38,7 +38,11 @@ export default withAuth(
     callbacks: {
       // Allow public pages; protect everything under (dashboard)
       authorized: ({ token, req }) => {
-        const publicPaths = ["/welcome", "/sign-in", "/sign-up", "/api/auth", "/api/webhooks"];
+        // /api/v1/auth/* (signup, login, oauth-upsert) must stay public — it's
+        // the endpoint an unauthenticated user calls to become authenticated.
+        // Without this, signup redirects to /sign-in before ever reaching the
+        // backend, since the browser-side signup call has no token yet.
+        const publicPaths = ["/welcome", "/sign-in", "/sign-up", "/api/auth", "/api/webhooks", "/api/v1/auth"];
         const isPublic    = publicPaths.some((p) => req.nextUrl.pathname.startsWith(p));
         return isPublic || !!token;
       },

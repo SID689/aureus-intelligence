@@ -229,6 +229,16 @@ def approve_proposal(proposal_id: str, user_id: str, submitted_token: str) -> bo
 
 
 def reject_proposal(proposal_id: str, user_id: str, reason: str = "User rejected") -> bool:
+    """
+    Reject a HITL-pending order. Unlike approval, this doesn't require the
+    signed token (rejection is the safe/conservative direction), but it must
+    still verify the caller owns the proposal — otherwise any caller who
+    learns a proposal_id could cancel another user's pending trade.
+    """
+    proposal = get_proposal(proposal_id)
+    if not proposal or proposal.user_id != user_id:
+        logger.warning("HITL: reject attempted by non-owner or unknown proposal", extra={"proposal_id": proposal_id, "user_id": user_id})
+        return False
     success = _update_state(proposal_id, "rejected", reason=reason)
     if success:
         logger.info("HITL proposal rejected", extra={"proposal_id": proposal_id, "reason": reason})
@@ -241,3 +251,21 @@ def mark_executed(proposal_id: str) -> bool:
 
 def mark_failed(proposal_id: str, reason: str) -> bool:
     return _update_state(proposal_id, "failed", reason=reason)
+
+
+_EXEC_LOCK_PREFIX = "hitl:executing:"
+_EXEC_LOCK_TTL_SECONDS = 60
+
+
+def try_acquire_execution_lock(proposal_id: str) -> bool:
+    """
+    Atomic guard against double-submission to the broker.
+
+    approve_proposal()/_update_state() aren't compare-and-swap — two
+    concurrent approve requests for the same proposal (a double-click, or
+    a client retry after a timeout) can both observe state=="approved" and
+    both proceed to execute_approved_hitl(). Redis SET NX is atomic, so only
+    the first caller acquires this lock; the second must back off instead of
+    submitting a second real order to Alpaca for the same proposal.
+    """
+    return bool(get_redis_client().set(f"{_EXEC_LOCK_PREFIX}{proposal_id}", "1", nx=True, ex=_EXEC_LOCK_TTL_SECONDS))

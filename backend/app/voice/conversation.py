@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 
 import anthropic
 
+from app.agents.guardrails import validate_llm_output
 from app.core.config import get_settings
 from app.voice.session_manager import (
     VoiceSession,
@@ -165,28 +166,54 @@ def process_voice_turn(
     start  = time.monotonic()
 
     try:
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=300,      # short — voice responses should be brief
-            system=system_prompt,
-            messages=messages,
-        )
-        assistant_text = response.content[0].text.strip()
-        elapsed        = time.monotonic() - start
+        for attempt in range(2):
+            turn_messages = messages
+            if attempt == 1:
+                # Same guardrail-violation-retry shape as analysis/reasoning.py's
+                # polish_with_llm: one corrective retry before giving up.
+                turn_messages = messages + [{
+                    "role": "user",
+                    "content": (
+                        "Your previous reply used forbidden absolute/guarantee "
+                        "language. Do not predict future price direction and do "
+                        "not use words like 'will', 'guaranteed', or 'risk-free'. "
+                        "Rephrase your answer to the same question without them."
+                    ),
+                }]
 
-        logger.info(
-            "Voice turn processed",
-            extra={
-                "session_id":     session.session_id,
-                "user_chars":     len(user_text),
-                "response_chars": len(assistant_text),
-                "elapsed_seconds": round(elapsed, 2),
-            },
-        )
+            response = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=300,      # short — voice responses should be brief
+                system=system_prompt,
+                messages=turn_messages,
+            )
+            assistant_text = response.content[0].text.strip()
 
-        # Add assistant turn to history
-        add_turn(session.session_id, "assistant", assistant_text)
-        return assistant_text
+            validation = validate_llm_output(assistant_text)
+            if validation.is_clean:
+                elapsed = time.monotonic() - start
+                logger.info(
+                    "Voice turn processed",
+                    extra={
+                        "session_id":     session.session_id,
+                        "user_chars":     len(user_text),
+                        "response_chars": len(assistant_text),
+                        "elapsed_seconds": round(elapsed, 2),
+                        "attempt":        attempt,
+                    },
+                )
+                add_turn(session.session_id, "assistant", assistant_text)
+                return assistant_text
+
+            logger.warning(
+                "Voice turn failed guardrail validation",
+                extra={"session_id": session.session_id, "violations": validation.violations, "attempt": attempt},
+            )
+
+        # Both attempts violated guardrails — never speak the unsafe text.
+        fallback = "I can't phrase that safely as investment guidance — could you rephrase your question?"
+        add_turn(session.session_id, "assistant", fallback)
+        return fallback
 
     except anthropic.RateLimitError:
         logger.warning("Anthropic rate limit in voice turn")

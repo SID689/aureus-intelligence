@@ -20,7 +20,7 @@ from sqlalchemy import create_engine, text
 from app.core.config import get_settings
 from app.execution import alpaca_client as alpaca
 from app.execution.guardrails import OrderProposal, validate_order
-from app.execution.hitl import create_proposal, mark_executed, mark_failed
+from app.execution.hitl import create_proposal, mark_executed, mark_failed, try_acquire_execution_lock
 
 logger = logging.getLogger("aureus.execution.order_router")
 
@@ -228,6 +228,10 @@ def execute_approved_hitl(proposal_id: str) -> dict:
         return {"status": "error", "error": "Proposal not found or expired"}
     if proposal_data.state != "approved":
         return {"status": "error", "error": f"Proposal is in '{proposal_data.state}' state, not approved"}
+
+    if not try_acquire_execution_lock(proposal_id):
+        logger.warning("HITL: duplicate execution attempt blocked", extra={"proposal_id": proposal_id})
+        return {"status": "error", "error": "Order is already being executed for this proposal"}
 
     order = OrderProposal(
         strategy_id=proposal_data.strategy_id,

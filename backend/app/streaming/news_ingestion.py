@@ -63,10 +63,20 @@ RSS_FEEDS = [
     {
         # SEC EDGAR's live feed of newly-filed 8-K (material event) filings.
         # Government-run, will not go stale like a media RSS endpoint can.
+        # SEC's fair-access policy blocks generic/browser User-Agents with a
+        # 403 on sec.gov — it requires a declared UA identifying the requester
+        # (see sec.gov/os/webmaster-faq#developers), so this feed needs its
+        # own compliant UA instead of the shared browser one below.
         "name": "SEC EDGAR 8-K Filings",
         "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&company=&dateb=&owner=include&count=100&output=atom",
+        "user_agent": "Aureus Intelligence suma.karre@gmail.com",
     },
 ]
+
+_DEFAULT_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
 
 # Seen-URL set TTL in Redis — 24 hours is enough to prevent same-session re-ingestion
 _SEEN_TTL = 86_400
@@ -209,8 +219,7 @@ class RSSNewsPoller:
             # which feedparser reports as an empty feed, not an error.
             parsed = feedparser.parse(
                 url,
-                agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                      "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                agent=feed_meta.get("user_agent", _DEFAULT_UA),
             )
             if parsed.bozo and not parsed.entries:
                 logger.warning("RSS parse error", extra={"feed": name, "error": str(parsed.bozo_exception)})
