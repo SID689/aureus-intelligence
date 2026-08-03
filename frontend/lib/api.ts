@@ -157,7 +157,7 @@ export const setLearningLevel = (userId: string, baseLevel: number) =>
 // ── News ─────────────────────────────────────────────────────────────────────
 
 export interface NewsArticle {
-  id: string; headline: string; source: string; source_url: string;
+  id: string; article_id: string; headline: string; source: string; source_url: string;
   ticker: string; sentiment_score: number; summary: string;
   published_at: string | null; processed_at: string | null;
 }

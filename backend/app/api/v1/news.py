@@ -108,7 +108,8 @@ def recent_articles(limit: int = Query(default=25, ge=1, le=100)) -> dict:
             rows = conn.execute(
                 text("""
                     SELECT
-                        art.id, art.headline, art.source, art.source_url, art.published_at,
+                        na.id AS alert_id, art.id AS article_id,
+                        art.headline, art.source, art.source_url, art.published_at,
                         na.ticker, na.sentiment_score, na.summary, na.created_at
                     FROM news_alerts na
                     JOIN news_articles art ON na.news_article_id = art.id
@@ -127,7 +128,12 @@ def recent_articles(limit: int = Query(default=25, ge=1, le=100)) -> dict:
         "count": len(rows),
         "articles": [
             {
-                "id": str(r.id), "headline": r.headline, "source": r.source,
+                # id is the news_alerts row's own PK, not the article's — one
+                # article can produce multiple alert rows (one per affected
+                # ticker) via the join above, so reusing article.id here
+                # produced duplicate React keys on the frontend.
+                "id": str(r.alert_id), "article_id": str(r.article_id),
+                "headline": r.headline, "source": r.source,
                 "source_url": r.source_url, "ticker": r.ticker,
                 "sentiment_score": float(r.sentiment_score), "summary": r.summary,
                 "published_at": r.published_at.isoformat() if r.published_at else None,
