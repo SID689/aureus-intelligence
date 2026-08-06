@@ -74,7 +74,19 @@ def _route_after_analyst(state: NewsProcessingState) -> str:
     """
     After analyst runs, skip risk_delta if sentiment is essentially neutral
     (|score| < 0.05 means VADER let it through but LLM confirmed it's neutral).
+
+    IMPORTANT: sentiment_score is *also* 0.0 whenever news_analyst_node fell
+    back after an LLM failure (see analyst_used_fallback) — that's a "we
+    don't know" placeholder, not a confirmed-neutral verdict, and must not
+    be routed the same way. Otherwise, for as long as the LLM is down,
+    every single article looks "confirmed neutral" and risk_delta/advisory
+    never run for anyone — which silently kills all personalized portfolio
+    alerts regardless of which tickers are actually held. Always run
+    risk_delta on fallback so ticker matching (at least) still happens.
     """
+    if state.get("analyst_used_fallback", False):
+        return "risk_delta"
+
     score = abs(state.get("sentiment_score", 0.0))
     if score < 0.05:
         logger.debug(

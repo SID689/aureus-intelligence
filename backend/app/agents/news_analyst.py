@@ -241,6 +241,7 @@ def news_analyst_node(state: NewsProcessingState) -> dict:
                 "named_entities":    [],
                 "analyst_summary":   state["headline"],
                 "analyst_completed": True,
+                "analyst_used_fallback": True,
                 "errors":            errors,
                 "processing_stage":  "news_analyst",
             }
@@ -281,6 +282,7 @@ def news_analyst_node(state: NewsProcessingState) -> dict:
             "named_entities":    [],
             "analyst_summary":   state["headline"],
             "analyst_completed": True,
+            "analyst_used_fallback": True,
             "errors":            state["errors"] + [error_msg],
             "processing_stage":  "news_analyst",
         }

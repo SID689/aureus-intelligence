@@ -36,6 +36,10 @@ class NewsProcessingState(TypedDict):
     named_entities:     list             # [{name, ticker, role}]
     analyst_summary:    str              # 2-3 sentence factual summary
     analyst_completed:  bool
+    analyst_used_fallback: bool          # True if the LLM call failed/parsed-failed and
+                                         # sentiment_score is a 0.0 placeholder, not a
+                                         # genuine LLM-confirmed-neutral verdict — the
+                                         # router must not treat these the same way
 
     # ── PORTFOLIO RISK-DELTA AGENT output ──────────────────────────────────────
     affected_users:           list       # [{user_id, portfolio_id, ticker, weight, beta}]
@@ -87,6 +91,7 @@ def make_initial_state(
         named_entities=[],
         analyst_summary="",
         analyst_completed=False,
+        analyst_used_fallback=False,
 
         # Risk Delta defaults
         affected_users=[],

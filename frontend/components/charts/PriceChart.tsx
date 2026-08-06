@@ -199,7 +199,16 @@ export default function PriceChart({ ticker, horizon = "medium_term", days = 180
           <Line yAxisId="price" type="monotone" dataKey="close" stroke="#d4a843" strokeWidth={1.5}
                 dot={false} activeDot={{ r: 4, fill: "#d4a843" }} />
 
-          <Scatter yAxisId="price" dataKey="close" data={bars.filter((b) => b.signal)} shape={<SignalDot />} />
+          {/* Deliberately pass the SAME bars array the rest of the chart uses,
+              not a filtered subset — Scatter positions each point by its
+              INDEX within whatever array it's given, matched against the
+              shared category axis. A filtered array (e.g. just the one bar
+              with a signal) gets positioned by ITS index in the filtered
+              array, not the bar's real position, so the dot lands on some
+              arbitrary/earlier x-tick instead of the bar it belongs to.
+              SignalDot already returns null for bars without a signal, so
+              passing the full array is both correct and sufficient. */}
+          <Scatter yAxisId="price" dataKey="close" data={bars} shape={<SignalDot />} />
         </ComposedChart>
       </ResponsiveContainer>
 
