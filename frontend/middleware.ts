@@ -7,7 +7,6 @@ import type { JWT } from "next-auth/jwt";
 // Routes that require specific tiers
 const TIER_GATES: Record<string, string[]> = {
   "/voice":   ["elite", "institutional"],
-  "/orders":  ["elite", "institutional"],
   "/settings/billing": ["elite", "institutional"],
 };
 

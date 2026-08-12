@@ -97,21 +97,6 @@ export interface PortfolioAlert {
   requires_human_review?: boolean;
 }
 
-// ── Execution ─────────────────────────────────────────────────────────────────
-
-export interface HITLProposal {
-  proposal_id: string;
-  ticker: string;
-  side: "buy" | "sell";
-  quantity: number;
-  stop_loss_price: number;
-  take_profit_price: number;
-  confidence: number;
-  expires_at: string;
-  approval_token: string;
-  state: string;
-}
-
 // ── Tier feature map ──────────────────────────────────────────────────────────
 
 export const TIER_FEATURES: Record<TierName, {
@@ -119,35 +104,27 @@ export const TIER_FEATURES: Record<TierName, {
   color: string;
   maxAnalysisPerDay: number | null;
   voiceMinutes: number | null;
-  liveExecution: boolean;
   realtimeNews: boolean;
-  concurrentStrategies: number | null;
 }> = {
   sovereign: {
     label: "Sovereign",
     color: "text-aureus-muted",
     maxAnalysisPerDay: 10,
     voiceMinutes: 0,
-    liveExecution: false,
     realtimeNews: false,
-    concurrentStrategies: 0,
   },
   elite: {
     label: "Elite",
     color: "text-aureus-gold",
     maxAnalysisPerDay: null,
     voiceMinutes: 500,
-    liveExecution: true,
     realtimeNews: true,
-    concurrentStrategies: 5,
   },
   institutional: {
     label: "Institutional",
     color: "text-purple-400",
     maxAnalysisPerDay: null,
     voiceMinutes: null,
-    liveExecution: true,
     realtimeNews: true,
-    concurrentStrategies: null,
   },
 };

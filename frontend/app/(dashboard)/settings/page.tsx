@@ -75,9 +75,7 @@ export default function SettingsPage() {
           {[
             { label: "Daily Analysis Requests", value: features.maxAnalysisPerDay == null ? "Unlimited" : String(features.maxAnalysisPerDay), enabled: true },
             { label: "Voice Minutes / Month",   value: features.voiceMinutes == null ? "Unlimited" : features.voiceMinutes === 0 ? "Not included" : `${features.voiceMinutes} min`, enabled: features.voiceMinutes !== 0 },
-            { label: "Live Execution",          value: features.liveExecution ? "Enabled" : "Paper only",     enabled: features.liveExecution },
             { label: "Real-Time News",          value: features.realtimeNews ? "Enabled" : "15-min delayed",  enabled: features.realtimeNews },
-            { label: "Concurrent Strategies",   value: features.concurrentStrategies == null ? "Unlimited" : features.concurrentStrategies === 0 ? "Not included" : String(features.concurrentStrategies), enabled: (features.concurrentStrategies ?? 0) > 0 },
           ].map(({ label, value, enabled }) => (
             <div key={label} className="flex items-center justify-between text-sm py-1.5 border-b border-aureus-border/50 last:border-0">
               <div className="flex items-center gap-2 text-aureus-muted">

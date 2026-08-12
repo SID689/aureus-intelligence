@@ -1,5 +1,5 @@
 """
-app/core/config.py  (Phase 4 update — adds Alpaca, OpenAI, HITL secret)
+app/core/config.py
 """
 from functools import lru_cache
 from pydantic import Field, field_validator
@@ -34,21 +34,8 @@ class Settings(BaseSettings):
     # ── LLM ──────────────────────────────────────────────────
     anthropic_api_key: str = Field(default="")
 
-    # ── Phase 4: Alpaca brokerage ─────────────────────────────
-    # Paper trading keys (from paper-api.alpaca.markets)
-    alpaca_paper_api_key: str = Field(default="")
-    alpaca_paper_secret_key: str = Field(default="")
-    # Live trading keys (from api.alpaca.markets) — only set when going live
-    alpaca_live_api_key: str = Field(default="")
-    alpaca_live_secret_key: str = Field(default="")
-
     # ── Phase 4: OpenAI (Whisper STT + TTS) ──────────────────
     openai_api_key: str = Field(default="")
-
-    # ── Phase 4: HITL signing secret ─────────────────────────
-    # HMAC-SHA256 key for signing trade-approval tokens.
-    # Must be at least 32 chars. Rotate this if ever compromised.
-    hitl_signing_secret: str = Field(default="change_this_hitl_secret_minimum_32_chars")
 
     # ── Stripe ────────────────────────────────────────────────
     stripe_secret_key: str = Field(default="")
@@ -56,7 +43,6 @@ class Settings(BaseSettings):
 
     # ── Rate limiting defaults ────────────────────────────────
     sovereign_daily_analysis_limit: int = 10
-    elite_concurrent_strategies: int = 5
     elite_voice_minutes_per_month: int = 500
 
     # ── Phase 3: streaming ────────────────────────────────────
@@ -64,12 +50,10 @@ class Settings(BaseSettings):
     sentiment_prefilter_threshold: float = 0.05
     agent_llm_calls_per_minute: int = 20
 
-    # ── Phase 4: execution guardrails ─────────────────────────
-    max_position_pct: float = 0.05        # 5% max per asset
-    default_stop_loss_pct: float = 0.07   # 7% below entry
-    default_take_profit_pct: float = 0.15 # 15% above entry
-    max_daily_loss_pct: float = 0.03      # halt if down 3% on the day
-    hitl_approval_timeout_seconds: int = 300  # 5-minute approval window
+    # ── Backtesting defaults ──────────────────────────────────
+    backtest_default_initial_capital: float = 10_000.0
+    backtest_default_commission_pct: float = 0.001   # 0.1% per trade, each side
+    backtest_default_slippage_pct: float = 0.0005    # 0.05% adverse fill assumption
 
     # ── Phase 4: voice ────────────────────────────────────────
     voice_session_ttl_seconds: int = 7200  # 2-hour session
@@ -107,14 +91,6 @@ class Settings(BaseSettings):
     @property
     def openai_configured(self) -> bool:
         return bool(self.openai_api_key)
-
-    @property
-    def alpaca_paper_configured(self) -> bool:
-        return bool(self.alpaca_paper_api_key and self.alpaca_paper_secret_key)
-
-    @property
-    def alpaca_live_configured(self) -> bool:
-        return bool(self.alpaca_live_api_key and self.alpaca_live_secret_key)
 
 
 @lru_cache(maxsize=1)

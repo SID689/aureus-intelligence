@@ -172,39 +172,75 @@ export const getNewsPipelineStatus = () =>
   apiFetch<{ stream_depths: Record<string, number>; anthropic_configured: boolean }>("/api/v1/news/status");
 
 // ── Backtesting ──────────────────────────────────────────────────────────────
+// POST /api/v1/backtest/strategy — the main user-facing strategy backtester.
+// (The original ensemble signal-accuracy backtest still exists server-side
+// at /api/v1/backtest/signal-accuracy/run but isn't wired into the UI.)
 
-export const runBacktest = (req: {
-  ticker: string; start_date: string; end_date: string;
-  forward_window_days?: number; step_days?: number;
-}) => apiFetch("/api/v1/backtest/run", { method: "POST", body: JSON.stringify(req) });
-
-// ── Execution ────────────────────────────────────────────────────────────────
-
-export interface OrderRequest {
-  strategy_id: string; user_id: string; portfolio_id: string;
-  ticker: string; side: "buy" | "sell"; order_type: "market" | "limit";
-  quantity: number; limit_price?: number; confidence?: number; is_paper?: boolean;
+export interface RSIRuleRequest {
+  type: "rsi";
+  period?: number;
+  buy_below?: number;
+  sell_above?: number;
 }
 
-export const submitOrder = (order: OrderRequest): Promise<{
-  status: string; trade_id?: string; proposal_id?: string; approval_token?: string;
-  broker_order_id?: string; violations?: string[]; warnings?: string[]; order_summary?: object;
-}> => apiFetch("/api/v1/execution/submit", { method: "POST", body: JSON.stringify(order) });
+export interface MACrossoverRuleRequest {
+  type: "ma_crossover";
+  fast_period?: number;
+  slow_period?: number;
+  ma_type?: "sma" | "ema";
+}
 
-export const approveOrder = (proposalId: string, userId: string, approvalToken: string) =>
-  apiFetch<{ status: string; broker_order_id?: string }>(`/api/v1/execution/approve/${proposalId}`, {
-    method: "POST", body: JSON.stringify({ user_id: userId, approval_token: approvalToken }),
-  });
+export interface StrategyBacktestRequest {
+  tickers: string[];
+  start_date: string;   // YYYY-MM-DD
+  end_date: string;
+  frequency?: "1d" | "1h" | "5m";
+  initial_capital?: number;
+  max_position_pct?: number;
+  commission_pct?: number;
+  slippage_pct?: number;
+  rule: RSIRuleRequest | MACrossoverRuleRequest;
+  stop_loss_pct?: number | null;
+  take_profit_pct?: number | null;
+  allow_short?: boolean;
+}
 
-export const rejectOrder = (proposalId: string, userId: string, reason?: string) =>
-  apiFetch<{ status: string }>(`/api/v1/execution/reject/${proposalId}`, {
-    method: "POST", body: JSON.stringify({ user_id: userId, reason: reason || "User rejected" }),
-  });
+export interface BacktestTrade {
+  ticker: string;
+  direction: "long" | "short";
+  entry_date: string; entry_price: number;
+  exit_date: string; exit_price: number;
+  quantity: number; duration_days: number;
+  pnl_dollars: number; pnl_pct: number;
+  exit_reason: "signal" | "stop_loss" | "take_profit" | "end_of_backtest";
+}
 
-export const getAccountStatus = (paper = true) =>
-  apiFetch<{ equity: number; cash: number; buying_power: number; portfolio_value: number; is_paper: boolean }>(
-    `/api/v1/execution/account?paper=${paper}`
-  );
+export interface EquityCurvePoint {
+  date: string;
+  strategy_equity: number;
+  benchmark_equity: number | null;
+}
+
+export interface StrategyBacktestSummary {
+  total_trades: number; winning_trades: number; losing_trades: number;
+  win_rate_pct: number | null; profit_factor: number | null; expectancy_dollars: number | null;
+  avg_win_dollars: number | null; avg_loss_dollars: number | null;
+  longest_win_streak: number; longest_loss_streak: number; avg_trade_duration_days: number | null;
+  total_return_pct: number; cagr_pct: number;
+  max_drawdown_pct: number; max_drawdown_peak_date: string | null; max_drawdown_trough_date: string | null;
+  sharpe_ratio: number | null; sortino_ratio: number | null;
+  final_equity: number;
+}
+
+export interface StrategyBacktestResult {
+  config: Record<string, unknown>;
+  summary: StrategyBacktestSummary;
+  equity_curve: EquityCurvePoint[];
+  trades: BacktestTrade[];
+}
+
+export const runStrategyBacktest = (req: StrategyBacktestRequest): Promise<StrategyBacktestResult> =>
+  apiFetch("/api/v1/backtest/strategy", { method: "POST", body: JSON.stringify(req) });
 
 // ── Alerts ───────────────────────────────────────────────────────────────────
 

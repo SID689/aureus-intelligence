@@ -2,7 +2,7 @@
 app/billing/stripe_webhooks.py
 -------------------------------
 Backend logic triggered by Stripe events (relayed from the Next.js webhook route).
-Handles tier updates in the database and side-effects like pausing agents on downgrade.
+Handles tier updates in the database.
 """
 
 import logging
@@ -25,10 +25,7 @@ def update_user_tier(
     subscription_status: str,
     stripe_subscription_id: str,
 ) -> dict:
-    """
-    Update a user's subscription tier in the database.
-    If downgrading (to sovereign), pause all active agent strategies.
-    """
+    """Update a user's subscription tier in the database."""
     engine = _get_engine()
 
     try:
@@ -85,39 +82,6 @@ def update_user_tier(
                 },
             )
 
-            # ── Downgrade side-effects ──────────────────────────────
-            is_downgrade = (
-                current_tier in ("elite", "institutional")
-                and new_tier == "sovereign"
-            )
-
-            if is_downgrade:
-                # Pause all active agent strategies for this user
-                result = conn.execute(
-                    text("""
-                        UPDATE agent_strategies
-                        SET status = 'paused',
-                            updated_at = NOW()
-                        WHERE user_id = :user_id
-                          AND status = 'active'
-                        RETURNING id
-                    """),
-                    {"user_id": user_id},
-                )
-                paused_count = result.rowcount
-
-                logger.info(
-                    "Downgrade: agent strategies paused",
-                    extra={
-                        "user_id":       user_id,
-                        "paused_count":  paused_count,
-                        "old_tier":      current_tier,
-                        "new_tier":      new_tier,
-                    },
-                )
-            else:
-                paused_count = 0
-
         logger.info(
             "Tier updated",
             extra={
@@ -130,11 +94,10 @@ def update_user_tier(
         )
 
         return {
-            "status":        "updated",
-            "user_id":       user_id,
-            "old_tier":      current_tier,
-            "new_tier":      new_tier,
-            "paused_agents": paused_count,
+            "status":   "updated",
+            "user_id":  user_id,
+            "old_tier": current_tier,
+            "new_tier": new_tier,
         }
 
     except Exception as exc:

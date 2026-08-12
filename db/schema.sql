@@ -13,21 +13,18 @@
 --  3. `users` is soft-deleted (deleted_at) rather than hard-deleted, so
 --     GDPR Art. 17 erasure can be satisfied via an anonymization routine
 --     while financial records subject to SEC Rule 204-2's 5-year
---     retention requirement (trades, recommendations, disclosures sent)
---     remain intact and referentially valid in audit_logs/executed_trades.
---  4. Brokerage credentials are never stored in plaintext or with a
---     reversible single-key scheme. AES-256-GCM ciphertext, the 12-byte
---     IV/nonce, and the 16-byte auth tag are stored as three discrete
---     columns. The Data Encryption Key (DEK) itself is wrapped by a
---     KMS-managed Key Encryption Key (KEK); only a `kms_key_id`
---     *reference* lives in this database — the unwrapped key material
---     never touches Postgres.
---  5. The LLM agent orchestrator (LangGraph/CrewAI, see architecture doc)
---     never writes directly to executed_trades. It writes strategy
---     configuration/state to agent_strategies; a separate deterministic
---     execution service validates against tier limits and risk rules
---     before any row lands in executed_trades. The schema enforces this
---     boundary by giving agent_strategies no execution-side columns.
+--     retention requirement (recommendations, disclosures sent) remain
+--     intact and referentially valid in audit_logs.
+--  4. DEPRECATED (removed): this schema previously included a live
+--     brokerage-execution subsystem — brokerage_connections (encrypted
+--     Alpaca credentials), agent_strategies (autonomous strategy state
+--     machine), and executed_trades (broker order audit trail) — backing
+--     an agentic auto-trading feature. That feature has been deprecated
+--     in favor of a user-facing historical Strategy Backtesting Engine
+--     (see app/backtesting/); no live orders are ever submitted to a
+--     broker. See db/migrations/003_remove_agentic_execution.sql for the
+--     migration that removed these tables from a previously-provisioned
+--     database.
 -- =====================================================================
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -41,14 +38,7 @@ CREATE TYPE subscription_tier_name  AS ENUM ('sovereign', 'elite', 'institutiona
 CREATE TYPE billing_interval        AS ENUM ('monthly', 'annual', 'free');
 CREATE TYPE llm_model_tier          AS ENUM ('basic', 'advanced', 'custom_ensemble');
 CREATE TYPE subscription_status    AS ENUM ('trialing', 'active', 'past_due', 'canceled', 'incomplete');
-CREATE TYPE broker_provider         AS ENUM ('alpaca_paper', 'alpaca_live');
-CREATE TYPE connection_status       AS ENUM ('active', 'revoked', 'error', 'pending_verification');
 CREATE TYPE notification_status     AS ENUM ('pending', 'delivered', 'read', 'dismissed', 'failed');
-CREATE TYPE agent_type              AS ENUM ('single_agent', 'ensemble');
-CREATE TYPE agent_strategy_status   AS ENUM ('draft', 'active', 'paused', 'archived', 'error');
-CREATE TYPE trade_side              AS ENUM ('buy', 'sell');
-CREATE TYPE order_type              AS ENUM ('market', 'limit', 'stop_loss', 'stop_limit');
-CREATE TYPE trade_status            AS ENUM ('pending', 'submitted', 'partially_filled', 'filled', 'canceled', 'rejected', 'expired');
 CREATE TYPE audit_event_category    AS ENUM ('recommendation', 'disclosure_shown', 'trade_execution', 'data_access', 'auth', 'consent');
 CREATE TYPE consent_type            AS ENUM ('terms_of_service', 'privacy_policy', 'voice_recording', 'marketing', 'risk_disclosure');
 CREATE TYPE dsr_type                AS ENUM ('access', 'erasure', 'portability', 'rectification');
@@ -135,12 +125,10 @@ CREATE TABLE subscription_tiers (
   price_cents                       INTEGER NOT NULL CHECK (price_cents >= 0),
   billing_interval                  billing_interval NOT NULL,
   max_analysis_requests_per_day     INTEGER,             -- NULL = unlimited
-  concurrent_agent_strategies_limit INTEGER,             -- NULL = unlimited/contract-defined
   voice_minutes_per_month           INTEGER,             -- NULL = unlimited
   news_feed_delay_seconds           INTEGER NOT NULL DEFAULT 900,
   model_tier                        llm_model_tier NOT NULL,
-  supports_live_execution           BOOLEAN NOT NULL DEFAULT false,
-  supports_human_in_loop_alerts     BOOLEAN NOT NULL DEFAULT false,
+  supports_human_in_loop_alerts     BOOLEAN NOT NULL DEFAULT false,  -- flags significant news-impact rows for human review (see app/agents/risk_delta.py) — unrelated to the deprecated live-execution feature
   features                          JSONB NOT NULL DEFAULT '{}'::jsonb,
   is_active                         BOOLEAN NOT NULL DEFAULT true,
   created_at                        TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -148,22 +136,22 @@ CREATE TABLE subscription_tiers (
 
 INSERT INTO subscription_tiers
   (tier_name, display_name, price_cents, billing_interval, max_analysis_requests_per_day,
-   concurrent_agent_strategies_limit, voice_minutes_per_month, news_feed_delay_seconds,
-   model_tier, supports_live_execution, supports_human_in_loop_alerts, features)
+   voice_minutes_per_month, news_feed_delay_seconds,
+   model_tier, supports_human_in_loop_alerts, features)
 VALUES
   ('sovereign', 'Sovereign (Free / Paper)', 0, 'free', 10,
-   0, 0, 900,
-   'basic', false, false,
-   '{"paper_trading_only": true, "real_time_data": false}'::jsonb),
+   0, 900,
+   'basic', false,
+   '{"real_time_data": false}'::jsonb),
 
   ('elite', 'Elite', 5000, 'monthly', NULL,
-   5, 500, 0,
-   'advanced', true, false,
-   '{"real_time_data": true, "live_execution": true, "direct_alpaca": true}'::jsonb),
+   500, 0,
+   'advanced', false,
+   '{"real_time_data": true}'::jsonb),
 
   ('institutional', 'Institutional', 10000, 'monthly', NULL,
-   NULL, NULL, 0,
-   'custom_ensemble', true, true,
+   NULL, 0,
+   'custom_ensemble', true,
    '{"real_time_data": true, "sub_second_news": true, "unthrottled_voice": true, "cross_portfolio_alerts": true}'::jsonb);
 
 -- =====================================================================
@@ -213,38 +201,12 @@ CREATE TRIGGER trg_usage_counters_updated_at
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- =====================================================================
--- 7. BROKERAGE_CONNECTIONS — AES-256-GCM encrypted credentials at rest
--- =====================================================================
-CREATE TABLE brokerage_connections (
-  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id              UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  organization_id      UUID REFERENCES organizations(id) ON DELETE SET NULL,
-  broker               broker_provider NOT NULL,
-  encrypted_api_key    BYTEA NOT NULL,   -- AES-256-GCM ciphertext
-  encrypted_api_secret BYTEA NOT NULL,   -- AES-256-GCM ciphertext
-  encryption_iv        BYTEA NOT NULL,   -- 12-byte nonce, unique per encryption operation, never reused
-  encryption_auth_tag  BYTEA NOT NULL,   -- 16-byte GCM authentication tag
-  kms_key_id           TEXT NOT NULL,    -- reference to the KMS-wrapped DEK; unwrapped key never stored here
-  is_live              BOOLEAN NOT NULL DEFAULT false,
-  status               connection_status NOT NULL DEFAULT 'pending_verification',
-  last_verified_at     TIMESTAMPTZ,
-  created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at           TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_brokerage_connections_user_id ON brokerage_connections(user_id);
-CREATE TRIGGER trg_brokerage_connections_updated_at
-  BEFORE UPDATE ON brokerage_connections
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
--- =====================================================================
--- 8. PORTFOLIOS
+-- 7. PORTFOLIOS
 -- =====================================================================
 CREATE TABLE portfolios (
   id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id                 UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   organization_id         UUID REFERENCES organizations(id) ON DELETE SET NULL,
-  brokerage_connection_id UUID REFERENCES brokerage_connections(id) ON DELETE SET NULL,
   name                    TEXT NOT NULL,
   is_paper                BOOLEAN NOT NULL DEFAULT true,
   base_currency           CHAR(3) NOT NULL DEFAULT 'USD',
@@ -258,7 +220,7 @@ CREATE TRIGGER trg_portfolios_updated_at
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- =====================================================================
--- 9. PORTFOLIO_HOLDINGS
+-- 8. PORTFOLIO_HOLDINGS
 -- =====================================================================
 CREATE TABLE portfolio_holdings (
   id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -283,7 +245,7 @@ CREATE TRIGGER trg_portfolio_holdings_updated_at
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- =====================================================================
--- 10. NEWS_ARTICLES — raw ingestion record (global, not tenant-scoped)
+-- 9. NEWS_ARTICLES — raw ingestion record (global, not tenant-scoped)
 -- =====================================================================
 CREATE TABLE news_articles (
   id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -299,7 +261,7 @@ CREATE TABLE news_articles (
 CREATE INDEX idx_news_articles_published_at ON news_articles(published_at DESC);
 
 -- =====================================================================
--- 11. NEWS_ALERTS — per-ticker sentiment extraction
+-- 10. NEWS_ALERTS — per-ticker sentiment extraction
 -- =====================================================================
 CREATE TABLE news_alerts (
   id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -314,7 +276,7 @@ CREATE TABLE news_alerts (
 CREATE INDEX idx_news_alerts_ticker_created_at ON news_alerts(ticker, created_at DESC);
 
 -- =====================================================================
--- 12. PORTFOLIO_IMPACTS — news -> holding impact + notification tracking
+-- 11. PORTFOLIO_IMPACTS — news -> holding impact + notification tracking
 -- =====================================================================
 CREATE TABLE portfolio_impacts (
   id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -335,67 +297,7 @@ CREATE INDEX idx_portfolio_impacts_pending ON portfolio_impacts(notification_sta
   WHERE notification_status = 'pending';
 
 -- =====================================================================
--- 13. AGENT_STRATEGIES — state-machine-tracked autonomous agent config
--- =====================================================================
-CREATE TABLE agent_strategies (
-  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id             UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  organization_id     UUID REFERENCES organizations(id) ON DELETE SET NULL,
-  parent_strategy_id  UUID REFERENCES agent_strategies(id) ON DELETE SET NULL,  -- inherited rule hierarchy
-  name                TEXT NOT NULL,
-  agent_type          agent_type NOT NULL DEFAULT 'single_agent',
-  state_machine_token TEXT NOT NULL DEFAULT 'idle',   -- current FSM node: idle | analyzing | awaiting_approval | executing | halted
-  status              agent_strategy_status NOT NULL DEFAULT 'draft',
-  confidence_score    NUMERIC(4,3) CHECK (confidence_score >= 0 AND confidence_score <= 1),
-  configuration       JSONB NOT NULL DEFAULT '{}'::jsonb,  -- ensemble members, entry/exit rules, risk limits
-  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_agent_strategies_user_id ON agent_strategies(user_id);
-CREATE INDEX idx_agent_strategies_parent_id ON agent_strategies(parent_strategy_id);
-CREATE TRIGGER trg_agent_strategies_updated_at
-  BEFORE UPDATE ON agent_strategies
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
--- =====================================================================
--- 14. EXECUTED_TRADES
--- =====================================================================
-CREATE TABLE executed_trades (
-  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  strategy_id             UUID REFERENCES agent_strategies(id) ON DELETE SET NULL,  -- NULL = manual trade
-  portfolio_id            UUID NOT NULL REFERENCES portfolios(id) ON DELETE CASCADE,
-  user_id                 UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,     -- denormalized for RLS
-  brokerage_connection_id UUID NOT NULL REFERENCES brokerage_connections(id),
-  ticker                  TEXT NOT NULL,
-  side                    trade_side NOT NULL,
-  order_type              order_type NOT NULL,
-  limit_price             NUMERIC(20,6),
-  stop_price              NUMERIC(20,6),
-  quantity                NUMERIC(20,8) NOT NULL CHECK (quantity > 0),
-  status                  trade_status NOT NULL DEFAULT 'pending',
-  broker_order_id         TEXT,
-  submitted_at            TIMESTAMPTZ,
-  filled_at               TIMESTAMPTZ,
-  filled_avg_price        NUMERIC(20,6),
-  execution_log           JSONB NOT NULL DEFAULT '[]'::jsonb,  -- ordered [{status, timestamp, detail}, ...]
-  created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT chk_limit_price_required CHECK (
-    (order_type IN ('limit', 'stop_limit') AND limit_price IS NOT NULL)
-    OR (order_type NOT IN ('limit', 'stop_limit'))
-  ),
-  CONSTRAINT chk_stop_price_required CHECK (
-    (order_type IN ('stop_loss', 'stop_limit') AND stop_price IS NOT NULL)
-    OR (order_type NOT IN ('stop_loss', 'stop_limit'))
-  )
-);
-
-CREATE INDEX idx_executed_trades_portfolio_id ON executed_trades(portfolio_id);
-CREATE INDEX idx_executed_trades_strategy_id ON executed_trades(strategy_id);
-CREATE INDEX idx_executed_trades_status ON executed_trades(status);
-
--- =====================================================================
--- 15. AUDIT_LOGS — SEC Rule 204-2 recordkeeping substrate
+-- 12. AUDIT_LOGS — SEC Rule 204-2 recordkeeping substrate
 -- =====================================================================
 CREATE TABLE audit_logs (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -416,7 +318,7 @@ CREATE INDEX idx_audit_logs_user_id_created_at ON audit_logs(user_id, created_at
 CREATE INDEX idx_audit_logs_event_category ON audit_logs(event_category);
 
 -- =====================================================================
--- 16. CONSENT_RECORDS — GDPR Art. 7 proof-of-consent ledger
+-- 13. CONSENT_RECORDS — GDPR Art. 7 proof-of-consent ledger
 -- =====================================================================
 CREATE TABLE consent_records (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -432,7 +334,7 @@ CREATE TABLE consent_records (
 CREATE INDEX idx_consent_records_user_id ON consent_records(user_id);
 
 -- =====================================================================
--- 17. DATA_SUBJECT_REQUESTS — GDPR/CCPA DSR tracking
+-- 14. DATA_SUBJECT_REQUESTS — GDPR/CCPA DSR tracking
 -- =====================================================================
 CREATE TABLE data_subject_requests (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -447,7 +349,7 @@ CREATE TABLE data_subject_requests (
 CREATE INDEX idx_data_subject_requests_user_id ON data_subject_requests(user_id);
 
 -- =====================================================================
--- 18. VOICE_SESSIONS — tier-gated voice-minute tracking
+-- 15. VOICE_SESSIONS — tier-gated voice-minute tracking
 -- =====================================================================
 CREATE TABLE voice_sessions (
   id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -475,9 +377,6 @@ CREATE INDEX idx_voice_sessions_user_id ON voice_sessions(user_id);
 
 ALTER TABLE portfolios            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolio_holdings    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE brokerage_connections ENABLE ROW LEVEL SECURITY;
-ALTER TABLE agent_strategies      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE executed_trades       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolio_impacts     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE voice_sessions        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE usage_counters        ENABLE ROW LEVEL SECURITY;
@@ -491,23 +390,6 @@ CREATE POLICY tenant_isolation_portfolios ON portfolios
   );
 
 CREATE POLICY tenant_isolation_portfolio_holdings ON portfolio_holdings
-  USING (user_id = current_setting('app.current_user_id', true)::uuid);
-
-CREATE POLICY tenant_isolation_brokerage_connections ON brokerage_connections
-  USING (
-    user_id = current_setting('app.current_user_id', true)::uuid
-    OR (organization_id IS NOT NULL
-        AND organization_id = NULLIF(current_setting('app.current_org_id', true), '')::uuid)
-  );
-
-CREATE POLICY tenant_isolation_agent_strategies ON agent_strategies
-  USING (
-    user_id = current_setting('app.current_user_id', true)::uuid
-    OR (organization_id IS NOT NULL
-        AND organization_id = NULLIF(current_setting('app.current_org_id', true), '')::uuid)
-  );
-
-CREATE POLICY tenant_isolation_executed_trades ON executed_trades
   USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 CREATE POLICY tenant_isolation_portfolio_impacts ON portfolio_impacts

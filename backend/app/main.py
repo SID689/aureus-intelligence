@@ -11,7 +11,6 @@ from app.core.logging_config import setup_logging
 from app.core.redis_client import get_redis_client
 from app.api.v1.analysis  import router as analysis_router
 from app.api.v1.ws        import router as ws_router
-from app.api.v1.execution import router as execution_router
 from app.api.v1.voice     import router as voice_router
 from app.api.v1.billing   import router as billing_router
 from app.api.v1.metrics   import router as metrics_router
@@ -38,7 +37,6 @@ async def lifespan(app: FastAPI):
     logger.info("Providers", extra={
         "polygon":      settings.polygon_configured,
         "anthropic":    settings.anthropic_configured,
-        "alpaca_paper": settings.alpaca_paper_configured,
         "openai":       settings.openai_configured,
     })
     yield
@@ -64,7 +62,6 @@ app.add_middleware(
 
 app.include_router(analysis_router)
 app.include_router(ws_router)
-app.include_router(execution_router)
 app.include_router(voice_router)
 app.include_router(billing_router)
 app.include_router(metrics_router)
