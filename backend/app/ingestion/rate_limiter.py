@@ -51,6 +51,26 @@ class ProviderUnavailableError(AureusAPIError):
     pass
 
 
+class ProviderBudgetExhausted(AureusAPIError):
+    """
+    Our OWN pre-flight budget check refused the call — no request was made.
+
+    Deliberately NOT in the default `retryable` tuple, and that distinction is
+    the whole point of the class. RateLimitError means the REMOTE service
+    pushed back, so waiting and retrying is sensible. This means our local
+    token bucket knows the minute's quota is already spent, so retrying can
+    only sleep through a budget that is not coming back within the retry
+    window — while the caller has a perfectly good fallback provider sitting
+    right there.
+
+    Raising a retryable error here defeated the token bucket entirely: the
+    bucket was added so an exhausted quota falls through to the next provider
+    INSTANTLY, but the backoff decorator caught it and slept ~60s across four
+    retries first. That was the dominant cost in cold analysis latency.
+    """
+    pass
+
+
 class DataNotFoundError(AureusAPIError):
     """Provider responded successfully but returned no data for the request."""
     pass

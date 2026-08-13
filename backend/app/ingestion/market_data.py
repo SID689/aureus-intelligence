@@ -21,6 +21,7 @@ import yfinance as yf
 from app.core.config import get_settings
 from app.ingestion.base import MarketDataProvider, MarketDataResult
 from app.ingestion.rate_limiter import (
+    ProviderBudgetExhausted,
     AureusAPIError,
     DataNotFoundError,
     FallbackExhaustedError,
@@ -74,7 +75,10 @@ class PolygonProvider(MarketDataProvider):
         frequency: Literal["1d", "1h", "5m"] = "1d",
     ) -> MarketDataResult:
         if not _polygon_bucket.allow():
-            raise RateLimitError(
+            # Non-retryable by design — see ProviderBudgetExhausted. Sleeping
+            # here would burn ~60s waiting on a quota we already know is spent,
+            # when AlphaVantage/YFinance can answer immediately.
+            raise ProviderBudgetExhausted(
                 "Polygon.io free-tier rate limit (5/min) reached — deferring to next provider",
                 status_code=429, provider=self.name,
             )
@@ -141,7 +145,10 @@ class PolygonProvider(MarketDataProvider):
         On 403, fall back to previous-session close (free tier).
         """
         if not _polygon_bucket.allow():
-            raise RateLimitError(
+            # Non-retryable by design — see ProviderBudgetExhausted. Sleeping
+            # here would burn ~60s waiting on a quota we already know is spent,
+            # when AlphaVantage/YFinance can answer immediately.
+            raise ProviderBudgetExhausted(
                 "Polygon.io free-tier rate limit (5/min) reached — deferring to next provider",
                 status_code=429, provider=self.name,
             )
@@ -342,6 +349,30 @@ def _bars_cache_key(ticker: str, start: date, end: date, frequency: str) -> str:
 _BARS_CACHE_TTL = {"1d": 900, "1h": 180, "5m": 60}  # seconds
 
 
+def _normalise_bars(result: "MarketDataResult") -> None:
+    """
+    Force one bar shape across every provider.
+
+    Providers disagree on the index name — Polygon returns `timestamp`,
+    yfinance returns `Date` — and consumers downstream do
+    `bars.reset_index()` and then read `row["timestamp"]`. That worked only
+    because Polygon almost always answered first; the moment the chain fell
+    through to yfinance the API raised KeyError: 'timestamp' and 500'd.
+    (The Redis cache round-trip already normalised it via set_index("timestamp"),
+    so a cached result behaved differently from a fresh one — the same request
+    could succeed or fail depending purely on cache state.)
+
+    Normalising here, at the one choke point every provider passes through,
+    makes the contract true for the API, the analysis engine, the backtester
+    and the pattern game alike.
+    """
+    df = result.bars
+    if df is None or df.empty:
+        return
+    df.index.name = "timestamp"
+    df.columns = [str(c).lower() for c in df.columns]
+
+
 class MarketDataService:
     """
     Tries providers in priority order: Polygon.io → Alpha Vantage → YFinance.
@@ -372,6 +403,7 @@ class MarketDataService:
             attempted.append(provider.name)
             try:
                 result = provider.fetch_bars(ticker, start, end, frequency)
+                _normalise_bars(result)
                 self._write_cache(cache_key, result, frequency)
                 return result
             except FallbackExhaustedError:
