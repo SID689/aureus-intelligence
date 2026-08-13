@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     # ── Phase 4: OpenAI (Whisper STT + TTS) ──────────────────
     openai_api_key: str = Field(default="")
 
+    # ── Local LLM (free) ─────────────────────────────────────
+    # Ollama runs open-weight models on the host at zero marginal cost and
+    # needs no API key. Must be host.docker.internal, not localhost — the
+    # backend is containerised and Ollama runs on the host.
+    ollama_base_url: str = Field(default="")
+    ollama_model: str = Field(default="llama3.1:8b")
+
     # ── Stripe ────────────────────────────────────────────────
     stripe_secret_key: str = Field(default="")
     stripe_webhook_secret: str = Field(default="")
@@ -84,13 +91,28 @@ class Settings(BaseSettings):
     def finnhub_configured(self) -> bool:
         return bool(self.finnhub_api_key)
 
+    @staticmethod
+    def _is_real_key(value: str, min_length: int = 24) -> bool:
+        """
+        Reject placeholder keys as well as empty ones.
+
+        backend/.env ships with illustrative values like `sk-...` and
+        `sk-ant-api03-...`. A plain truthiness check treats those as
+        configured, so the app makes a doomed API call on every request and
+        only discovers the key is fake from the 401. Requiring a plausible
+        length and no ellipsis catches every placeholder in the file while
+        never rejecting a genuine key, which is far longer.
+        """
+        v = (value or "").strip()
+        return len(v) >= min_length and "..." not in v
+
     @property
     def anthropic_configured(self) -> bool:
-        return bool(self.anthropic_api_key)
+        return self._is_real_key(self.anthropic_api_key, 40)
 
     @property
     def openai_configured(self) -> bool:
-        return bool(self.openai_api_key)
+        return self._is_real_key(self.openai_api_key, 40)
 
 
 @lru_cache(maxsize=1)

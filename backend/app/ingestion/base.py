@@ -79,6 +79,19 @@ class FundamentalDataResult:
     current_price: float | None = None
 
     # Profitability
+    # ── Institutional valuation/quality metrics (SEC EDGAR-derived, free) ──
+    ebitda_ttm: float | None = None
+    cash_and_equivalents: float | None = None
+    interest_expense_ttm: float | None = None
+    income_tax_expense_ttm: float | None = None
+    pretax_income_ttm: float | None = None
+    enterprise_value: float | None = None
+    ev_to_ebitda: float | None = None
+    price_to_sales: float | None = None
+    fcf_yield: float | None = None
+    roic: float | None = None                 # NOPAT / invested capital
+    interest_coverage: float | None = None    # EBIT / interest expense
+    sector: str | None = None
     return_on_equity: float | None = None
     return_on_assets: float | None = None
 

@@ -47,6 +47,11 @@ class FundamentalScore:
     revenue_growth_yoy: float | None = None
     current_ratio: float | None = None
     market_cap: float | None = None
+    ev_to_ebitda: float | None = None
+    price_to_sales: float | None = None
+    fcf_yield: float | None = None
+    roic: float | None = None
+    interest_coverage: float | None = None
     data_completeness: float = 1.0          # NEW: 0-1, how much of this module was backed by real data
     effective_weights: dict = field(default_factory=dict)  # NEW: which sub-signals actually contributed
     # NEW (issue: "reasoning should mention specific things"): each computed

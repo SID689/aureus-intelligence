@@ -209,6 +209,14 @@ class SECEdgarProvider(FundamentalDataProvider):
         "Liabilities",
         "AssetsCurrent",
         "LiabilitiesCurrent",
+        # Added so EV/EBITDA, ROIC and interest coverage can be computed
+        # without a paid data vendor — all present in standard XBRL filings.
+        "DepreciationDepletionAndAmortization",
+        "DepreciationAmortizationAndAccretionNet",
+        "CashAndCashEquivalentsAtCarryingValue",
+        "InterestExpense",
+        "IncomeTaxExpenseBenefit",
+        "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
     }
 
     def __init__(self) -> None:
@@ -319,6 +327,17 @@ class SECEdgarProvider(FundamentalDataProvider):
         equity_series   = self._extract_annual_values(facts, "StockholdersEquity")
         total_equity    = equity_series[-1][1] if equity_series else None
 
+        dna_series      = (
+            self._extract_annual_values(facts, "DepreciationDepletionAndAmortization")
+            or self._extract_annual_values(facts, "DepreciationAmortizationAndAccretionNet")
+        )
+        cash_series     = self._extract_annual_values(facts, "CashAndCashEquivalentsAtCarryingValue")
+        interest_series = self._extract_annual_values(facts, "InterestExpense")
+        tax_series      = self._extract_annual_values(facts, "IncomeTaxExpenseBenefit")
+        pretax_series   = self._extract_annual_values(
+            facts,
+            "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+        )
         assets_series   = self._extract_annual_values(facts, "Assets")
         total_assets    = assets_series[-1][1] if assets_series else None
 
@@ -382,6 +401,13 @@ class SECEdgarProvider(FundamentalDataProvider):
             shares_outstanding=shares,
             return_on_equity=roe,
             return_on_assets=roa,
+            ebitda_ttm=(
+                (op_income + dna_series[-1][1]) if (op_income is not None and dna_series) else None
+            ),
+            cash_and_equivalents=(cash_series[-1][1] if cash_series else None),
+            interest_expense_ttm=(interest_series[-1][1] if interest_series else None),
+            income_tax_expense_ttm=(tax_series[-1][1] if tax_series else None),
+            pretax_income_ttm=(pretax_series[-1][1] if pretax_series else None),
             revenue_history=rev_history,
             net_income_history=ni_history,
         )
@@ -511,3 +537,56 @@ class FundamentalDataService:
             eps = _safe_div(d.net_income_ttm, d.shares_outstanding)
             if eps is not None:
                 d.eps_ttm = eps
+
+        # ── Institutional valuation & quality ratios ──────────────────
+        # All of these are computed from SEC XBRL line items, so they cost
+        # nothing and need no vendor key. Each is left None when an input is
+        # missing rather than approximated — the analysis layer's dynamic
+        # reweighting handles an absent signal correctly, whereas a guessed
+        # one silently corrupts the score.
+
+        # Enterprise value = equity value + debt - cash. This is the figure a
+        # buyer of the whole business would pay, which is why EV multiples are
+        # comparable across companies with different capital structures in a
+        # way P/E is not.
+        if d.enterprise_value is None and d.market_cap is not None:
+            debt = d.total_debt or 0.0
+            cash = d.cash_and_equivalents or 0.0
+            d.enterprise_value = d.market_cap + debt - cash
+
+        if d.ev_to_ebitda is None and d.enterprise_value is not None and d.ebitda_ttm:
+            if d.ebitda_ttm > 0:
+                d.ev_to_ebitda = d.enterprise_value / d.ebitda_ttm
+
+        if d.price_to_sales is None:
+            ps = _safe_div(d.market_cap, d.revenue_ttm)
+            if ps is not None and ps > 0:
+                d.price_to_sales = ps
+
+        if d.fcf_yield is None and d.free_cash_flow_ttm is not None and d.market_cap:
+            d.fcf_yield = d.free_cash_flow_ttm / d.market_cap
+
+        # Interest coverage = EBIT / interest expense. Below ~2x the business
+        # is servicing debt out of most of its operating profit.
+        if d.interest_coverage is None and d.interest_expense_ttm:
+            ebit = d.ebitda_ttm
+            if ebit is None and d.operating_margin is not None and d.revenue_ttm:
+                ebit = d.operating_margin * d.revenue_ttm
+            if ebit is not None and d.interest_expense_ttm > 0:
+                d.interest_coverage = ebit / d.interest_expense_ttm
+
+        # ROIC = NOPAT / invested capital. Uses the company's OWN effective tax
+        # rate from the filing rather than a statutory assumption, so it stays
+        # honest for businesses with unusual tax profiles.
+        if d.roic is None:
+            invested = None
+            if d.total_debt is not None and d.total_equity is not None:
+                invested = d.total_debt + d.total_equity
+            ebit = None
+            if d.operating_margin is not None and d.revenue_ttm:
+                ebit = d.operating_margin * d.revenue_ttm
+            tax_rate = _safe_div(d.income_tax_expense_ttm, d.pretax_income_ttm)
+            if tax_rate is None or not (0.0 <= tax_rate <= 0.6):
+                tax_rate = 0.21   # US statutory fallback when the filing's own rate is unusable
+            if ebit is not None and invested and invested > 0:
+                d.roic = _plausible_ratio((ebit * (1 - tax_rate)) / invested, -2.0, 3.0)

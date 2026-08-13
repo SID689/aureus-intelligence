@@ -423,8 +423,10 @@ def build_theses(ticker: str, horizon: Horizon,
     bear = Thesis("bear", _summary("bear", ticker, bear_pts, horizon), bear_pts,
                   _falsifiers("bear", fundamental, technical, quantitative, fundamental_data))
 
-    settings = get_settings()
-    if settings.anthropic_configured:
+    # Polish through whichever LLM backend is available; with none, the
+    # deterministic cases are returned unchanged and fully usable.
+    from app.analysis.llm_provider import available_backend
+    if available_backend() != "none":
         bull = _polish(bull, ticker, horizon) or bull
         bear = _polish(bear, ticker, horizon) or bear
     return bull, bear
@@ -445,50 +447,42 @@ POINTS:
 
 def _polish(thesis: Thesis, ticker: str, horizon: Horizon) -> Thesis | None:
     """
-    Optional LLM rewrite of the prose only.
+    Optional LLM rewrite of the prose only, through whichever backend is
+    available (Ollama first — free and local — then OpenAI, then Anthropic).
 
     The model never sees a blank page: it receives finished, metric-backed
-    bullets and may only restate them. Anything it returns is validated by
-    the shared guardrails, and any failure at all falls back to the
-    deterministic text — which is already complete and shippable.
+    bullets and may only restate them. Output is validated by the shared
+    guardrails, and any failure at all falls back to the deterministic text,
+    which is already complete and shippable.
     """
-    import json
-
     from app.agents.guardrails import CORE_ORCHESTRATOR_SYSTEM_PROMPT, validate_llm_output
+    from app.analysis.llm_provider import complete_json
 
     if not thesis.points:
         return None
-    try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=get_settings().anthropic_api_key)
-        payload = "\n".join(f"{i + 1}. [{p.category}] {p.headline}: {p.detail}"
-                            for i, p in enumerate(thesis.points))
-        resp = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=1400,
-            system=CORE_ORCHESTRATOR_SYSTEM_PROMPT,
-            messages=[{"role": "user",
-                       "content": _POLISH_TEMPLATE.format(n=len(thesis.points), payload=payload)}],
-        )
-        raw = resp.content[0].text.strip()
-        if raw.startswith("```"):
-            lines = raw.split("\n")
-            raw = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
-        details = json.loads(raw).get("details", [])
-        if len(details) != len(thesis.points):
-            return None
 
-        combined = " ".join(details)
-        if not validate_llm_output(combined).is_clean:
-            logger.warning("Thesis polish failed guardrails — keeping deterministic text",
-                           extra={"ticker": ticker, "stance": thesis.stance})
-            return None
-
-        for p, new_detail in zip(thesis.points, details):
-            p.detail = new_detail
-        thesis.source = "llm_polished"
-        return thesis
-    except Exception as exc:
-        logger.warning("Thesis polish failed — keeping deterministic text",
-                       extra={"ticker": ticker, "error": str(exc)})
+    payload = "\n".join(f"{i + 1}. [{p.category}] {p.headline}: {p.detail}"
+                        for i, p in enumerate(thesis.points))
+    data = complete_json(
+        CORE_ORCHESTRATOR_SYSTEM_PROMPT,
+        _POLISH_TEMPLATE.format(n=len(thesis.points), payload=payload),
+        max_tokens=1400,
+    )
+    if not data:
         return None
+
+    details = data.get("details")
+    if not isinstance(details, list) or len(details) != len(thesis.points):
+        return None
+    if not all(isinstance(d, str) and d.strip() for d in details):
+        return None
+
+    if not validate_llm_output(" ".join(details)).is_clean:
+        logger.warning("Thesis polish failed guardrails — keeping deterministic text",
+                       extra={"ticker": ticker, "stance": thesis.stance})
+        return None
+
+    for p, new_detail in zip(thesis.points, details):
+        p.detail = new_detail
+    thesis.source = "llm_polished"
+    return thesis
