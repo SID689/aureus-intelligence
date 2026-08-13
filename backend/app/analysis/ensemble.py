@@ -29,6 +29,7 @@ from app.analysis.models import EnsembleSignal, FundamentalScore, QuantitativeSc
 from app.analysis.quantitative import run_quantitative_analysis
 from app.analysis.reasoning import generate_reasoning
 from app.analysis.reweighting import WeightedSignal, reweight
+from app.analysis.sector_peers import compare_to_sector
 from app.analysis.thesis import build_theses
 from app.analysis.technical import run_technical_analysis
 from app.ingestion.fundamentals import FundamentalDataService
@@ -116,7 +117,27 @@ def run_ensemble_analysis(
         fund_data = FundamentalDataResult(ticker=ticker, provider="unavailable", current_price=current_price)
         fundamental_provider = "unavailable"
 
-    fundamental_result: FundamentalScore = run_fundamental_analysis(ticker, fund_data, time_horizon)
+    sector_cmp = compare_to_sector(
+        ticker, fund_data.sector,
+        {
+            "pe_ratio": fund_data.pe_ratio,
+            "price_to_sales": fund_data.price_to_sales,
+            "pb_ratio": fund_data.pb_ratio,
+            # Sector medians come from Finnhub, which reports margins/returns as
+            # PERCENTAGES. Our own values are fractions (see _pct_to_fraction),
+            # so scale back up before comparing or every company looks 99%
+            # below its sector on every quality metric.
+            "gross_margin": (fund_data.gross_margin * 100) if fund_data.gross_margin is not None else None,
+            "operating_margin": (fund_data.operating_margin * 100) if fund_data.operating_margin is not None else None,
+            "return_on_equity": (fund_data.return_on_equity * 100) if fund_data.return_on_equity is not None else None,
+            "roic": (fund_data.roic * 100) if fund_data.roic is not None else None,
+            "debt_to_equity": fund_data.debt_to_equity,
+        },
+    )
+
+    fundamental_result: FundamentalScore = run_fundamental_analysis(
+        ticker, fund_data, time_horizon, sector_comparison=sector_cmp
+    )
     technical_result: TechnicalScore = run_technical_analysis(ticker, bars)
     quantitative_result: QuantitativeScore = run_quantitative_analysis(
         ticker, bars, spy_bars=spy_bars, rsi_value=technical_result.rsi_14,
@@ -171,6 +192,8 @@ def run_ensemble_analysis(
         fundamental=fundamental_result, technical=technical_result, quantitative=quantitative_result,
         market_data_provider=market_result.provider, fundamental_data_provider=fundamental_provider,
         reasoning=reasoning_text, reasoning_source=reasoning_source,
+        sector=fund_data.sector,
+        sector_comparison=sector_cmp.to_dict() if sector_cmp else {},
         bull_case=bull.to_dict(), bear_case=bear.to_dict(),
         overall_data_completeness=overall_completeness, module_weights_used=module_weights_used,
     )

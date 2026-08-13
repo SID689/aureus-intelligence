@@ -30,7 +30,12 @@ from app.analysis.reweighting import WeightedSignal, reweight
 
 logger = logging.getLogger("aureus.analysis.fundamental")
 
-_W_DCF, _W_SAFETY, _W_GROWTH, _W_MOAT = 0.35, 0.25, 0.25, 0.15
+_W_DCF, _W_SAFETY, _W_GROWTH, _W_MOAT = 0.30, 0.20, 0.20, 0.12
+# Sector-relative valuation. Carries real weight because an absolute multiple
+# is close to meaningless on its own — 35x is expensive for a utility and
+# ordinary for software. Dropped by the dynamic reweighting when the sector
+# medians aren't available (unknown/uncovered sector, or still computing).
+_W_RELATIVE = 0.18
 
 
 def _two_stage_dcf(fcf, near_growth, terminal_growth, discount_rate, projection_years, shares) -> float:
@@ -186,6 +191,7 @@ def run_fundamental_analysis(
     ticker: str,
     data: FundamentalDataResult,
     time_horizon: str = "medium_term",
+    sector_comparison=None,   # SectorComparison | None, from analysis/sector_peers.py
 ) -> FundamentalScore:
     notes: list[str] = []
     signals: list[dict] = []
@@ -241,11 +247,40 @@ def run_fundamental_analysis(
     growth_score, growth_computed = _compute_growth_score(data, notes, signals)
     moat_score,   moat_computed   = _compute_moat_score(data, notes, signals)
 
+    # ── Sector-relative valuation ─────────────────────────────────────
+    relative_score, relative_computed = 50.0, False
+    if sector_comparison is not None and sector_comparison.relative_score is not None:
+        relative_score, relative_computed = sector_comparison.relative_score, True
+        cheap = [k for k, c in sector_comparison.comparisons.items()
+                 if c["favourable"] and k in ("pe_ratio", "price_to_sales", "pb_ratio", "ev_to_fcf")]
+        rich = [k for k, c in sector_comparison.comparisons.items()
+                if not c["favourable"] and k in ("pe_ratio", "price_to_sales", "pb_ratio", "ev_to_fcf")]
+        pretty = {"pe_ratio": "P/E", "price_to_sales": "P/S", "pb_ratio": "P/B", "ev_to_fcf": "EV/FCF"}
+        bits = []
+        if cheap:
+            bits.append("below the sector median on " + ", ".join(pretty[k] for k in cheap))
+        if rich:
+            bits.append("above it on " + ", ".join(pretty[k] for k in rich))
+        notes.append(
+            f"Valuation vs {sector_comparison.sector} peers "
+            f"(n={sector_comparison.peer_count}) → relative component {relative_score:.0f}/100"
+        )
+        signals.append({
+            "label": "Valuation vs Sector", "score": relative_score,
+            "detail": (f"Against the {sector_comparison.sector} median, trades "
+                       + ("; ".join(bits) if bits else "broadly in line")
+                       + ". An absolute multiple says little without this comparison."),
+        })
+    elif sector_comparison is not None and sector_comparison.stale:
+        notes.append(f"Sector medians for {sector_comparison.sector} are still computing — "
+                     f"relative valuation excluded from this run")
+
     result = reweight([
         WeightedSignal("dcf_signal",    dcf_signal,    _W_DCF,    dcf_computed),
         WeightedSignal("safety_score",  safety_score,  _W_SAFETY, safety_computed),
         WeightedSignal("growth_score",  growth_score,  _W_GROWTH, growth_computed),
         WeightedSignal("moat_score",    moat_score,    _W_MOAT,   moat_computed),
+        WeightedSignal("relative_valuation", relative_score, _W_RELATIVE, relative_computed),
     ])
 
     if result.dropped_signals:

@@ -81,7 +81,20 @@ export interface PillarScore {
   [k: string]: unknown;
 }
 
+export interface SectorComparison {
+  sector: string;
+  peer_count: number;
+  medians: Record<string, number>;
+  comparisons: Record<string, {
+    value: number; median: number; premium_pct: number; favourable: boolean;
+  }>;
+  relative_score: number | null;
+  stale: boolean;
+}
+
 export interface FullAnalysis {
+  sector?: string | null;
+  sector_comparison?: SectorComparison;
   ticker: string;
   time_horizon: string;
   signal: "BUY" | "HOLD" | "SELL";

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import PillarCard from "@/components/analysis/PillarCard";
 import ThesisCard from "@/components/analysis/ThesisCard";
+import SectorComparisonCard from "@/components/analysis/SectorComparisonCard";
 import PriceChart from "@/components/charts/PriceChart";
 import { getFullAnalysis } from "@/lib/api";
 import type { FullAnalysis } from "@/lib/api";
@@ -204,6 +205,10 @@ export default function TickerAnalysisPage() {
             <ThesisCard thesis={data.bull_case} />
             <ThesisCard thesis={data.bear_case} />
           </div>
+
+          {data.sector_comparison?.sector && (
+            <SectorComparisonCard data={data.sector_comparison} />
+          )}
 
           {/* ── Key metrics grid ──────────────────────────────── */}
           <Card>

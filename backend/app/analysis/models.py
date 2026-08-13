@@ -132,6 +132,8 @@ class EnsembleSignal:
     # NEW fields — this is the direct fix for "scores need explanations"
     reasoning: str = ""                      # human-readable explanation of the score
     reasoning_source: str = "deterministic"  # "deterministic" | "llm_polished"
+    sector: str | None = None
+    sector_comparison: dict = field(default_factory=dict)  # see analysis/sector_peers.py
     bull_case: dict = field(default_factory=dict)   # see analysis/thesis.py
     bear_case: dict = field(default_factory=dict)
     overall_data_completeness: float = 1.0   # 0-1 across all three modules

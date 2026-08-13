@@ -173,6 +173,7 @@ class FinnhubProvider(FundamentalDataProvider):
                                (_safe_float(profile.get("shareOutstanding")) or 0) * 1_000_000,
             return_on_equity=_pct_to_fraction(m.get("roeTTM")),
             return_on_assets=_pct_to_fraction(m.get("roaTTM")),
+            sector=(profile.get("finnhubIndustry") or None),
         )
 
         logger.info("Finnhub fundamentals fetched", extra={"ticker": ticker})
