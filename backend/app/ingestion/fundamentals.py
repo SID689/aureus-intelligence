@@ -5,9 +5,10 @@ Two concrete FundamentalDataProvider implementations:
   1. FinnhubProvider  — paid/freemium, fast JSON API, broad coverage
   2. SECEdgarProvider — free, authoritative, US public companies only
 
-The FundamentalDataService tries Finnhub first. If Finnhub is unconfigured
-or fails, it falls back to SEC EDGAR.  EDGAR data is slower (requires CIK
-resolution) but is the gold-standard primary source for US equities.
+The FundamentalDataService MERGES both rather than taking whichever answers
+first — they return different, complementary fields (Finnhub: precomputed
+ratios and market data; EDGAR: raw filing line items including cash flow and
+debt). See FundamentalDataService's docstring for why first-wins was a bug.
 
 Note on EDGAR: all EDGAR requests include a descriptive User-Agent per the
 SEC's published requirements (https://www.sec.gov/os/accessing-edgar-data).
@@ -16,6 +17,7 @@ Missing or generic User-Agents result in 403s from their CDN.
 
 import json
 import logging
+from dataclasses import fields as dataclass_fields, replace
 from datetime import datetime
 from typing import Any
 
@@ -44,6 +46,42 @@ def _safe_div(numerator: float | None, denominator: float | None) -> float | Non
     if numerator is None or denominator is None or denominator == 0:
         return None
     return numerator / denominator
+
+
+def _pct_to_fraction(value: Any) -> float | None:
+    """
+    Convert a provider's PERCENTAGE into the fraction the rest of the system
+    expects (FundamentalDataResult documents `0.40 = 40%`).
+
+    Finnhub reports margins, ROE/ROA and growth as percentages — grossMarginTTM
+    comes back as 48.65, not 0.4865. The analysis layer divides by fractional
+    benchmarks (`gross_margin / 0.40`), so feeding it a percentage inflated
+    every ratio by 100x and clamped the resulting sub-score to a perfect 100.
+    That pinned the moat, growth and efficiency components at 100 for any
+    profitable company, and made the DCF's growth input hit its 40% cap on
+    every ticker with positive growth — which is what produced absurd
+    intrinsic values. Normalising here, at the provider boundary, keeps the
+    documented contract true for every consumer.
+    """
+    f = _safe_float(value)
+    return None if f is None else f / 100.0
+
+
+def _plausible_ratio(value: float | None, lo: float, hi: float) -> float | None:
+    """
+    Drop a derived ratio that falls outside a physically sensible range.
+
+    EDGAR's XBRL facts are per-filing, and a concept can be missing or cover a
+    different period than its denominator — Apple reports revenue under
+    RevenueFromContractWithCustomerExcludingAssessedTax while GrossProfit is
+    filed in full, so a naive divide yields a 310% "gross margin". Returning
+    None rather than a wrong number is the correct move here: the analysis
+    layer's dynamic reweighting already handles a missing signal by
+    redistributing its weight, whereas a bogus one silently corrupts the score.
+    """
+    if value is None:
+        return None
+    return value if lo <= value <= hi else None
 
 
 def _safe_float(value: Any) -> float | None:
@@ -104,10 +142,9 @@ class FinnhubProvider(FundamentalDataProvider):
         total_equity  = _safe_float(m.get("totalEquity"))
         debt_to_equity = _safe_div(total_debt, total_equity)
 
-        # Revenue history: Finnhub provides revenuePerShare * shares for annual
-        rev_history = []
-        for key in ["10YRevenuegrowthRate", "5YRevenuegrowthRate"]:
-            pass  # Finnhub's CAGR isn't the absolute values we want — EDGAR is better here
+        # Revenue/net-income history intentionally not taken from Finnhub —
+        # it exposes CAGRs, not the absolute annual series the growth-trajectory
+        # scoring needs. EDGAR supplies those through the merge.
 
         result = FundamentalDataResult(
             ticker=ticker,
@@ -115,13 +152,13 @@ class FinnhubProvider(FundamentalDataProvider):
             revenue_ttm=_safe_float(m.get("revenuePerShareTTM")) and
                         (_safe_float(m.get("revenuePerShareTTM")) or 0) *
                         (_safe_float(profile.get("shareOutstanding")) or 0) * 1_000_000,
-            revenue_growth_yoy=_safe_float(m.get("revenueGrowthTTMYoy")),
+            revenue_growth_yoy=_pct_to_fraction(m.get("revenueGrowthTTMYoy")),
             net_income_ttm=_safe_float(m.get("netIncomePerShareTTM")) and
                            (_safe_float(m.get("netIncomePerShareTTM")) or 0) *
                            (_safe_float(profile.get("shareOutstanding")) or 0) * 1_000_000,
             eps_ttm=_safe_float(m.get("epsTTM")),
-            gross_margin=_safe_float(m.get("grossMarginTTM")),
-            operating_margin=_safe_float(m.get("operatingMarginTTM")),
+            gross_margin=_pct_to_fraction(m.get("grossMarginTTM")),
+            operating_margin=_pct_to_fraction(m.get("operatingMarginTTM")),
             total_debt=total_debt,
             total_equity=total_equity,
             debt_to_equity=debt_to_equity,
@@ -134,8 +171,8 @@ class FinnhubProvider(FundamentalDataProvider):
                        (_safe_float(profile.get("marketCapitalization")) or 0) * 1_000_000,
             shares_outstanding=_safe_float(profile.get("shareOutstanding")) and
                                (_safe_float(profile.get("shareOutstanding")) or 0) * 1_000_000,
-            return_on_equity=_safe_float(m.get("roeTTM")),
-            return_on_assets=_safe_float(m.get("roaTTM")),
+            return_on_equity=_pct_to_fraction(m.get("roeTTM")),
+            return_on_assets=_pct_to_fraction(m.get("roaTTM")),
         )
 
         logger.info("Finnhub fundamentals fetched", extra={"ticker": ticker})
@@ -312,15 +349,16 @@ class SECEdgarProvider(FundamentalDataProvider):
         # ── Gross profit → margin ────────────────────────────────
         gp_series       = self._extract_annual_values(facts, "GrossProfit")
         gross_profit    = gp_series[-1][1] if gp_series else None
-        gross_margin    = _safe_div(gross_profit, revenue_ttm)
+        # Bounded because a mismatched-period divide yields nonsense (see _plausible_ratio).
+        gross_margin    = _plausible_ratio(_safe_div(gross_profit, revenue_ttm), -1.0, 1.0)
 
         op_series       = self._extract_annual_values(facts, "OperatingIncomeLoss")
         op_income       = op_series[-1][1] if op_series else None
-        op_margin       = _safe_div(op_income, revenue_ttm)
+        op_margin       = _plausible_ratio(_safe_div(op_income, revenue_ttm), -1.0, 1.0)
 
         book_value_ps   = _safe_div(total_equity, shares)
-        roe             = _safe_div(net_income_ttm, total_equity)
-        roa             = _safe_div(net_income_ttm, total_assets)
+        roe             = _plausible_ratio(_safe_div(net_income_ttm, total_equity), -5.0, 5.0)
+        roa             = _plausible_ratio(_safe_div(net_income_ttm, total_assets), -2.0, 2.0)
         debt_to_equity  = _safe_div(total_debt, total_equity)
         current_ratio   = _safe_div(curr_assets, curr_liab)
 
@@ -356,9 +394,36 @@ class SECEdgarProvider(FundamentalDataProvider):
 
 class FundamentalDataService:
     """
-    Tries Finnhub first, then EDGAR.
-    For non-US tickers EDGAR will always raise DataNotFoundError,
-    so Finnhub is the only effective provider in that case.
+    MERGES Finnhub and SEC EDGAR rather than taking whichever answers first.
+
+    =================================================================
+    WHY MERGE INSTEAD OF FALLING BACK
+    =================================================================
+    This used to be a first-wins chain, and that quietly crippled the
+    fundamental pillar. The two providers are COMPLEMENTARY, not redundant:
+
+      Finnhub  — precomputed ratios and market data: P/E, P/B, margins,
+                 ROE, ROA, current ratio, market cap, shares outstanding.
+                 Does NOT return free cash flow, total debt, or equity.
+      EDGAR    — raw XBRL line items straight from the filings: operating
+                 cash flow, capex (therefore FREE CASH FLOW), long-term
+                 debt, stockholders' equity, current assets/liabilities.
+
+    Because Finnhub is listed first and virtually always succeeds, EDGAR
+    never ran. Free cash flow was therefore permanently None, which meant
+    the DCF valuation could never compute and silently dropped out of the
+    fundamental score on every single ticker — the "why is FCF missing"
+    confusion noted in the project docs. Same for debt-to-equity.
+
+    Merging is field-level and PRIMARY-WINS: a field already populated by
+    Finnhub is never overwritten by EDGAR, so precomputed ratios keep
+    Finnhub's (more current, market-aware) values while EDGAR fills only
+    the genuine gaps. Derived values are then computed from whatever the
+    merge produced.
+
+    A provider failing is not fatal — the merge simply proceeds with what
+    it has, and the analysis layer's dynamic reweighting drops whichever
+    sub-signals still lack inputs.
     """
 
     def __init__(self) -> None:
@@ -369,16 +434,80 @@ class FundamentalDataService:
 
     def fetch_fundamentals(self, ticker: str) -> FundamentalDataResult:
         attempted: list[str] = []
+        results: list[FundamentalDataResult] = []
+
         for provider in self._providers:
             if not provider.is_available():
                 continue
             attempted.append(provider.name)
             try:
-                return provider.fetch_fundamentals(ticker)
+                results.append(provider.fetch_fundamentals(ticker))
             except Exception as exc:
                 logger.warning(
-                    f"{provider.name} fundamental fetch failed — trying next",
+                    f"{provider.name} fundamental fetch failed — continuing with other sources",
                     extra={"ticker": ticker, "error": str(exc)},
                 )
 
-        raise FallbackExhaustedError(ticker, attempted)
+        if not results:
+            raise FallbackExhaustedError(ticker, attempted)
+
+        merged = self._merge(results)
+        self._derive(merged)
+        logger.info(
+            "Fundamentals merged",
+            extra={"ticker": ticker, "provider": merged.provider,
+                   "has_fcf": merged.free_cash_flow_ttm is not None,
+                   "has_dte": merged.debt_to_equity is not None},
+        )
+        return merged
+
+    @staticmethod
+    def _merge(results: list[FundamentalDataResult]) -> FundamentalDataResult:
+        """Field-level merge, primary-wins. Lists merge if the winner's is empty."""
+        primary = results[0]
+        merged = replace(primary)
+        sources = [primary.provider]
+
+        for other in results[1:]:
+            filled_any = False
+            for f in dataclass_fields(FundamentalDataResult):
+                if f.name in ("ticker", "provider", "fetched_at"):
+                    continue
+                cur, new = getattr(merged, f.name), getattr(other, f.name)
+                if isinstance(cur, list):
+                    if not cur and new:
+                        setattr(merged, f.name, new)
+                        filled_any = True
+                elif cur is None and new is not None:
+                    setattr(merged, f.name, new)
+                    filled_any = True
+            if filled_any:
+                sources.append(other.provider)
+
+        merged.provider = " + ".join(dict.fromkeys(sources))
+        return merged
+
+    @staticmethod
+    def _derive(d: FundamentalDataResult) -> None:
+        """
+        Fill values that are computable from the merged inputs.
+
+        Only ever fills a field that is still None — a provider's own figure
+        always beats one reconstructed here.
+        """
+        if d.free_cash_flow_ttm is None and d.operating_cash_flow_ttm is not None:
+            capex = abs(d.capex_ttm) if d.capex_ttm is not None else 0.0
+            d.free_cash_flow_ttm = d.operating_cash_flow_ttm - capex
+
+        if d.debt_to_equity is None:
+            dte = _safe_div(d.total_debt, d.total_equity)
+            if dte is not None:
+                d.debt_to_equity = dte
+
+        if d.market_cap is None and d.current_price and d.shares_outstanding:
+            d.market_cap = d.current_price * d.shares_outstanding
+
+        if d.eps_ttm is None and d.net_income_ttm and d.shares_outstanding:
+            eps = _safe_div(d.net_income_ttm, d.shares_outstanding)
+            if eps is not None:
+                d.eps_ttm = eps

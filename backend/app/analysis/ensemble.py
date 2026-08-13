@@ -35,7 +35,26 @@ from app.ingestion.market_data import MarketDataService
 
 logger = logging.getLogger("aureus.analysis.ensemble")
 
-_W_FUNDAMENTAL, _W_TECHNICAL, _W_QUANTITATIVE = 0.35, 0.35, 0.30
+# Pillar weights are a function of the SELECTED HORIZON, not fixed.
+#
+# The three pillars answer questions that matter on different clocks. Over a
+# few days price action and flow dominate and a DCF is close to irrelevant —
+# a cheap stock can stay cheap for years. Over a multi-year hold the reverse
+# is true: today's RSI carries no information about where the business is in
+# 2030, while margins, returns on capital and balance-sheet strength do.
+# Applying one fixed blend to every horizon systematically mis-weights the
+# evidence, which is why this is horizon-dependent.
+#
+# Read as (fundamental, technical, quantitative); each row sums to 1.0.
+_HORIZON_WEIGHTS: dict[str, tuple[float, float, float]] = {
+    "short_term":  (0.10, 0.60, 0.30),
+    "medium_term": (0.30, 0.35, 0.35),
+    "long_term":   (0.60, 0.15, 0.25),
+}
+
+# Retained for callers that need a horizon-agnostic default — notably
+# app/backtesting/engine.py, which replays the ensemble without a horizon.
+_W_FUNDAMENTAL, _W_TECHNICAL, _W_QUANTITATIVE = _HORIZON_WEIGHTS["medium_term"]
 
 _BUY_THRESHOLD, _SELL_THRESHOLD = 65.0, 35.0
 _STRONG_BUY_THRESH, _STRONG_SELL_THRESH = 80.0, 20.0
@@ -107,10 +126,12 @@ def run_ensemble_analysis(
     tech_computed  = technical_result.data_completeness    >= _MODULE_COMPLETENESS_FLOOR
     quant_computed = quantitative_result.data_completeness >= _MODULE_COMPLETENESS_FLOOR
 
+    w_fund, w_tech, w_quant = _HORIZON_WEIGHTS.get(time_horizon, _HORIZON_WEIGHTS["medium_term"])
+
     top_result = reweight([
-        WeightedSignal("fundamental",  fundamental_result.score,  _W_FUNDAMENTAL,  fund_computed),
-        WeightedSignal("technical",    technical_result.score,    _W_TECHNICAL,    tech_computed),
-        WeightedSignal("quantitative", quantitative_result.score, _W_QUANTITATIVE, quant_computed),
+        WeightedSignal("fundamental",  fundamental_result.score,  w_fund,  fund_computed),
+        WeightedSignal("technical",    technical_result.score,    w_tech,  tech_computed),
+        WeightedSignal("quantitative", quantitative_result.score, w_quant, quant_computed),
     ])
 
     confidence_index = top_result.composite_score
