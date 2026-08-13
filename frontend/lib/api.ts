@@ -171,6 +171,106 @@ export const refreshNews = (): Promise<{ stages: Record<string, unknown>; elapse
 export const getNewsPipelineStatus = () =>
   apiFetch<{ stream_depths: Record<string, number>; anthropic_configured: boolean }>("/api/v1/news/status");
 
+// ── Education / course browser ───────────────────────────────────────────────
+// Self-paced counterpart to the dashboard's daily-lesson card above. Both read
+// the same backend curriculum registry, so content never diverges.
+
+export type LessonStatus = "not_started" | "in_progress" | "completed";
+
+export interface LessonSummary {
+  id: string; title: string; category: string;
+  tier: number; difficulty_level: string; tier_label: string;
+  estimated_read_time_minutes: number;
+  xp_points: number; max_xp: number;
+  quiz_question_count: number; key_takeaway: string;
+  status: LessonStatus; xp_earned: number;
+  quiz_best_score: number | null; quiz_total: number | null;
+  quiz_passed: boolean; completed_at: string | null;
+}
+
+export interface EducationModule {
+  tier: number; difficulty_level: string; label: string; description: string;
+  lesson_count: number; total_xp_available: number; estimated_minutes: number;
+  lessons_completed: number; xp_earned: number; percent_complete: number;
+  lessons: LessonSummary[];
+}
+
+export interface EducationCatalog {
+  modules: EducationModule[];
+  totals: {
+    lessons_total: number; lessons_completed: number;
+    xp_earned: number; xp_available: number; percent_complete: number;
+  };
+}
+
+export interface QuizOption { index: number; question: string; options: string[] }
+export interface GlossaryEntry { term: string; definition: string }
+export interface LessonCallout { kind: "key_idea" | "why_it_matters" | "common_mistake" | "example"; title: string; body: string }
+
+export interface LessonDetail {
+  lesson: {
+    id: string; title: string; category: string; tier: number;
+    difficulty_level: string; tier_label: string;
+    estimated_read_time_minutes: number; xp_points: number; max_xp: number;
+    quiz_question_count: number; key_takeaway: string; body: string;
+    glossary: GlossaryEntry[]; callouts: LessonCallout[]; quiz: QuizOption[];
+  };
+  progress: {
+    status: LessonStatus; xp_earned: number; quiz_attempts: number;
+    quiz_best_score: number | null; quiz_total: number | null; quiz_passed: boolean;
+  };
+  quiz_pass_mark: number;
+  quiz_bonus_xp: number;
+}
+
+export interface QuizResult {
+  lesson_id: string; score: number; total: number; pass_mark: number;
+  passed: boolean; attempts: number; best_score: number;
+  xp_earned_total_for_lesson: number;
+  results: { index: number; your_answer: number; correct_index: number; correct: boolean; explanation: string }[];
+}
+
+export interface Badge {
+  id: string; name: string; description: string; icon: string;
+  earned: boolean; progress_current: number; progress_target: number;
+}
+
+export interface EducationProgress {
+  xp_earned: number; xp_available: number;
+  lessons_completed: number; lessons_total: number;
+  quizzes_taken: number; quizzes_passed: number; perfect_quizzes: number;
+  quiz_accuracy_pct: number | null;
+  correct_answers: number; total_answers: number;
+  by_tier: { tier: number; label: string; description: string; completed: number; total: number }[];
+  badges: Badge[];
+  legacy_daily_lessons_completed: number;
+}
+
+export const getEducationCatalog = (userId: string): Promise<EducationCatalog> =>
+  apiFetch(`/api/v1/education/catalog?user_id=${userId}`);
+
+export const getEducationLesson = (lessonId: string, userId: string): Promise<LessonDetail> =>
+  apiFetch(`/api/v1/education/lesson/${lessonId}?user_id=${userId}`);
+
+export const startEducationLesson = (lessonId: string, userId: string) =>
+  apiFetch<{ lesson_id: string; status: string }>(`/api/v1/education/lesson/${lessonId}/start`, {
+    method: "POST", body: JSON.stringify({ user_id: userId }),
+  });
+
+export const completeEducationLesson = (lessonId: string, userId: string) =>
+  apiFetch<{ lesson_id: string; status: string; xp_earned_total_for_lesson: number }>(
+    `/api/v1/education/lesson/${lessonId}/complete`,
+    { method: "POST", body: JSON.stringify({ user_id: userId }) },
+  );
+
+export const submitEducationQuiz = (lessonId: string, userId: string, answers: number[]): Promise<QuizResult> =>
+  apiFetch(`/api/v1/education/lesson/${lessonId}/quiz`, {
+    method: "POST", body: JSON.stringify({ user_id: userId, answers }),
+  });
+
+export const getEducationProgress = (userId: string): Promise<EducationProgress> =>
+  apiFetch(`/api/v1/education/progress?user_id=${userId}`);
+
 // ── Backtesting ──────────────────────────────────────────────────────────────
 // POST /api/v1/backtest/strategy — the main user-facing strategy backtester.
 // (The original ensemble signal-accuracy backtest still exists server-side

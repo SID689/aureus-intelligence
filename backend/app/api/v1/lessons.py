@@ -5,7 +5,8 @@ Daily educational lesson endpoints.
 
 GET  /api/v1/lessons/today?user_id=X
   Returns today's lesson at the user's EFFECTIVE difficulty tier
-  (base_level + progression from lessons completed, capped at 2), plus
+  (base_level + progression from lessons completed, capped at MAX_TIER),
+  plus
   whether they've already dismissed it today (so the frontend can skip
   rendering it on repeat visits within the same day).
 
@@ -17,8 +18,12 @@ POST /api/v1/lessons/dismiss
 GET  /api/v1/lessons/level?user_id=X
 PUT  /api/v1/lessons/level
   View/set the user's manual base_level. Defaults to their onboarding
-  sophistication_tier (novice=0, intermediate=1, advanced=2) the first
-  time this is queried, if no row exists yet.
+  sophistication_tier the first time this is queried, if no row exists
+  yet — see onboarding.py's tier_map for that mapping.
+
+Tiers are 0=New to Investing, 1=Foundational+, 2=Intermediate,
+3=Advanced, 4=Expert (app/lessons/models.py). The self-paced course
+browser at /api/v1/education reads the same curriculum registry.
 """
 
 import logging
@@ -30,7 +35,7 @@ from sqlalchemy import create_engine, text
 
 from app.core.config import get_settings
 from app.core.redis_client import get_redis_client
-from app.lessons.content import LESSONS_BY_TIER, TIER_LABELS, get_lesson_for_date
+from app.lessons.content import LESSONS_BY_TIER, MAX_TIER, MIN_TIER, TIER_LABELS, get_lesson_for_date
 
 logger = logging.getLogger("aureus.api.lessons")
 router = APIRouter(prefix="/api/v1/lessons", tags=["lessons"])
@@ -54,7 +59,9 @@ def _get_or_create_progress(conn, user_id: str) -> dict:
     # No row yet — normally onboarding.py's /complete endpoint creates this
     # with the right base_level from the sophistication quiz. If a user
     # reaches here without one (e.g. a pre-existing test account created
-    # before onboarding existed), default to Foundational+ (0).
+    # before onboarding existed), default to the beginner tier (0) — the
+    # safe default, since showing a beginner Expert content is worse than
+    # showing an expert beginner content they can skip past.
     conn.execute(
         text("""
             INSERT INTO user_learning_progress (user_id, base_level, lessons_completed_count)
@@ -68,7 +75,7 @@ def _get_or_create_progress(conn, user_id: str) -> dict:
 
 def _effective_tier(base_level: int, lessons_completed: int) -> int:
     bump = lessons_completed // LESSONS_PER_TIER_BUMP
-    return max(0, min(2, base_level + bump))
+    return max(MIN_TIER, min(MAX_TIER, base_level + bump))
 
 
 @router.get("/today")
@@ -93,7 +100,7 @@ def get_todays_lesson(user_id: str) -> dict:
         already_dismissed = False
 
     lessons_into_tier = progress["lessons_completed_count"] % LESSONS_PER_TIER_BUMP
-    lessons_to_next_tier = None if tier == 2 else (LESSONS_PER_TIER_BUMP - lessons_into_tier)
+    lessons_to_next_tier = None if tier >= MAX_TIER else (LESSONS_PER_TIER_BUMP - lessons_into_tier)
 
     return {
         "lesson": {
@@ -169,7 +176,7 @@ def get_level(user_id: str) -> dict:
 
 class SetLevelRequest(BaseModel):
     user_id: str
-    base_level: int = Field(ge=0, le=2)
+    base_level: int = Field(ge=MIN_TIER, le=MAX_TIER)
 
 
 @router.put("/level")

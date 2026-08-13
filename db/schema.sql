@@ -44,6 +44,7 @@ CREATE TYPE consent_type            AS ENUM ('terms_of_service', 'privacy_policy
 CREATE TYPE dsr_type                AS ENUM ('access', 'erasure', 'portability', 'rectification');
 CREATE TYPE dsr_status              AS ENUM ('received', 'in_progress', 'completed', 'rejected');
 CREATE TYPE usage_counter_type      AS ENUM ('analysis_request', 'voice_minute');
+CREATE TYPE lesson_completion_status AS ENUM ('not_started', 'in_progress', 'completed');
 
 -- ---------------------------------------------------------------------
 -- SHARED TRIGGER: auto-maintain `updated_at`
@@ -365,6 +366,63 @@ CREATE TABLE voice_sessions (
 CREATE INDEX idx_voice_sessions_user_id ON voice_sessions(user_id);
 
 -- =====================================================================
+-- 16. USER_LEARNING_PROGRESS — difficulty tier + daily-lesson counter
+-- =====================================================================
+-- Originally added by db/migrations/002_learning_progress.sql; folded in
+-- here so a fresh install gets it without needing to replay migrations.
+-- base_level is the user's chosen STARTING tier (0=New to Investing,
+-- 1=Foundational+, 2=Intermediate, 3=Advanced, 4=Expert). The EFFECTIVE
+-- tier also rises with lessons completed — see app/api/v1/lessons.py.
+CREATE TABLE user_learning_progress (
+  user_id                  UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  base_level               SMALLINT NOT NULL DEFAULT 0 CHECK (base_level BETWEEN 0 AND 4),
+  lessons_completed_count  INTEGER NOT NULL DEFAULT 0,
+  last_lesson_id_shown     TEXT,
+  last_shown_date          DATE,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_user_learning_progress_user_id ON user_learning_progress(user_id);
+CREATE TRIGGER trg_user_learning_progress_updated_at
+  BEFORE UPDATE ON user_learning_progress
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =====================================================================
+-- 17. USER_LESSON_PROGRESS — per-lesson completion, quiz results, XP
+-- =====================================================================
+-- Lesson CONTENT (prose, quizzes, XP values) lives in Python under
+-- backend/app/lessons/, not in this database — see the header of
+-- db/migrations/004_education_modules.sql for why. `lesson_id` is
+-- therefore a TEXT key referencing a lesson id defined in code, not a
+-- foreign key.
+CREATE TABLE user_lesson_progress (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id           UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  lesson_id         TEXT NOT NULL,
+  tier              SMALLINT NOT NULL CHECK (tier BETWEEN 0 AND 4),
+  status            lesson_completion_status NOT NULL DEFAULT 'not_started',
+  quiz_attempts     INTEGER NOT NULL DEFAULT 0 CHECK (quiz_attempts >= 0),
+  quiz_best_score   INTEGER CHECK (quiz_best_score >= 0),   -- high-water mark across attempts
+  quiz_total        INTEGER CHECK (quiz_total >= 0),
+  quiz_passed       BOOLEAN NOT NULL DEFAULT false,
+  xp_earned         INTEGER NOT NULL DEFAULT 0 CHECK (xp_earned >= 0),
+  first_viewed_at   TIMESTAMPTZ,
+  completed_at      TIMESTAMPTZ,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, lesson_id)
+);
+
+CREATE INDEX idx_user_lesson_progress_user_id ON user_lesson_progress(user_id);
+CREATE INDEX idx_user_lesson_progress_user_tier ON user_lesson_progress(user_id, tier);
+CREATE INDEX idx_user_lesson_progress_completed
+  ON user_lesson_progress(user_id) WHERE status = 'completed';
+CREATE TRIGGER trg_user_lesson_progress_updated_at
+  BEFORE UPDATE ON user_lesson_progress
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =====================================================================
 -- ROW-LEVEL SECURITY — GDPR/CCPA multi-tenant isolation
 -- =====================================================================
 -- The application sets these per-transaction immediately after BEGIN:
@@ -378,6 +436,7 @@ CREATE INDEX idx_voice_sessions_user_id ON voice_sessions(user_id);
 ALTER TABLE portfolios            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolio_holdings    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolio_impacts     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_lesson_progress  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE voice_sessions        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE usage_counters        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs            ENABLE ROW LEVEL SECURITY;
@@ -393,6 +452,9 @@ CREATE POLICY tenant_isolation_portfolio_holdings ON portfolio_holdings
   USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 CREATE POLICY tenant_isolation_portfolio_impacts ON portfolio_impacts
+  USING (user_id = current_setting('app.current_user_id', true)::uuid);
+
+CREATE POLICY tenant_isolation_user_lesson_progress ON user_lesson_progress
   USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 CREATE POLICY tenant_isolation_voice_sessions ON voice_sessions

@@ -91,11 +91,19 @@ def complete_onboarding(req: OnboardingCompleteRequest, request: Request) -> dic
             )
 
             # Seed the lesson-difficulty starting tier from the onboarding
-            # sophistication result — novice=0 (Foundational+), intermediate=1
-            # (Advanced), advanced=2 (Expert). This is the only durable place
+            # sophistication result. This is the only durable place
             # sophistication_tier is stored, so lessons.py reads it from here
             # via this table rather than needing a separate lookup.
-            tier_map = {"novice": 0, "intermediate": 1, "advanced": 2}
+            #
+            # Tiers (app/lessons/models.py): 0=New to Investing,
+            # 1=Foundational+, 2=Intermediate, 3=Advanced, 4=Expert.
+            # A self-identified novice now starts at the genuine beginner
+            # tier (Module 0) rather than at Foundational+, which was the
+            # floor before Module 0 existed and assumed prior trading
+            # experience the quiz had just established they don't have.
+            # Nobody is seeded straight into Expert — that stays something
+            # you reach by progressing or by choosing it in Settings.
+            tier_map = {"novice": 0, "intermediate": 2, "advanced": 3}
             base_level = tier_map.get(req.sophistication_tier, 0)
             conn.execute(
                 text("""

@@ -3,10 +3,14 @@ import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { getLearningLevel, setLearningLevel } from "@/lib/api";
 
+// Must stay in sync with TIER_LABELS in backend/app/lessons/models.py —
+// the `value` is the integer persisted as user_learning_progress.base_level.
 const LEVELS = [
-  { value: 0, label: "Foundational+", desc: "Assumes you've placed trades and know the basics — goes one layer deeper." },
-  { value: 1, label: "Advanced",      desc: "Factor mechanics, options greeks, correlation math, market microstructure." },
-  { value: 2, label: "Expert",        desc: "Institutional-grade: risk model internals, execution theory, crowding dynamics." },
+  { value: 0, label: "New to Investing", desc: "Start here if you've never bought a stock — exchanges, order types, reading a quote." },
+  { value: 1, label: "Foundational+",    desc: "Assumes you've placed trades and know the basics — goes one layer deeper." },
+  { value: 2, label: "Intermediate",     desc: "Position sizing math, valuation under uncertainty, reading filings, expected value." },
+  { value: 3, label: "Advanced",         desc: "Factor mechanics, options greeks, correlation math, market microstructure." },
+  { value: 4, label: "Expert",           desc: "Institutional-grade: risk model internals, execution theory, crowding dynamics." },
 ];
 
 export default function LearningLevelCard({ userId }: { userId: string }) {

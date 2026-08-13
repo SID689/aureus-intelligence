@@ -20,6 +20,7 @@ from app.api.v1.news      import router as news_router
 from app.api.v1.backtest  import router as backtest_router
 from app.api.v1.onboarding import router as onboarding_router
 from app.api.v1.lessons import router as lessons_router
+from app.api.v1.education import router as education_router
 
 settings = get_settings()
 setup_logging(level=settings.log_level, use_json=settings.is_production)
@@ -71,6 +72,7 @@ app.include_router(news_router)
 app.include_router(backtest_router)
 app.include_router(onboarding_router)
 app.include_router(lessons_router)
+app.include_router(education_router)
 
 
 @app.get("/health", tags=["ops"])
