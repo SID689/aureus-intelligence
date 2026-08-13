@@ -45,6 +45,9 @@ CREATE TYPE dsr_type                AS ENUM ('access', 'erasure', 'portability',
 CREATE TYPE dsr_status              AS ENUM ('received', 'in_progress', 'completed', 'rejected');
 CREATE TYPE usage_counter_type      AS ENUM ('analysis_request', 'voice_minute');
 CREATE TYPE lesson_completion_status AS ENUM ('not_started', 'in_progress', 'completed');
+CREATE TYPE game_type               AS ENUM ('finwordle', 'pattern_guesser');
+CREATE TYPE game_session_status     AS ENUM ('in_progress', 'won', 'lost');
+CREATE TYPE finwordle_mode          AS ENUM ('daily', 'practice');
 
 -- ---------------------------------------------------------------------
 -- SHARED TRIGGER: auto-maintain `updated_at`
@@ -423,6 +426,85 @@ CREATE TRIGGER trg_user_lesson_progress_updated_at
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- =====================================================================
+-- 18. GAMES — FinWordle + Chart Pattern Guesser
+-- =====================================================================
+-- Game CONTENT (the FinWordle word list with its definitions, trading
+-- context and examples) lives in backend/app/games/finwordle_dictionary.py,
+-- not here — same reasoning as the lesson curriculum, see the header of
+-- db/migrations/005_games.sql. Only per-user state is stored.
+--
+-- finwordle_sessions.answer and pattern_scenarios.correct_direction are
+-- deliberately server-side only: the API returns tile colours and setup
+-- bars, never the answer, until a round is over.
+CREATE TABLE game_stats (
+  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id            UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  game_type          game_type NOT NULL,
+  games_played       INTEGER NOT NULL DEFAULT 0 CHECK (games_played >= 0),
+  games_won          INTEGER NOT NULL DEFAULT 0 CHECK (games_won >= 0),
+  current_streak     INTEGER NOT NULL DEFAULT 0 CHECK (current_streak >= 0),
+  max_streak         INTEGER NOT NULL DEFAULT 0 CHECK (max_streak >= 0),
+  total_score        INTEGER NOT NULL DEFAULT 0 CHECK (total_score >= 0),
+  last_daily_played  DATE,          -- distinguishes "played again today" from "came back tomorrow"
+  last_played_at     TIMESTAMPTZ,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, game_type)
+);
+
+CREATE INDEX idx_game_stats_user ON game_stats(user_id);
+CREATE INDEX idx_game_stats_leaderboard
+  ON game_stats(game_type, max_streak DESC, total_score DESC)
+  WHERE games_played > 0;
+CREATE TRIGGER trg_game_stats_updated_at
+  BEFORE UPDATE ON game_stats
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TABLE finwordle_sessions (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  mode          finwordle_mode NOT NULL,
+  puzzle_date   DATE,                                  -- set for daily, NULL for practice
+  answer        TEXT NOT NULL,                         -- withheld from the client until the round ends
+  guesses       JSONB NOT NULL DEFAULT '[]'::jsonb,
+  status        game_session_status NOT NULL DEFAULT 'in_progress',
+  score_awarded INTEGER NOT NULL DEFAULT 0,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  completed_at  TIMESTAMPTZ
+);
+
+CREATE INDEX idx_finwordle_sessions_user ON finwordle_sessions(user_id, created_at DESC);
+-- Partial UNIQUE: one daily puzzle per user per day, practice stays unlimited.
+CREATE UNIQUE INDEX idx_finwordle_daily_once
+  ON finwordle_sessions(user_id, puzzle_date) WHERE mode = 'daily';
+CREATE TRIGGER trg_finwordle_sessions_updated_at
+  BEFORE UPDATE ON finwordle_sessions
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TABLE pattern_scenarios (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id             UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  ticker              TEXT NOT NULL,                   -- hidden until reveal
+  setup_bars          JSONB NOT NULL,
+  outcome_bars        JSONB NOT NULL,                  -- hidden until reveal
+  correct_direction   TEXT NOT NULL,                   -- hidden until reveal
+  forward_return_pct  NUMERIC(10,4) NOT NULL,
+  threshold_pct       NUMERIC(10,4) NOT NULL,
+  rationale           TEXT NOT NULL,
+  setup_notes         JSONB NOT NULL DEFAULT '[]'::jsonb,
+  guessed_direction   TEXT,
+  was_correct         BOOLEAN,
+  score_awarded       INTEGER NOT NULL DEFAULT 0,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  answered_at         TIMESTAMPTZ
+);
+
+CREATE INDEX idx_pattern_scenarios_user ON pattern_scenarios(user_id, created_at DESC);
+CREATE INDEX idx_pattern_scenarios_unanswered
+  ON pattern_scenarios(user_id) WHERE answered_at IS NULL;
+
+-- =====================================================================
 -- ROW-LEVEL SECURITY — GDPR/CCPA multi-tenant isolation
 -- =====================================================================
 -- The application sets these per-transaction immediately after BEGIN:
@@ -437,6 +519,9 @@ ALTER TABLE portfolios            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolio_holdings    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolio_impacts     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_lesson_progress  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE game_stats            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE finwordle_sessions    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pattern_scenarios     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE voice_sessions        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE usage_counters        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs            ENABLE ROW LEVEL SECURITY;
@@ -452,6 +537,15 @@ CREATE POLICY tenant_isolation_portfolio_holdings ON portfolio_holdings
   USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 CREATE POLICY tenant_isolation_portfolio_impacts ON portfolio_impacts
+  USING (user_id = current_setting('app.current_user_id', true)::uuid);
+
+CREATE POLICY tenant_isolation_game_stats ON game_stats
+  USING (user_id = current_setting('app.current_user_id', true)::uuid);
+
+CREATE POLICY tenant_isolation_finwordle_sessions ON finwordle_sessions
+  USING (user_id = current_setting('app.current_user_id', true)::uuid);
+
+CREATE POLICY tenant_isolation_pattern_scenarios ON pattern_scenarios
   USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 CREATE POLICY tenant_isolation_user_lesson_progress ON user_lesson_progress

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
-  LayoutDashboard, LineChart, Mic, FlaskConical, GraduationCap,
+  LayoutDashboard, LineChart, Mic, FlaskConical, GraduationCap, Gamepad2,
   Settings, LogOut, Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: "/voice",    label: "Voice",      icon: Mic, tier: "elite" as TierName },
   { href: "/backtest", label: "Backtest",   icon: FlaskConical    },
   { href: "/education", label: "Education", icon: GraduationCap   },
+  { href: "/games",    label: "Games",     icon: Gamepad2        },
   { href: "/settings", label: "Settings",   icon: Settings        },
 ];
 

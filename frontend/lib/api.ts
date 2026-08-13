@@ -271,6 +271,115 @@ export const submitEducationQuiz = (lessonId: string, userId: string, answers: n
 export const getEducationProgress = (userId: string): Promise<EducationProgress> =>
   apiFetch(`/api/v1/education/progress?user_id=${userId}`);
 
+// ── Games ────────────────────────────────────────────────────────────────────
+// The server withholds every answer until a round ends: FinWordle returns
+// tile colours (never the word) and the pattern game returns the setup
+// (never the ticker or outcome). Grading is server-side only.
+
+export type TileState = "correct" | "present" | "absent";
+export type FinWordleMode = "daily" | "practice";
+export type GameSessionStatus = "in_progress" | "won" | "lost";
+
+export interface WordEducation {
+  word: string; definition: string; trading_context: string;
+  example: string; category: string;
+}
+
+export interface FinWordleSession {
+  session_id: string;
+  mode: FinWordleMode;
+  puzzle_date: string | null;
+  puzzle_number: number | null;
+  word_length: number;
+  max_guesses: number;
+  guesses: string[];
+  tiles: TileState[][];
+  keyboard: Record<string, TileState>;
+  status: GameSessionStatus;
+  guesses_used: number;
+  score_awarded: number;
+  // Present only once status !== "in_progress".
+  answer?: string;
+  emoji_grid?: string;
+  education?: WordEducation | null;
+}
+
+export type PatternDirection = "bullish_breakout" | "bearish_breakdown" | "range_consolidation";
+
+export interface OhlcBar {
+  date: string; open: number; high: number; low: number; close: number; volume: number;
+}
+
+export interface PatternScenario {
+  scenario_id: string;
+  setup_bars: OhlcBar[];
+  setup_notes: string[];
+  outcome_horizon_sessions: number;
+  choices: { value: PatternDirection; label: string }[];
+}
+
+export interface PatternResult {
+  correct: boolean;
+  your_direction: PatternDirection;
+  correct_direction: PatternDirection;
+  correct_label: string;
+  ticker: string;
+  outcome_bars: OhlcBar[];
+  forward_return_pct: number;
+  threshold_pct: number;
+  rationale: string;
+  score_awarded: number;
+}
+
+export interface LeaderboardEntry {
+  rank: number; user_id: string; display_name: string;
+  games_played: number; games_won: number; win_rate_pct: number;
+  current_streak: number; max_streak: number; total_score: number;
+}
+
+export interface GameStats {
+  by_game: Record<string, {
+    games_played: number; games_won: number; win_rate_pct: number | null;
+    current_streak: number; max_streak: number; total_score: number;
+    last_daily_played: string | null;
+  }>;
+  total_score: number;
+  daily_puzzle_number: number;
+  daily_status_today: GameSessionStatus | "not_started";
+}
+
+export const startFinWordle = (userId: string, mode: FinWordleMode): Promise<FinWordleSession> =>
+  apiFetch("/api/v1/games/finwordle/session", {
+    method: "POST", body: JSON.stringify({ user_id: userId, mode }),
+  });
+
+export const submitFinWordleGuess = (
+  userId: string, sessionId: string, guess: string,
+): Promise<FinWordleSession> =>
+  apiFetch("/api/v1/games/finwordle/guess", {
+    method: "POST", body: JSON.stringify({ user_id: userId, session_id: sessionId, guess }),
+  });
+
+export const newPatternScenario = (userId: string): Promise<PatternScenario> =>
+  apiFetch("/api/v1/games/pattern/scenario", {
+    method: "POST", body: JSON.stringify({ user_id: userId }),
+  });
+
+export const submitPatternGuess = (
+  userId: string, scenarioId: string, direction: PatternDirection,
+): Promise<PatternResult> =>
+  apiFetch("/api/v1/games/pattern/guess", {
+    method: "POST", body: JSON.stringify({ user_id: userId, scenario_id: scenarioId, direction }),
+  });
+
+export const getLeaderboard = (gameType = "finwordle", limit = 20) =>
+  apiFetch<{ game_type: string; entries: LeaderboardEntry[] }>(
+    `/api/v1/games/leaderboard?game_type=${gameType}&limit=${limit}`,
+  );
+
+export const getGameStats = (userId: string): Promise<GameStats> =>
+  apiFetch(`/api/v1/games/stats?user_id=${userId}`);
+
 // ── Backtesting ──────────────────────────────────────────────────────────────
 // POST /api/v1/backtest/strategy — the main user-facing strategy backtester.
 // (The original ensemble signal-accuracy backtest still exists server-side
