@@ -40,6 +40,13 @@ class FundamentalScore:
     gross_margin: float | None
     roe: float | None
     free_cash_flow: float | None
+    # Surfaced for the metrics grid and thesis badges. Optional with defaults so
+    # existing constructor call sites stay valid.
+    pb_ratio: float | None = None
+    operating_margin: float | None = None
+    revenue_growth_yoy: float | None = None
+    current_ratio: float | None = None
+    market_cap: float | None = None
     data_completeness: float = 1.0          # NEW: 0-1, how much of this module was backed by real data
     effective_weights: dict = field(default_factory=dict)  # NEW: which sub-signals actually contributed
     # NEW (issue: "reasoning should mention specific things"): each computed

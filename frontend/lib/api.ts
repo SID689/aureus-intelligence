@@ -57,6 +57,67 @@ export const enqueueAnalysis = (
 export const pollAnalysis = (jobId: string): Promise<AnalysisResult> =>
   apiFetch(`/api/v1/analysis/result/${jobId}`);
 
+// ── Analysis: theses & pillar detail ────────────────────────────────────────
+
+export interface ThesisPoint {
+  category: string; headline: string; detail: string;
+  metric_label: string; metric_value: string;
+}
+export interface ThesisCase {
+  stance: "bull" | "bear";
+  summary: string;
+  points: ThesisPoint[];
+  what_would_change_this: string[];
+  source: string;
+}
+export interface SignalBreakdownItem { label: string; score: number; detail: string }
+
+export interface PillarScore {
+  score: number;
+  data_completeness: number;
+  effective_weights: Record<string, number>;
+  signal_breakdown: SignalBreakdownItem[];
+  analysis_notes: string[];
+  [k: string]: unknown;
+}
+
+export interface FullAnalysis {
+  ticker: string;
+  time_horizon: string;
+  signal: "BUY" | "HOLD" | "SELL";
+  signal_strength: "STRONG" | "MODERATE" | "WEAK";
+  confidence_index: number;
+  fundamental_score: number;
+  technical_score: number;
+  quantitative_score: number;
+  fundamental: PillarScore & {
+    pe_ratio: number | null; pb_ratio?: number | null; gross_margin: number | null;
+    roe: number | null; debt_to_equity: number | null; free_cash_flow: number | null;
+    dcf_detail: { intrinsic_value_per_share: number; current_price: number; margin_of_safety: number } | null;
+    dcf_skip_reason?: string | null;
+  };
+  technical: PillarScore & { rsi_14: number | null };
+  quantitative: PillarScore & {
+    beta_vs_spy: number | null; alpha_vs_spy: number | null;
+    sharpe_ratio: number | null; rolling_volatility_30d: number | null;
+  };
+  market_data_provider: string;
+  fundamental_data_provider: string;
+  reasoning: string;
+  reasoning_source: string;
+  overall_data_completeness: number;
+  module_weights_used: Record<string, number>;
+  bull_case: ThesisCase;
+  bear_case: ThesisCase;
+  generated_at: string;
+}
+
+export const getFullAnalysis = (
+  ticker: string,
+  horizon: "short_term" | "medium_term" | "long_term" = "medium_term",
+): Promise<{ job_id: string; status: string; result: FullAnalysis | null; error?: string }> =>
+  apiFetch(`/api/v1/analysis/quick/${ticker}?time_horizon=${horizon}`);
+
 // ── Market data (real bars — fixes the mock-data chart bug) ──────────────────
 
 export interface PriceBar {
