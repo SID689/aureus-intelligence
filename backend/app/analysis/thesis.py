@@ -423,13 +423,91 @@ def build_theses(ticker: str, horizon: Horizon,
     bear = Thesis("bear", _summary("bear", ticker, bear_pts, horizon), bear_pts,
                   _falsifiers("bear", fundamental, technical, quantitative, fundamental_data))
 
-    # Polish through whichever LLM backend is available; with none, the
-    # deterministic cases are returned unchanged and fully usable.
+    return _with_cached_polish(ticker, horizon, bull, bear)
+
+
+# ── Non-blocking polish ──────────────────────────────────────────────────
+# A local 3B model takes ~20s per case on CPU, so polishing inline would put
+# ~40s onto every analysis request and re-break the latency work. Instead:
+#
+#   request 1  -> return deterministic immediately, polish in a background
+#                 thread, write the result to Redis
+#   request 2+ -> serve the cached polished version instantly
+#
+# The user never waits on the model, and the cache means the cost is paid
+# once per ticker/horizon rather than per page load. If the model is slow,
+# broken, or absent, every request simply keeps the deterministic text —
+# which is complete and shippable on its own.
+
+_POLISH_CACHE_TTL = 60 * 60 * 12   # theses move slowly; half a day is plenty
+
+
+def _cache_key(ticker: str, horizon: str, stance: str) -> str:
+    return f"thesis_polished:{ticker}:{horizon}:{stance}"
+
+
+def _with_cached_polish(ticker: str, horizon: Horizon,
+                        bull: Thesis, bear: Thesis) -> tuple[Thesis, Thesis]:
+    import json as _json
+
     from app.analysis.llm_provider import available_backend
-    if available_backend() != "none":
-        bull = _polish(bull, ticker, horizon) or bull
-        bear = _polish(bear, ticker, horizon) or bear
-    return bull, bear
+
+    if available_backend() == "none":
+        return bull, bear
+
+    try:
+        from app.core.redis_client import get_redis_client
+        redis = get_redis_client()
+    except Exception:
+        return bull, bear
+
+    out: list[Thesis] = []
+    missing: list[Thesis] = []
+    for th in (bull, bear):
+        try:
+            raw = redis.get(_cache_key(ticker, horizon, th.stance))
+        except Exception:
+            raw = None
+        if raw:
+            details = _json.loads(raw)
+            if isinstance(details, list) and len(details) == len(th.points):
+                for p, d in zip(th.points, details):
+                    p.detail = d
+                th.source = "llm_polished"
+                out.append(th)
+                continue
+        missing.append(th)
+        out.append(th)
+
+    if missing:
+        _spawn_background_polish(ticker, horizon, missing)
+    return out[0], out[1]
+
+
+def _spawn_background_polish(ticker: str, horizon: Horizon, theses: list[Thesis]) -> None:
+    """Fire-and-forget: polish off the request path and cache the result."""
+    import json as _json
+    import threading
+
+    def _work() -> None:
+        try:
+            from app.core.redis_client import get_redis_client
+            redis = get_redis_client()
+            for th in theses:
+                polished = _polish(th, ticker, horizon)
+                if polished:
+                    redis.setex(
+                        _cache_key(ticker, horizon, th.stance),
+                        _POLISH_CACHE_TTL,
+                        _json.dumps([p.detail for p in polished.points]),
+                    )
+                    logger.info("Thesis polished and cached",
+                                extra={"ticker": ticker, "stance": th.stance})
+        except Exception as exc:
+            logger.warning("Background thesis polish failed",
+                           extra={"ticker": ticker, "error": str(exc)})
+
+    threading.Thread(target=_work, daemon=True, name=f"polish-{ticker}").start()
 
 
 _POLISH_TEMPLATE = """Rewrite each bullet's DETAIL text below into tighter, more fluent institutional prose.
@@ -438,11 +516,37 @@ ABSOLUTE CONSTRAINTS:
 - Preserve every number exactly. Do not round differently, drop, or add any figure.
 - Do not add any claim, driver, or fact that is not already present.
 - Do not change the headline or the category of any point.
+- Do NOT restate the category or headline inside the detail text — both are
+  already displayed above it, so repeating them reads as duplication.
+- Preserve the MEANING precisely. Do not re-attribute a figure to a
+  different concept than the original assigned it to.
 - Keep each detail to at most three sentences.
 - Return JSON only: {{"details": ["...", "..."]}} with exactly {n} entries, in order.
 
 POINTS:
 {payload}"""
+
+
+def _strip_redundant_prefix(detail: str, point: ThesisPoint) -> str:
+    """
+    Remove a leading "Category:" or "Headline:" echo from model output.
+
+    Small local models reliably ignore a negative instruction like "do not
+    restate the category", so the prompt alone doesn't prevent this — and the
+    UI already renders both above the detail, so the echo reads as
+    duplication. Stripping it deterministically is more dependable than
+    asking a 3B model to comply.
+    """
+    cleaned = detail.strip()
+    for prefix in (point.category, point.headline):
+        for sep in (":", " -", " —"):
+            probe = f"{prefix}{sep}"
+            if cleaned.lower().startswith(probe.lower()):
+                cleaned = cleaned[len(probe):].lstrip()
+                # Re-capitalise so the sentence still reads correctly.
+                if cleaned and cleaned[0].islower():
+                    cleaned = cleaned[0].upper() + cleaned[1:]
+    return cleaned
 
 
 def _polish(thesis: Thesis, ticker: str, horizon: Horizon) -> Thesis | None:
@@ -466,7 +570,7 @@ def _polish(thesis: Thesis, ticker: str, horizon: Horizon) -> Thesis | None:
     data = complete_json(
         CORE_ORCHESTRATOR_SYSTEM_PROMPT,
         _POLISH_TEMPLATE.format(n=len(thesis.points), payload=payload),
-        max_tokens=1400,
+        max_tokens=800,
     )
     if not data:
         return None
@@ -483,6 +587,6 @@ def _polish(thesis: Thesis, ticker: str, horizon: Horizon) -> Thesis | None:
         return None
 
     for p, new_detail in zip(thesis.points, details):
-        p.detail = new_detail
+        p.detail = _strip_redundant_prefix(new_detail, p)
     thesis.source = "llm_polished"
     return thesis

@@ -33,12 +33,18 @@ on absence.
 SETUP (owner action required for the free path)
 =====================================================================
     brew install ollama          # or https://ollama.com/download
-    ollama pull llama3.1:8b      # ~4.7GB, runs comfortably on 16GB RAM
+    ollama pull llama3.2:3b      # ~2GB
     ollama serve                 # usually already running as a service
 
 Then set in backend/.env:
     OLLAMA_BASE_URL=http://host.docker.internal:11434
-    OLLAMA_MODEL=llama3.1:8b
+    OLLAMA_MODEL=llama3.2:3b
+
+MODEL SIZING: pick against FREE RAM, not total. This stack already runs
+Postgres, Redis, the API, the frontend and three Celery workers, so an 8B
+model (~5-6GB resident) will swap on an 8GB machine. The polish step only
+restates bullets it is handed, under a strict JSON schema — it never authors
+a claim — so a 3B model does the job. Move up only if you have headroom.
 
 `host.docker.internal` is required rather than `localhost` because the
 backend runs inside a container and Ollama runs on the host.
