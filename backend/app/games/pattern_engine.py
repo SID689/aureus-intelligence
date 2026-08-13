@@ -261,10 +261,28 @@ def _build_question(rng, pattern: DetectedPattern | None,
     """
     usable = pattern is not None and pattern.confidence >= MIN_CONFIDENCE_FOR_QUIZ
 
+    # There are two FAMILIES of question here, and they're weighted evenly:
+    #
+    #   "which way did it resolve"   — reading the setup and calling the move
+    #   "what is this / what does
+    #    it mean"                    — recognising the named formation
+    #
+    # Splitting 50/50 between the families rather than uniformly across the
+    # three types matters because the pattern family has two members. A
+    # uniform pick would show the direction question only a third of the
+    # time, which under-weights the one question whose answer key comes from
+    # realised prices rather than a label — and that's the question that
+    # keeps the game grounded in what actually happened.
     options: list[QuestionType] = ["direction"]
+    weights = [1.0]
     if usable:
         options += ["pattern_id", "pattern_implication"]
-    qtype = prefer if (prefer in options) else rng.choice(options)
+        weights += [0.5, 0.5]
+
+    if prefer in options:
+        qtype = prefer
+    else:
+        qtype = rng.choices(options, weights=weights, k=1)[0]
 
     if qtype == "pattern_id" and pattern:
         return (
