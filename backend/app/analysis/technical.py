@@ -17,7 +17,11 @@ from app.analysis.reweighting import WeightedSignal, reweight
 
 logger = logging.getLogger("aureus.analysis.technical")
 
-_W_RSI, _W_MACD, _W_SR, _W_VOLUME = 0.30, 0.30, 0.25, 0.15
+# Six sub-signals spanning momentum, trend structure, volatility position
+# and participation. Weights sum to 1.0; the dynamic reweighting in
+# reweighting.py redistributes any that can't be computed.
+_W_RSI, _W_MACD, _W_SR, _W_VOLUME = 0.18, 0.22, 0.15, 0.10
+_W_MA_ALIGN, _W_BBANDS = 0.23, 0.12
 _MIN_BARS = 60
 
 
@@ -142,6 +146,122 @@ def _sr_to_score(current_price: float, levels: list[SupportResistanceLevel]) -> 
     return max(0.0, min(100.0, score))
 
 
+def _compute_ma_alignment(close: pd.Series) -> tuple[float | None, dict]:
+    """
+    Score the 20/50/200 SMA stack.
+
+    A textbook bullish alignment is price > SMA20 > SMA50 > SMA200: every
+    horizon of buyer is in profit and each shorter average supports the next.
+    Full bearish inversion is the mirror. Scoring the STACK rather than a
+    single crossover is what makes this robust — an isolated crossover
+    whipsaws constantly, whereas the ordering of all three only flips when a
+    trend genuinely changes.
+    """
+    if len(close) < 200:
+        # Fall back to the two averages we can compute, rather than dropping
+        # the signal entirely on a stock with under a year of history.
+        if len(close) < 50:
+            return None, {}
+        sma20, sma50 = close.rolling(20).mean().iloc[-1], close.rolling(50).mean().iloc[-1]
+        px = float(close.iloc[-1])
+        if any(pd.isna(v) for v in (sma20, sma50)):
+            return None, {}
+        score = 50.0 + (12.5 if px > sma20 else -12.5) + (12.5 if sma20 > sma50 else -12.5)
+        return score, {"sma20": round(float(sma20), 2), "sma50": round(float(sma50), 2)}
+
+    sma20 = float(close.rolling(20).mean().iloc[-1])
+    sma50 = float(close.rolling(50).mean().iloc[-1])
+    sma200 = float(close.rolling(200).mean().iloc[-1])
+    px = float(close.iloc[-1])
+    if any(pd.isna(v) for v in (sma20, sma50, sma200)):
+        return None, {}
+
+    # Four independent orderings, each worth 12.5 points around a neutral 50.
+    checks = [px > sma20, sma20 > sma50, sma50 > sma200, px > sma200]
+    score = 50.0 + sum(12.5 if c else -12.5 for c in checks)
+    return max(0.0, min(100.0, score)), {
+        "sma20": round(sma20, 2), "sma50": round(sma50, 2), "sma200": round(sma200, 2),
+    }
+
+
+def _compute_bollinger_pctb(close: pd.Series, period: int = 20, k: float = 2.0) -> float | None:
+    """
+    Bollinger %B — where price sits inside its own volatility envelope.
+    0 = lower band, 1 = upper band. Self-normalising, so it's comparable
+    across tickers in a way a raw distance-from-average is not.
+    """
+    if len(close) < period + 2:
+        return None
+    ma = close.rolling(period).mean().iloc[-1]
+    sd = close.rolling(period).std().iloc[-1]
+    if pd.isna(ma) or pd.isna(sd) or sd == 0:
+        return None
+    upper, lower = ma + k * sd, ma - k * sd
+    return float((float(close.iloc[-1]) - lower) / (upper - lower))
+
+
+def _pctb_to_score(pctb: float) -> float:
+    """
+    Mean-reversion reading, matching how RSI is scored in this module:
+    riding the lower band is the opportunity, the upper band is the risk.
+    """
+    if pctb <= 0.0:  return 90.0
+    if pctb <= 0.2:  return 75.0 + (0.2 - pctb) / 0.2 * 15.0
+    if pctb <= 0.8:  return 60.0 - (pctb - 0.2) / 0.6 * 20.0
+    if pctb <= 1.0:  return 40.0 - (pctb - 0.8) / 0.2 * 25.0
+    return 12.0
+
+
+def _compute_atr_pct(df: pd.DataFrame, period: int = 14) -> float | None:
+    """Average True Range as a % of price — comparable across tickers."""
+    if len(df) < period + 2:
+        return None
+    high, low, close = df["high"], df["low"], df["close"]
+    prev_close = close.shift(1)
+    tr = pd.concat([high - low, (high - prev_close).abs(), (low - prev_close).abs()], axis=1).max(axis=1)
+    atr = tr.rolling(period).mean().iloc[-1]
+    px = float(close.iloc[-1])
+    if pd.isna(atr) or px <= 0:
+        return None
+    return float(atr) / px
+
+
+def _compute_obv_trend(df: pd.DataFrame, lookback: int = 20) -> float | None:
+    """
+    On-Balance Volume slope, normalised.
+
+    OBV accumulates volume signed by the day's direction. Its SLOPE is the
+    useful part: rising OBV while price is flat means accumulation is
+    happening under the surface. The raw level is meaningless on its own
+    because it depends entirely on an arbitrary starting point.
+    """
+    if len(df) < lookback + 5:
+        return None
+    direction = np.sign(df["close"].diff().fillna(0.0))
+    obv = (direction * df["volume"]).cumsum()
+    window = obv.iloc[-lookback:]
+    if window.std() == 0:
+        return None
+    x = np.arange(len(window), dtype=float)
+    slope = float(np.polyfit(x, window.to_numpy(float), 1)[0])
+    denom = float(df["volume"].iloc[-lookback:].mean())
+    return slope / denom if denom else None
+
+
+def _compute_vwap_position(df: pd.DataFrame, lookback: int = 20) -> float | None:
+    """Price relative to rolling VWAP, as a fraction above/below."""
+    if len(df) < lookback:
+        return None
+    seg = df.iloc[-lookback:]
+    typical = (seg["high"] + seg["low"] + seg["close"]) / 3.0
+    vol = seg["volume"]
+    if vol.sum() <= 0:
+        return None
+    vwap = float((typical * vol).sum() / vol.sum())
+    px = float(df["close"].iloc[-1])
+    return (px - vwap) / vwap if vwap else None
+
+
 def _compute_volume_score(df: pd.DataFrame) -> float:
     if len(df) < 25:
         return 50.0
@@ -212,11 +332,72 @@ def run_technical_analysis(ticker: str, bars: pd.DataFrame) -> TechnicalScore:
         if volume_score >= 65 or volume_score <= 35:
             signals.append({"label": "Volume Trend", "score": volume_score, "detail": "Recent price moves are confirmed by above-average volume" if volume_score >= 65 else "Recent price moves lack strong volume confirmation"})
 
+    # ── Moving-average alignment (20/50/200 stack) ────────────────────
+    ma_score, ma_levels = _compute_ma_alignment(close)
+    ma_computed = ma_score is not None
+    if ma_computed:
+        stack = " > ".join(
+            f"{k.upper()} {v}" for k, v in sorted(ma_levels.items(), key=lambda kv: kv[1], reverse=True)
+        )
+        notes.append(f"Moving-average alignment → trend-structure component {ma_score:.0f}/100 ({stack})")
+        signals.append({
+            "label": "MA Alignment (20/50/200)", "score": ma_score,
+            "detail": (f"Price ${current_price:.2f} against {stack} — "
+                       + ("a bullish stack with every horizon of buyer onside"
+                          if ma_score >= 70 else
+                          "a bearish stack with shorter averages below longer ones"
+                          if ma_score <= 30 else
+                          "a mixed stack, with the averages not yet in agreement")),
+        })
+    else:
+        ma_score = 50.0
+        notes.append("Moving-average alignment unavailable (insufficient history) — excluded from composite")
+
+    # ── Bollinger %B (position inside the volatility envelope) ────────
+    pctb = _compute_bollinger_pctb(close)
+    bb_computed = pctb is not None
+    bb_score = _pctb_to_score(pctb) if bb_computed else 50.0
+    if bb_computed:
+        notes.append(f"Bollinger %B {pctb:.2f} → volatility-position component {bb_score:.0f}/100")
+        where = ("above the upper band — statistically stretched" if pctb > 1 else
+                 "riding the upper band" if pctb > 0.8 else
+                 "below the lower band — statistically stretched to the downside" if pctb < 0 else
+                 "hugging the lower band" if pctb < 0.2 else "mid-envelope")
+        signals.append({"label": "Bollinger %B", "score": bb_score,
+                        "detail": f"Price is {where} (%B {pctb:.2f})"})
+
+    # ── Context-only readings: ATR, OBV, VWAP ─────────────────────────
+    # These describe the environment rather than express a directional view,
+    # so they enrich the narrative and the metrics grid without being scored.
+    # Folding a volatility LEVEL into a directional composite would be a
+    # category error: high ATR is neither bullish nor bearish on its own.
+    atr_pct = _compute_atr_pct(bars)
+    obv_slope = _compute_obv_trend(bars)
+    vwap_pos = _compute_vwap_position(bars)
+
+    if atr_pct is not None:
+        notes.append(f"ATR(14) is {atr_pct * 100:.2f}% of price — typical daily range")
+    if obv_slope is not None:
+        signals.append({
+            "label": "On-Balance Volume", "score": 65.0 if obv_slope > 0 else 35.0,
+            "detail": ("OBV is rising — volume is accumulating on up-days"
+                       if obv_slope > 0 else
+                       "OBV is falling — volume is concentrated in down-days"),
+        })
+    if vwap_pos is not None:
+        signals.append({
+            "label": "VWAP Position", "score": 60.0 if vwap_pos > 0 else 40.0,
+            "detail": (f"Trading {abs(vwap_pos) * 100:.1f}% "
+                       f"{'above' if vwap_pos > 0 else 'below'} its 20-session VWAP"),
+        })
+
     result = reweight([
-        WeightedSignal("rsi_score",    rsi_score,    _W_RSI,    rsi_computed),
-        WeightedSignal("macd_score",   macd_score,   _W_MACD,   macd_computed),
-        WeightedSignal("sr_score",     sr_score,     _W_SR,     sr_computed),
-        WeightedSignal("volume_score", volume_score, _W_VOLUME, volume_computed),
+        WeightedSignal("rsi_score",    rsi_score,    _W_RSI,      rsi_computed),
+        WeightedSignal("macd_score",   macd_score,   _W_MACD,     macd_computed),
+        WeightedSignal("ma_alignment", ma_score,     _W_MA_ALIGN, ma_computed),
+        WeightedSignal("bollinger_pctb", bb_score,   _W_BBANDS,   bb_computed),
+        WeightedSignal("sr_score",     sr_score,     _W_SR,       sr_computed),
+        WeightedSignal("volume_score", volume_score, _W_VOLUME,   volume_computed),
     ])
     if result.dropped_signals:
         notes.append(f"Excluded from scoring (no real data): {', '.join(result.dropped_signals)}")

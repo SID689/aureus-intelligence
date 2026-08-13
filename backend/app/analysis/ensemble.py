@@ -29,6 +29,7 @@ from app.analysis.models import EnsembleSignal, FundamentalScore, QuantitativeSc
 from app.analysis.quantitative import run_quantitative_analysis
 from app.analysis.reasoning import generate_reasoning
 from app.analysis.reweighting import WeightedSignal, reweight
+from app.analysis.thesis import build_theses
 from app.analysis.technical import run_technical_analysis
 from app.ingestion.fundamentals import FundamentalDataService
 from app.ingestion.market_data import MarketDataService
@@ -152,6 +153,11 @@ def run_ensemble_analysis(
         quantitative=quantitative_result, module_weights=module_weights_used, use_llm_polish=use_llm_reasoning,
     )
 
+    bull, bear = build_theses(
+        ticker, time_horizon, fundamental_result, technical_result,
+        quantitative_result, fund_data,
+    )
+
     logger.info("Ensemble analysis complete", extra={
         "ticker": ticker, "signal": signal, "confidence_index": confidence_index,
         "overall_completeness": overall_completeness, "module_weights": module_weights_used,
@@ -165,5 +171,6 @@ def run_ensemble_analysis(
         fundamental=fundamental_result, technical=technical_result, quantitative=quantitative_result,
         market_data_provider=market_result.provider, fundamental_data_provider=fundamental_provider,
         reasoning=reasoning_text, reasoning_source=reasoning_source,
+        bull_case=bull.to_dict(), bear_case=bear.to_dict(),
         overall_data_completeness=overall_completeness, module_weights_used=module_weights_used,
     )
