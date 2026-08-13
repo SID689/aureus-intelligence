@@ -44,6 +44,13 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
+from app.games.chart_patterns import (
+    MIN_CONFIDENCE_FOR_QUIZ,
+    PATTERN_LIBRARY,
+    DetectedPattern,
+    detect_patterns,
+    pattern_choices,
+)
 from app.ingestion.market_data import MarketDataService
 
 logger = logging.getLogger("aureus.games.pattern")
@@ -59,8 +66,20 @@ DIRECTION_LABELS: dict[Direction, str] = {
 # Tickers the scenario generator draws from. Deliberately spans sectors and
 # volatility regimes so the player can't pattern-match on one asset's habits.
 SCENARIO_TICKERS = [
-    "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META",
-    "JPM", "XOM", "JNJ", "WMT", "KO", "INTC",
+    # Mega-cap tech
+    "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "AVGO", "ORCL", "CRM", "ADBE",
+    # Semis / hardware
+    "AMD", "INTC", "QCOM", "TXN", "MU",
+    # Financials
+    "JPM", "BAC", "GS", "MS", "V", "MA",
+    # Healthcare
+    "JNJ", "UNH", "PFE", "LLY", "ABBV",
+    # Energy / industrials / materials
+    "XOM", "CVX", "CAT", "BA", "GE", "FCX",
+    # Consumer
+    "WMT", "COST", "KO", "PEP", "MCD", "NKE", "SBUX", "TGT",
+    # Comms / other
+    "DIS", "NFLX", "T", "UBER", "PYPL",
 ]
 
 SETUP_BARS = 60        # what the player sees
@@ -77,6 +96,22 @@ OUTCOME_BARS = 10      # forward window the answer is scored over
 # ticker list or OUTCOME_BARS changes, since both shift the distribution.
 VOL_MULTIPLIER = 0.43
 MIN_THRESHOLD = 0.01   # 1% floor so a near-zero-vol window can't classify noise as a breakout
+MAX_TICKERS_PER_ATTEMPT = 6   # bounds latency against a rate-limited data provider
+
+
+QuestionType = Literal["direction", "pattern_id", "pattern_implication"]
+
+# What each pattern is conventionally read as. Used as the answer key for
+# pattern_implication questions — which asks what the TEXTBOOK says, not what
+# actually happened. The reveal then shows the real outcome, which often
+# disagrees; that disagreement is the intended lesson.
+BIAS_LABELS: dict[str, str] = {
+    "bullish_reversal": "Bullish reversal — a bottom forming",
+    "bearish_reversal": "Bearish reversal — a top forming",
+    "bullish_continuation": "Bullish continuation — a pause before more upside",
+    "bearish_continuation": "Bearish continuation — a pause before more downside",
+    "bilateral": "Neither — it signals compression, not direction",
+}
 
 
 @dataclass
@@ -89,6 +124,14 @@ class Scenario:
     threshold_pct: float
     rationale: str
     setup_notes: list[str]
+    # Question framing
+    question_type: QuestionType
+    question: str
+    choices: list[dict]
+    correct_answer: str
+    pattern_key: str | None = None
+    pattern_confidence: float | None = None
+    pattern_detail: str | None = None
 
 
 def _bars_to_records(df: pd.DataFrame) -> list[dict]:
@@ -204,20 +247,80 @@ def _rationale(direction: Direction, fwd_pct: float, threshold_pct: float,
     return " ".join(parts)
 
 
-def generate_scenario(rng: random.Random | None = None) -> Scenario:
+def _build_question(rng, pattern: DetectedPattern | None,
+                    prefer: QuestionType | None = None) -> tuple[QuestionType, str, list[dict], str]:
+    """
+    Choose the question to ask for this chart.
+
+    Pattern-based questions are only offered when a formation was detected
+    at quiz-grade confidence — otherwise the answer key would be a guess,
+    and a quiz that grades against a guess teaches noise. Everything else
+    falls back to the direction question, which is always answerable
+    because its answer comes from realised prices rather than from a
+    subjective label.
+    """
+    usable = pattern is not None and pattern.confidence >= MIN_CONFIDENCE_FOR_QUIZ
+
+    options: list[QuestionType] = ["direction"]
+    if usable:
+        options += ["pattern_id", "pattern_implication"]
+    qtype = prefer if (prefer in options) else rng.choice(options)
+
+    if qtype == "pattern_id" and pattern:
+        return (
+            "pattern_id",
+            "Which classical chart pattern is forming here?",
+            pattern_choices(pattern.key, rng),
+            pattern.key,
+        )
+
+    if qtype == "pattern_implication" and pattern:
+        info = PATTERN_LIBRARY[pattern.key]
+        biases = ["bullish_reversal", "bearish_reversal",
+                  "bullish_continuation", "bearish_continuation", "bilateral"]
+        rng.shuffle(biases)
+        return (
+            "pattern_implication",
+            f"This chart is forming a {info.name}. What is that pattern conventionally read as?",
+            [{"value": b, "label": BIAS_LABELS[b]} for b in biases],
+            info.bias,
+        )
+
+    return (
+        "direction",
+        f"Which way did it resolve over the next {OUTCOME_BARS} sessions?",
+        [{"value": k, "label": v} for k, v in DIRECTION_LABELS.items()],
+        "",  # filled in by the caller once the outcome is classified
+    )
+
+
+def generate_scenario(rng: random.Random | None = None,
+                      prefer_question: QuestionType | None = None) -> Scenario:
     """
     Build one scenario from real history.
+
+    Tries tickers in random order and, within each, a handful of random
+    cutoffs — preferring windows that contain a detectable formation so the
+    pattern questions actually get used, while still returning a plain
+    direction question when nothing clean is present.
 
     Raises RuntimeError if no ticker yields enough usable history, so the
     API can return a clear 503 instead of a half-built game.
     """
     rng = rng or random.Random()
     svc = MarketDataService()
-    tickers = rng.sample(SCENARIO_TICKERS, len(SCENARIO_TICKERS))
+    # Sample a SUBSET rather than walking all 45. The market-data provider's
+    # free tier is rate-limited to a handful of calls a minute, so an
+    # unbounded walk over cold tickers serialises behind backoff and can take
+    # minutes. A random subset keeps generation bounded while still drawing
+    # from the full universe across users and days.
+    tickers = rng.sample(SCENARIO_TICKERS, min(MAX_TICKERS_PER_ATTEMPT, len(SCENARIO_TICKERS)))
 
     needed = SETUP_BARS + OUTCOME_BARS
     end = date.today()
     start = end - timedelta(days=900)
+
+    fallback: tuple | None = None   # a valid window with no detected pattern
 
     for ticker in tickers:
         try:
@@ -228,29 +331,61 @@ def generate_scenario(rng: random.Random | None = None) -> Scenario:
         if bars is None or len(bars) < needed + 5:
             continue
 
-        # Random cutoff leaving a full outcome window after it.
         max_cut = len(bars) - OUTCOME_BARS
-        cut = rng.randint(SETUP_BARS, max_cut)
-        setup = bars.iloc[cut - SETUP_BARS: cut]
-        outcome = bars.iloc[cut: cut + OUTCOME_BARS]
-        if len(setup) < SETUP_BARS or len(outcome) < OUTCOME_BARS:
+        if max_cut <= SETUP_BARS:
             continue
 
-        direction, fwd_pct, threshold_pct = _classify(setup, outcome)
-        return Scenario(
-            ticker=ticker,
-            setup_bars=_bars_to_records(setup),
-            outcome_bars=_bars_to_records(outcome),
-            correct_direction=direction,
-            forward_return_pct=round(fwd_pct, 2),
-            threshold_pct=round(threshold_pct, 2),
-            rationale=_rationale(direction, fwd_pct, threshold_pct, setup, outcome),
-            setup_notes=_setup_notes(setup),
-        )
+        for _ in range(6):
+            cut = rng.randint(SETUP_BARS, max_cut)
+            setup = bars.iloc[cut - SETUP_BARS: cut]
+            outcome = bars.iloc[cut: cut + OUTCOME_BARS]
+            if len(setup) < SETUP_BARS or len(outcome) < OUTCOME_BARS:
+                continue
+
+            matches = detect_patterns(setup)
+            pattern = matches[0] if matches else None
+
+            if pattern and pattern.confidence >= MIN_CONFIDENCE_FOR_QUIZ:
+                return _assemble(rng, ticker, setup, outcome, pattern, prefer_question)
+            if fallback is None:
+                fallback = (ticker, setup, outcome, pattern)
+
+    if fallback:
+        return _assemble(rng, *fallback, prefer_question)
 
     raise RuntimeError(
         "Could not build a pattern scenario — no ticker returned enough historical data. "
         "Check market-data provider availability."
+    )
+
+
+def _assemble(rng, ticker, setup, outcome,
+              pattern: DetectedPattern | None,
+              prefer: QuestionType | None) -> Scenario:
+    direction, fwd_pct, threshold_pct = _classify(setup, outcome)
+    qtype, question, choices, answer = _build_question(rng, pattern, prefer)
+    if qtype == "direction":
+        answer = direction
+
+    rationale = _rationale(direction, fwd_pct, threshold_pct, setup, outcome)
+    notes = _setup_notes(setup)
+
+    return Scenario(
+        ticker=ticker,
+        setup_bars=_bars_to_records(setup),
+        outcome_bars=_bars_to_records(outcome),
+        correct_direction=direction,
+        forward_return_pct=round(fwd_pct, 2),
+        threshold_pct=round(threshold_pct, 2),
+        rationale=rationale,
+        setup_notes=notes,
+        question_type=qtype,
+        question=question,
+        choices=choices,
+        correct_answer=answer,
+        pattern_key=pattern.key if pattern else None,
+        pattern_confidence=float(pattern.confidence) if pattern else None,
+        pattern_detail=pattern.detail if pattern else None,
     )
 
 

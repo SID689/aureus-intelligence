@@ -310,25 +310,45 @@ export interface OhlcBar {
   date: string; open: number; high: number; low: number; close: number; volume: number;
 }
 
-export interface PatternScenario {
-  scenario_id: string;
-  setup_bars: OhlcBar[];
-  setup_notes: string[];
-  outcome_horizon_sessions: number;
-  choices: { value: PatternDirection; label: string }[];
+export type PatternQuestionType = "direction" | "pattern_id" | "pattern_implication";
+
+export interface PatternChoice { value: string; label: string }
+
+export interface PatternInfo {
+  key: string; name: string; bias: string; shape: string;
+  implication: string; confirmation: string; caveat: string;
+  detected_detail?: string | null; confidence?: number | null;
 }
 
 export interface PatternResult {
   correct: boolean;
-  your_direction: PatternDirection;
-  correct_direction: PatternDirection;
-  correct_label: string;
+  your_answer: string | null;
+  correct_answer: string;
   ticker: string;
   outcome_bars: OhlcBar[];
+  correct_direction: string;
+  correct_direction_label: string;
   forward_return_pct: number;
   threshold_pct: number;
   rationale: string;
   score_awarded: number;
+  pattern: PatternInfo | null;
+}
+
+export interface PatternScenario {
+  scenario_id: string;
+  puzzle_date: string;
+  question_type: PatternQuestionType;
+  question: string;
+  choices: PatternChoice[];
+  setup_bars: OhlcBar[];
+  setup_notes: string[];
+  outcome_horizon_sessions: number;
+  answered: boolean;
+  // Only present for pattern_implication, where the question already names it.
+  named_pattern?: { key: string; name: string; shape: string };
+  // Present once answered — lets the reveal survive a page refresh.
+  result?: PatternResult;
 }
 
 export interface LeaderboardEntry {
@@ -366,11 +386,14 @@ export const newPatternScenario = (userId: string): Promise<PatternScenario> =>
   });
 
 export const submitPatternGuess = (
-  userId: string, scenarioId: string, direction: PatternDirection,
+  userId: string, scenarioId: string, answer: string,
 ): Promise<PatternResult> =>
   apiFetch("/api/v1/games/pattern/guess", {
-    method: "POST", body: JSON.stringify({ user_id: userId, scenario_id: scenarioId, direction }),
+    method: "POST", body: JSON.stringify({ user_id: userId, scenario_id: scenarioId, answer }),
   });
+
+export const getPatternLibrary = () =>
+  apiFetch<{ patterns: PatternInfo[] }>("/api/v1/games/patterns/library");
 
 export const getLeaderboard = (gameType = "finwordle", limit = 20) =>
   apiFetch<{ game_type: string; entries: LeaderboardEntry[] }>(

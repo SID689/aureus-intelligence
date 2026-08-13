@@ -45,6 +45,7 @@ from sqlalchemy import create_engine, text
 
 from app.core.config import get_settings
 from app.games import pattern_engine
+from app.games.chart_patterns import PATTERN_LIBRARY
 from app.games.finwordle_dictionary import MAX_GUESSES, WORD_LENGTH
 from app.games.wordle_engine import (
     daily_puzzle_index,
@@ -317,39 +318,79 @@ class ScenarioRequest(BaseModel):
 
 @router.post("/pattern/scenario")
 def pattern_scenario(req: ScenarioRequest) -> dict:
-    """New scenario. Ticker, outcome bars and answer are all withheld."""
+    """
+    Today's scenario. One per user per calendar day.
+
+    Idempotent: calling again the same day returns the SAME scenario —
+    including an already-answered one, so the reveal survives a refresh —
+    rather than dealing a fresh chart. The database enforces the limit via
+    a unique index, so two concurrent calls can't both insert.
+    """
+    today = date.today()
+    engine = _get_engine()
+
+    # Return today's scenario if one already exists.
+    try:
+        with engine.connect() as conn:
+            existing = conn.execute(
+                text("SELECT * FROM pattern_scenarios WHERE user_id = :uid AND puzzle_date = :d"),
+                {"uid": req.user_id, "d": today},
+            ).fetchone()
+    except Exception as exc:
+        engine.dispose()
+        logger.error("Scenario lookup failed", extra={"error": str(exc)})
+        raise HTTPException(status_code=500, detail="Could not load today's scenario")
+
+    if existing is not None:
+        engine.dispose()
+        return _scenario_payload(existing)
+
     try:
         scenario = pattern_engine.generate_scenario(random.Random())
     except RuntimeError as exc:
+        engine.dispose()
         raise HTTPException(status_code=503, detail=str(exc))
     except Exception as exc:
+        engine.dispose()
         logger.error("Scenario generation failed", extra={"error": str(exc)}, exc_info=True)
         raise HTTPException(status_code=500, detail="Could not build a scenario")
 
-    engine = _get_engine()
     try:
         with engine.begin() as conn:
             row = conn.execute(
                 text("""
                     INSERT INTO pattern_scenarios
-                      (user_id, ticker, setup_bars, outcome_bars, correct_direction,
-                       forward_return_pct, threshold_pct, rationale, setup_notes)
+                      (user_id, puzzle_date, ticker, setup_bars, outcome_bars, correct_direction,
+                       forward_return_pct, threshold_pct, rationale, setup_notes,
+                       question_type, question, choices, correct_answer,
+                       pattern_key, pattern_confidence, pattern_detail)
                     VALUES
-                      (:uid, :ticker, CAST(:setup AS jsonb), CAST(:outcome AS jsonb), :dir,
-                       :fwd, :thr, :rat, CAST(:notes AS jsonb))
-                    RETURNING id, created_at
+                      (:uid, :d, :ticker, CAST(:setup AS jsonb), CAST(:outcome AS jsonb), :dir,
+                       :fwd, :thr, :rat, CAST(:notes AS jsonb),
+                       :qtype, :q, CAST(:choices AS jsonb), :ans,
+                       :pkey, :pconf, :pdetail)
+                    ON CONFLICT (user_id, puzzle_date) DO NOTHING
+                    RETURNING *
                 """),
                 {
-                    "uid": req.user_id, "ticker": scenario.ticker,
+                    "uid": req.user_id, "d": today, "ticker": scenario.ticker,
                     "setup": json.dumps(scenario.setup_bars),
                     "outcome": json.dumps(scenario.outcome_bars),
                     "dir": scenario.correct_direction,
-                    "fwd": scenario.forward_return_pct,
-                    "thr": scenario.threshold_pct,
-                    "rat": scenario.rationale,
-                    "notes": json.dumps(scenario.setup_notes),
+                    "fwd": scenario.forward_return_pct, "thr": scenario.threshold_pct,
+                    "rat": scenario.rationale, "notes": json.dumps(scenario.setup_notes),
+                    "qtype": scenario.question_type, "q": scenario.question,
+                    "choices": json.dumps(scenario.choices), "ans": scenario.correct_answer,
+                    "pkey": scenario.pattern_key, "pconf": scenario.pattern_confidence,
+                    "pdetail": scenario.pattern_detail,
                 },
             ).fetchone()
+            if row is None:
+                # A concurrent request won the race; return whatever it wrote.
+                row = conn.execute(
+                    text("SELECT * FROM pattern_scenarios WHERE user_id = :uid AND puzzle_date = :d"),
+                    {"uid": req.user_id, "d": today},
+                ).fetchone()
             _ensure_stats(conn, req.user_id, "pattern_guesser")
     except Exception as exc:
         logger.error("Scenario persist failed", extra={"error": str(exc)}, exc_info=True)
@@ -357,25 +398,84 @@ def pattern_scenario(req: ScenarioRequest) -> dict:
     finally:
         engine.dispose()
 
-    return {
+    return _scenario_payload(row)
+
+
+def _scenario_payload(row) -> dict:
+    """
+    Client view of a scenario. Ticker, outcome bars and the answer key are
+    withheld until `answered_at` is set — see the module docstring.
+    """
+    answered = row.answered_at is not None
+    setup = json.loads(row.setup_bars) if isinstance(row.setup_bars, str) else row.setup_bars
+    choices = json.loads(row.choices) if isinstance(row.choices, str) else (row.choices or [])
+    notes = json.loads(row.setup_notes) if isinstance(row.setup_notes, str) else (row.setup_notes or [])
+
+    payload = {
         "scenario_id": str(row.id),
-        "setup_bars": scenario.setup_bars,
-        "setup_notes": scenario.setup_notes,
+        "puzzle_date": str(row.puzzle_date),
+        "question_type": row.question_type,
+        "question": row.question,
+        "choices": choices,
+        "setup_bars": setup,
+        "setup_notes": notes,
         "outcome_horizon_sessions": pattern_engine.OUTCOME_BARS,
-        "choices": [
-            {"value": k, "label": v} for k, v in pattern_engine.DIRECTION_LABELS.items()
-        ],
+        "answered": answered,
+    }
+    # pattern_implication states the pattern name in the question itself, so
+    # naming it here leaks nothing that isn't already on screen.
+    if row.question_type == "pattern_implication" and row.pattern_key:
+        info = PATTERN_LIBRARY.get(row.pattern_key)
+        if info:
+            payload["named_pattern"] = {"key": info.key, "name": info.name, "shape": info.shape}
+
+    if answered:
+        payload["result"] = _reveal_payload(row)
+    return payload
+
+
+def _reveal_payload(row) -> dict:
+    outcome = json.loads(row.outcome_bars) if isinstance(row.outcome_bars, str) else row.outcome_bars
+    info = PATTERN_LIBRARY.get(row.pattern_key) if row.pattern_key else None
+    return {
+        "correct": bool(row.was_correct),
+        "your_answer": row.guessed_answer,
+        "correct_answer": row.correct_answer,
+        "ticker": row.ticker,
+        "outcome_bars": outcome,
+        "correct_direction": row.correct_direction,
+        "correct_direction_label": pattern_engine.DIRECTION_LABELS[row.correct_direction],
+        "forward_return_pct": float(row.forward_return_pct),
+        "threshold_pct": float(row.threshold_pct),
+        "rationale": row.rationale,
+        "score_awarded": row.score_awarded,
+        "pattern": {
+            "key": info.key, "name": info.name, "bias": info.bias,
+            "shape": info.shape, "implication": info.implication,
+            "confirmation": info.confirmation, "caveat": info.caveat,
+            "detected_detail": row.pattern_detail,
+            "confidence": float(row.pattern_confidence) if row.pattern_confidence is not None else None,
+        } if info else None,
     }
 
 
 class PatternGuessRequest(BaseModel):
     user_id: str
     scenario_id: str
-    direction: Literal["bullish_breakout", "bearish_breakdown", "range_consolidation"]
+    answer: str = Field(min_length=1, max_length=64)
 
 
 @router.post("/pattern/guess")
 def pattern_guess(req: PatternGuessRequest) -> dict:
+    """
+    Grade the answer against whichever question this scenario asked.
+
+    The answer key is `correct_answer`, not `correct_direction` — the game
+    now also asks players to name the formation and to state its textbook
+    bias, and those have different keys. The reveal always includes what
+    actually happened regardless of which question was asked, because the
+    gap between the textbook read and the realised outcome is the point.
+    """
     engine = _get_engine()
     try:
         with engine.begin() as conn:
@@ -386,20 +486,28 @@ def pattern_guess(req: PatternGuessRequest) -> dict:
             if row is None:
                 raise HTTPException(status_code=404, detail="Scenario not found")
             if row.answered_at is not None:
-                raise HTTPException(status_code=400, detail="This scenario was already answered")
+                raise HTTPException(status_code=400, detail="You've already answered today's chart")
 
-            correct = req.direction == row.correct_direction
+            valid = {c["value"] for c in
+                     (json.loads(row.choices) if isinstance(row.choices, str) else (row.choices or []))}
+            if req.answer not in valid:
+                raise HTTPException(status_code=400, detail="That isn't one of the options")
+
+            correct = req.answer == row.correct_answer
             score = pattern_engine.score_pattern_guess(correct)
 
-            conn.execute(
+            row = conn.execute(
                 text("""
                     UPDATE pattern_scenarios
-                    SET guessed_direction = :g, was_correct = :c,
-                        score_awarded = :s, answered_at = NOW()
+                    SET guessed_answer = :a,
+                        guessed_direction = CASE WHEN question_type = 'direction' THEN :a ELSE guessed_direction END,
+                        was_correct = :c, score_awarded = :s, answered_at = NOW()
                     WHERE id = :sid
+                    RETURNING *
                 """),
-                {"g": req.direction, "c": correct, "s": score, "sid": req.scenario_id},
-            )
+                {"a": req.answer, "c": correct, "s": score, "sid": req.scenario_id},
+            ).fetchone()
+
             # Pattern rounds add score but never touch the daily streak.
             _record_round(conn, req.user_id, "pattern_guesser", won=correct,
                           score=score, counts_for_streak=False, today=date.today())
@@ -411,18 +519,24 @@ def pattern_guess(req: PatternGuessRequest) -> dict:
     finally:
         engine.dispose()
 
-    outcome = json.loads(row.outcome_bars) if isinstance(row.outcome_bars, str) else row.outcome_bars
+    return _reveal_payload(row)
+
+
+@router.get("/patterns/library")
+def patterns_library() -> dict:
+    """
+    The full pattern reference. Safe to expose in its entirety: it teaches
+    what each formation looks like and means, and contains nothing specific
+    to any scenario's answer.
+    """
     return {
-        "correct": correct,
-        "your_direction": req.direction,
-        "correct_direction": row.correct_direction,
-        "correct_label": pattern_engine.DIRECTION_LABELS[row.correct_direction],
-        "ticker": row.ticker,                       # revealed only now
-        "outcome_bars": outcome,
-        "forward_return_pct": float(row.forward_return_pct),
-        "threshold_pct": float(row.threshold_pct),
-        "rationale": row.rationale,
-        "score_awarded": score,
+        "patterns": [
+            {
+                "key": i.key, "name": i.name, "bias": i.bias, "shape": i.shape,
+                "implication": i.implication, "confirmation": i.confirmation, "caveat": i.caveat,
+            }
+            for i in PATTERN_LIBRARY.values()
+        ]
     }
 
 

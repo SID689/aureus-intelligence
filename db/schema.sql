@@ -482,9 +482,17 @@ CREATE TRIGGER trg_finwordle_sessions_updated_at
   BEFORE UPDATE ON finwordle_sessions
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+-- One scenario per user per day, enforced by the unique index below rather
+-- than in application code so concurrent requests can't both insert.
+-- `question_type` selects which question was asked (predict the direction,
+-- name the formation, or state the formation's conventional bias) and
+-- `correct_answer` is the key for whichever it was. `correct_direction` is
+-- kept separately because the reveal always shows what actually happened,
+-- whichever question was asked.
 CREATE TABLE pattern_scenarios (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id             UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  puzzle_date         DATE NOT NULL,
   ticker              TEXT NOT NULL,                   -- hidden until reveal
   setup_bars          JSONB NOT NULL,
   outcome_bars        JSONB NOT NULL,                  -- hidden until reveal
@@ -493,6 +501,14 @@ CREATE TABLE pattern_scenarios (
   threshold_pct       NUMERIC(10,4) NOT NULL,
   rationale           TEXT NOT NULL,
   setup_notes         JSONB NOT NULL DEFAULT '[]'::jsonb,
+  question_type       TEXT NOT NULL DEFAULT 'direction',
+  question            TEXT NOT NULL DEFAULT 'Which way did it resolve?',
+  choices             JSONB NOT NULL DEFAULT '[]'::jsonb,
+  correct_answer      TEXT,                            -- hidden until reveal
+  pattern_key         TEXT,                            -- detected formation, if any
+  pattern_confidence  NUMERIC(4,2),
+  pattern_detail      TEXT,
+  guessed_answer      TEXT,
   guessed_direction   TEXT,
   was_correct         BOOLEAN,
   score_awarded       INTEGER NOT NULL DEFAULT 0,
@@ -503,6 +519,8 @@ CREATE TABLE pattern_scenarios (
 CREATE INDEX idx_pattern_scenarios_user ON pattern_scenarios(user_id, created_at DESC);
 CREATE INDEX idx_pattern_scenarios_unanswered
   ON pattern_scenarios(user_id) WHERE answered_at IS NULL;
+CREATE UNIQUE INDEX idx_pattern_scenarios_daily_once
+  ON pattern_scenarios(user_id, puzzle_date);
 
 -- =====================================================================
 -- ROW-LEVEL SECURITY — GDPR/CCPA multi-tenant isolation
