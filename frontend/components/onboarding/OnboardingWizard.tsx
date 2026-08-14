@@ -53,7 +53,7 @@ export default function OnboardingWizard() {
             <WelcomeStep onNext={() => dispatch({ type: "NEXT" })} />
           )}
 
-          {(state.step === "fundamental" || state.step === "technical" || state.step === "quantitative") && (
+          {(state.step === "fundamental" || state.step === "technical" || state.step === "sentiment") && (
             <MethodologyStep
               methodology={METHODOLOGIES.find((m) => m.id === state.step)!}
               onNext={() => dispatch({ type: "NEXT" })}
@@ -136,7 +136,7 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
         <h1 className="text-white text-xl font-semibold">Before we start, a few minutes on how this actually works</h1>
         <p className="text-aureus-muted text-sm leading-relaxed max-w-lg mx-auto">
           Aureus combines three distinct analytical methodologies into every score you'll see —
-          fundamental, technical, and quantitative. Each one answers a different question and has
+          fundamental, technical, and sentiment. Each one answers a different question and has
           different blind spots. Understanding what each one can and can't tell you will make every
           number on this platform far more useful. This takes about four minutes.
         </p>

@@ -51,6 +51,12 @@ class FundamentalDataResult:
     ticker: str
     provider: str
 
+    # Registered company name, e.g. "NVIDIA Corporation". Used by the
+    # sentiment pillar to recognise the company in article text — a
+    # headline says "Nvidia", not "NVDA", so without this the aspect
+    # targeting in app/sentiment/nlp.py can only match cashtags.
+    company_name: str | None = None
+
     # Income statement
     revenue_ttm: float | None = None
     revenue_growth_yoy: float | None = None   # e.g., 0.12 = 12%

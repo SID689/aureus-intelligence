@@ -5,9 +5,9 @@ Top-level ensemble aggregation now uses the SAME dynamic-reweighting
 logic as each individual module (see reweighting.py). If, say, the
 fundamental module had near-zero data completeness for a given ticker
 (common for smaller/foreign tickers where EDGAR/Finnhub don't return
-much), its 35% baseline weight is proportionally redistributed to
-technical and quantitative — both of which only need price history,
-which is far more reliably available. This is what actually fixes the
+much), its baseline weight is proportionally redistributed to technical
+and sentiment — technical needs only price history, and sentiment needs
+only news coverage, both of which are more reliably available. This is what actually fixes the
 "everything is HOLD with similar scores" bug: previously, a broken
 fundamental leg would silently pull every score toward 50 at full
 weight; now a broken leg gets discounted, and the signal that remains
@@ -22,12 +22,10 @@ import logging
 from datetime import date, timedelta
 from typing import Literal
 
-import pandas as pd
-
 from app.analysis.fundamental import run_fundamental_analysis
-from app.analysis.models import EnsembleSignal, FundamentalScore, QuantitativeScore, TechnicalScore
-from app.analysis.quantitative import run_quantitative_analysis
+from app.analysis.models import EnsembleSignal, FundamentalScore, SentimentScore, TechnicalScore
 from app.analysis.reasoning import generate_reasoning
+from app.analysis.sentiment import run_sentiment_analysis
 from app.analysis.reweighting import WeightedSignal, reweight
 from app.analysis.sector_peers import compare_to_sector
 from app.analysis.thesis import build_theses
@@ -47,16 +45,34 @@ logger = logging.getLogger("aureus.analysis.ensemble")
 # Applying one fixed blend to every horizon systematically mis-weights the
 # evidence, which is why this is horizon-dependent.
 #
-# Read as (fundamental, technical, quantitative); each row sums to 1.0.
+# ── Why sentiment is weighted the way it is ──────────────────────────────
+# Sentiment has the SHORTEST half-life of the three pillars, and that single
+# property determines its whole weighting curve.
+#
+# A news catalyst moves a stock in hours to days, and its informational value
+# decays fast: by the time a story is a month old it is fully in the price,
+# and what remains is drift. Retail positioning mean-reverts faster still.
+# So sentiment earns its largest share at the short horizon — where it is
+# arguably the single most informative pillar, since a DCF simply cannot
+# explain a 6% move on an earnings surprise — and its smallest at the long
+# horizon, where this quarter's mood tells you nothing about where the
+# business will be in five years.
+#
+# Sentiment is deliberately weighted BELOW technical even at the short
+# horizon. Price action already incorporates sentiment plus everything else
+# the market knows, including information that never reaches a news wire, and
+# it cannot be manufactured the way a posting campaign can.
+#
+# Read as (fundamental, technical, sentiment); each row sums to 1.0.
 _HORIZON_WEIGHTS: dict[str, tuple[float, float, float]] = {
-    "short_term":  (0.10, 0.60, 0.30),
-    "medium_term": (0.30, 0.35, 0.35),
-    "long_term":   (0.60, 0.15, 0.25),
+    "short_term":  (0.10, 0.50, 0.40),
+    "medium_term": (0.35, 0.35, 0.30),
+    "long_term":   (0.65, 0.20, 0.15),
 }
 
 # Retained for callers that need a horizon-agnostic default — notably
 # app/backtesting/engine.py, which replays the ensemble without a horizon.
-_W_FUNDAMENTAL, _W_TECHNICAL, _W_QUANTITATIVE = _HORIZON_WEIGHTS["medium_term"]
+_W_FUNDAMENTAL, _W_TECHNICAL, _W_SENTIMENT = _HORIZON_WEIGHTS["medium_term"]
 
 _BUY_THRESHOLD, _SELL_THRESHOLD = 65.0, 35.0
 _STRONG_BUY_THRESH, _STRONG_SELL_THRESH = 80.0, 20.0
@@ -99,12 +115,10 @@ def run_ensemble_analysis(
     market_result = market_svc.fetch_bars(ticker, start_date, end_date, frequency=frequency)
     bars = market_result.bars
 
-    spy_bars: pd.DataFrame | None = None
-    try:
-        spy_bars = market_svc.fetch_bars("SPY", start_date, end_date, frequency=frequency).bars
-    except Exception as exc:
-        logger.warning("SPY fetch failed — alpha/beta skipped", extra={"error": str(exc)})
-
+    # NOTE: the SPY benchmark fetch that used to live here has moved to the
+    # Quant Lab along with alpha/beta. Nothing in the three-pillar path needs
+    # it any more, and removing it takes a full provider round-trip off every
+    # analysis request.
     current_price = float(bars["close"].iloc[-1])
     try:
         fund_data = fundamental_svc.fetch_fundamentals(ticker)
@@ -139,44 +153,46 @@ def run_ensemble_analysis(
         ticker, fund_data, time_horizon, sector_comparison=sector_cmp
     )
     technical_result: TechnicalScore = run_technical_analysis(ticker, bars)
-    quantitative_result: QuantitativeScore = run_quantitative_analysis(
-        ticker, bars, spy_bars=spy_bars, rsi_value=technical_result.rsi_14,
+    sentiment_result: SentimentScore = run_sentiment_analysis(
+        ticker, company_name=fund_data.company_name,
     )
 
     # ── Top-level dynamic reweighting (THE core bug fix) ────────────────
-    fund_computed  = fundamental_result.data_completeness  >= _MODULE_COMPLETENESS_FLOOR
-    tech_computed  = technical_result.data_completeness    >= _MODULE_COMPLETENESS_FLOOR
-    quant_computed = quantitative_result.data_completeness >= _MODULE_COMPLETENESS_FLOOR
+    fund_computed = fundamental_result.data_completeness >= _MODULE_COMPLETENESS_FLOOR
+    tech_computed = technical_result.data_completeness   >= _MODULE_COMPLETENESS_FLOOR
+    sent_computed = sentiment_result.data_completeness   >= _MODULE_COMPLETENESS_FLOOR
 
-    w_fund, w_tech, w_quant = _HORIZON_WEIGHTS.get(time_horizon, _HORIZON_WEIGHTS["medium_term"])
+    w_fund, w_tech, w_sent = _HORIZON_WEIGHTS.get(time_horizon, _HORIZON_WEIGHTS["medium_term"])
 
     top_result = reweight([
-        WeightedSignal("fundamental",  fundamental_result.score,  w_fund,  fund_computed),
-        WeightedSignal("technical",    technical_result.score,    w_tech,  tech_computed),
-        WeightedSignal("quantitative", quantitative_result.score, w_quant, quant_computed),
+        WeightedSignal("fundamental", fundamental_result.score, w_fund, fund_computed),
+        WeightedSignal("technical",   technical_result.score,   w_tech, tech_computed),
+        WeightedSignal("sentiment",   sentiment_result.score,   w_sent, sent_computed),
     ])
 
     confidence_index = top_result.composite_score
     signal, strength = _classify_signal(confidence_index)
     overall_completeness = round(
-        (fundamental_result.data_completeness + technical_result.data_completeness + quantitative_result.data_completeness) / 3,
+        (fundamental_result.data_completeness + technical_result.data_completeness
+         + sentiment_result.data_completeness) / 3,
         3,
     )
     module_weights_used = {
-        "fundamental":  top_result.effective_weights.get("fundamental", 0.0),
-        "technical":    top_result.effective_weights.get("technical", 0.0),
-        "quantitative": top_result.effective_weights.get("quantitative", 0.0),
+        "fundamental": top_result.effective_weights.get("fundamental", 0.0),
+        "technical":   top_result.effective_weights.get("technical", 0.0),
+        "sentiment":   top_result.effective_weights.get("sentiment", 0.0),
     }
 
     reasoning_text, reasoning_source = generate_reasoning(
         ticker=ticker, time_horizon_label=horizon_label, signal=signal, strength=strength,
         confidence_index=confidence_index, fundamental=fundamental_result, technical=technical_result,
-        quantitative=quantitative_result, module_weights=module_weights_used, use_llm_polish=use_llm_reasoning,
+        sentiment=sentiment_result, module_weights=module_weights_used,
+        use_llm_polish=use_llm_reasoning, horizon_key=time_horizon,
     )
 
     bull, bear = build_theses(
         ticker, time_horizon, fundamental_result, technical_result,
-        quantitative_result, fund_data,
+        sentiment_result, fund_data,
     )
 
     logger.info("Ensemble analysis complete", extra={
@@ -188,8 +204,8 @@ def run_ensemble_analysis(
         ticker=ticker, time_horizon=horizon_label, signal=signal, signal_strength=strength,
         confidence_index=confidence_index,
         fundamental_score=fundamental_result.score, technical_score=technical_result.score,
-        quantitative_score=quantitative_result.score,
-        fundamental=fundamental_result, technical=technical_result, quantitative=quantitative_result,
+        sentiment_score=sentiment_result.score,
+        fundamental=fundamental_result, technical=technical_result, sentiment=sentiment_result,
         market_data_provider=market_result.provider, fundamental_data_provider=fundamental_provider,
         reasoning=reasoning_text, reasoning_source=reasoning_source,
         sector=fund_data.sector,

@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title:       "Aureus Intelligence",
-  description: "Institutional-grade quantitative trading platform",
+  description: "Institutional-grade investment analysis and research platform",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -9,7 +9,7 @@
 // informed user from someone who just trusts a number on a screen.
 
 export interface MethodologySection {
-  id: "fundamental" | "technical" | "quantitative";
+  id: "fundamental" | "technical" | "sentiment";
   title: string;
   tagline: string;
   timeHorizon: string;
@@ -74,39 +74,44 @@ export const METHODOLOGIES: MethodologySection[] = [
       "Technical analysis has zero awareness of the underlying business. It cannot warn you that a company is about to announce fraud, lose a major lawsuit, or file for bankruptcy — the chart only reflects what has already happened, and a sufficiently large surprise makes every prior pattern irrelevant overnight.",
   },
   {
-    id: "quantitative",
-    title: "Quantitative Analysis",
-    tagline: "What systematic, repeatable edge can be proven across data, not asserted from judgment?",
-    timeHorizon: "Milliseconds (arbitrage) to months (systematic strategies)",
+    id: "sentiment",
+    title: "Sentiment Analysis",
+    tagline: "What is the market being told, and how is the crowd reacting to it?",
+    timeHorizon: "Hours to a few weeks",
     whatItIs:
-      "Quantitative analysis applies statistics and machine learning to find edges that are systematic and repeatable across many securities or time periods — rather than judgment calls made one stock at a time. The unifying idea isn't a specific time horizon (it spans an enormous range, from millisecond arbitrage between exchanges to monthly-rebalanced factor strategies) — it's the METHOD: rules are defined in advance, tested against historical data, and applied consistently rather than adjusted case by case based on a gut feeling.",
+      "Sentiment analysis measures how a company is being TALKED ABOUT — in news wires, in regulatory filings, and among retail traders — and converts that into a directional score. The premise is straightforward: prices are set by people, people act on information and emotion, and both are observable before they finish showing up in the price. A stock does not fall 8% on an earnings miss because the balance sheet changed overnight; it falls because thousands of people simultaneously revised what they believed. Sentiment analysis tries to measure that revision while it is happening.",
     whyThisHorizon:
-      "Because quant strategies are defined by their method, not a fixed horizon, they show up everywhere from microsecond price-discrepancy arbitrage (pure speed, no forecasting) to statistical factor models that rebalance once a month based on volatility, momentum, or value signals measured across the whole market. What all of them share is systematic, rules-based execution — the opposite of picking one stock because it 'feels right.'",
+      "Because sentiment decays faster than anything else measured here. A news catalyst moves a stock over hours to days; within a few weeks it is fully absorbed into the price and carries no further information. Retail positioning mean-reverts faster still — today's crowded bullish trade is next month's unwind. This is why sentiment carries its heaviest weight over short horizons and almost none over multi-year ones: this quarter's mood tells you nothing about where a business will be in five years.",
     dependsOn: [
-      { label: "Normalized alternative datasets", detail: "Data beyond just price — trading volume patterns, volatility surfaces, sometimes genuinely 'alternative' data like transaction records or web-scraped signals — cleaned and standardized so it can be compared consistently across thousands of securities." },
-      { label: "Statistical / ML features", detail: "Derived signals rather than raw numbers: rolling volatility, momentum measured over specific windows, correlation to a benchmark (beta), and model-estimated forward return based on historical relationships between these features and what happened next." },
+      { label: "Financial news wires", detail: "Headlines and article text from Finnhub and Yahoo Finance, weighted by publisher. A Reuters wire story and a content farm's rewrite of it arrive looking identical through an API, so each publisher carries an authority weight — otherwise sheer volume of low-quality coverage would outvote first-hand reporting." },
+      { label: "SEC filing language (MD&A)", detail: "The Management's Discussion and Analysis section of 10-K and 10-Q filings. This is the one part of a filing where management writes prose rather than reporting numbers, and it is written under legal liability — which makes a shift in how cautiously they write a genuine signal." },
+      { label: "Retail trader chatter", detail: "Messages from StockTwits, where a meaningful fraction of posters explicitly tag their own posts as bullish or bearish. That is a stated position rather than an inferred one, which makes it more reliable than trying to read sentiment out of slang and emoji." },
     ],
     coreMethod: {
-      name: "Rolling volatility, beta/alpha, and regression-based signals",
+      name: "Aspect-based scoring, authority weighting, and sentiment velocity",
       explanation:
-        "Rolling volatility measures how much a stock's price has been swinging recently, annualized for comparability. Beta measures how sensitive a stock is to overall market moves; alpha measures the return left over after accounting for that market sensitivity — the part of performance that isn't just 'the market went up.' A statistical model (e.g., ridge regression) can be trained on historical relationships between these features and subsequent returns to generate a forward-looking signal, always regularized to avoid over-fitting to noise in a limited sample.",
+        "Three ideas do most of the work. ASPECT-BASED scoring means only the sentences that actually mention the target company are scored — an article headlined 'Nvidia soars while Intel slumps' is strongly positive for one and strongly negative for the other, and scoring it as a single blob would give both a meaningless neutral. AUTHORITY AND RECENCY WEIGHTING means a Reuters story from this morning counts for far more than a blog post from last Tuesday, with influence decaying on a 48-hour half-life. SENTIMENT VELOCITY compares the last 24 hours against the prior period: the LEVEL of sentiment is already reflected in the price, so it is the CHANGE that carries information not yet priced in. The text itself is scored with a finance-specific model, because general-purpose sentiment tools are actively wrong on financial language — they read ordinary accounting vocabulary like 'liability', 'cost' and 'debt' as negative when in a filing those words are simply neutral.",
     },
     risks: [
-      { label: "Look-ahead bias", detail: "The single most common way a backtest lies to its creator: accidentally letting a model 'see' information during testing that wouldn't have actually been available at that historical moment — for example, using a company's CURRENT financials to simulate a decision from two years ago. A model that looks brilliant in a backtest with look-ahead bias baked in will fail in live trading, because the future information it relied on isn't actually available yet." },
-      { label: "Historical overfitting", detail: "Given enough adjustable parameters, it's always possible to fit a model perfectly to historical noise — capturing coincidental patterns that have zero genuine predictive power going forward. An overfit model looks spectacular on the exact data it was built on and then falls apart the moment it sees new data." },
+      { label: "Meme-stock manipulation and coordinated posting", detail: "Social sentiment is the single most gameable input in any analysis system, because posting is free and volume is easy to manufacture. Coordinated campaigns exist specifically to create the appearance of organic enthusiasm. Aureus caps social input at a minority of the sentiment score and compresses the influence of any one account, which makes manipulation expensive and bounded — but not impossible. Treat a sentiment spike driven mostly by social volume with real suspicion." },
+      { label: "Noise, and spikes with nothing behind them", detail: "Most financial news is not informative. Routine coverage, recycled analyst notes and sector-wide stories generate constant low-level chatter that carries no signal about any individual company. A short-lived sentiment spike with no fundamental change behind it typically reverses within days, and acting on it means buying exactly when the crowd is most excited." },
+      { label: "Reflexivity — sentiment follows price as often as it leads it", detail: "Journalists write about stocks that already moved. A day of positive coverage frequently REFLECTS yesterday's rally rather than predicting tomorrow's. Distinguishing sentiment that leads price from sentiment that merely narrates it is genuinely difficult, and no sentiment score fully solves it." },
     ],
     blindSpot:
-      "Quantitative models are trained on the past — they have no mechanism for anticipating a genuinely novel event that has no historical precedent in the training data (a new type of regulation, an unprecedented geopolitical shock, a first-of-its-kind technology disruption). They're powerful at finding repeatable patterns and completely unequipped for one-off surprises.",
+      "Sentiment measures how a company is being discussed, not how the business is performing. A company can be beloved and structurally unprofitable, or quietly excellent and entirely ignored — and sentiment analysis will report the popularity in both cases, not the reality. It is also systematically blind to anything nobody has written about yet: a fraud that has not been reported, a competitor's product that has not launched. Sentiment tells you what the market currently believes, which is a genuinely different thing from what is true.",
   },
 ];
 
 export const SYNTHESIS_NOTE =
   "None of these three methods is simply 'the best' one — they answer different questions and have different blind spots. " +
   "Fundamental analysis tells you what a business is worth but not when the market will agree with you. Technical analysis tells you " +
-  "about near-term price behavior but knows nothing about the business itself. Quantitative analysis finds systematic, provable edges " +
-  "but can't anticipate events with no historical precedent. Aureus Intelligence's ensemble engine deliberately combines all three — " +
-  "and when one leg lacks reliable data for a given stock, it's mathematically de-weighted rather than allowed to silently distort the " +
-  "final score toward a false middle ground.";
+  "about near-term price behavior but knows nothing about the business itself. Sentiment analysis tells you what the market currently " +
+  "believes and how fast that belief is changing, but not whether the belief is correct. Aureus Intelligence's ensemble engine " +
+  "deliberately combines all three, and weights them differently depending on your time horizon — sentiment matters most over days " +
+  "and least over years, while fundamentals do the opposite. When one leg lacks reliable data for a given stock, it's mathematically " +
+  "de-weighted rather than allowed to silently distort the final score toward a false middle ground. " +
+  "Statistical and factor research — Fama-French exposures, Monte Carlo simulation, Value at Risk — lives separately in the Quant Lab, " +
+  "because those tools answer research questions about risk rather than voting on whether to buy.";
 
 export interface SophisticationQuestion {
   id: string;

@@ -29,7 +29,7 @@ export interface AnalysisResult {
     confidence_index: number;
     fundamental_score: number;
     technical_score: number;
-    quantitative_score: number;
+    sentiment_score: number;
     reasoning: string;
     reasoning_source: string;
     overall_data_completeness: number;
@@ -92,6 +92,51 @@ export interface SectorComparison {
   stale: boolean;
 }
 
+/** One high-impact article driving the sentiment reading. */
+export interface SentimentCatalyst {
+  headline: string;
+  source: string;
+  url: string;
+  published_at: string;
+  polarity: number;              // -1..+1
+  direction: "positive" | "negative";
+  authority: number;             // publisher-quality multiplier
+  evidence: string[];            // the phrases that moved the score
+}
+
+/** A brief-requested source that has no free tier, surfaced so the UI can
+ *  explain a missing stream instead of silently showing a gap. */
+export interface UnavailableSource {
+  name: string;
+  channel: string;
+  reason: string;
+  to_enable: string;
+}
+
+export interface SentimentPillar extends PillarScore {
+  news_score: number;
+  social_score: number;
+  sec_tone_score: number;
+  news_computed: boolean;
+  social_computed: boolean;
+  sec_tone_computed: boolean;
+  overall_label: "Bullish" | "Neutral" | "Bearish";
+  sec_tone_label: string;        // Positive | Neutral | Cautious | Computing
+  velocity_label: string;
+  news_document_count: number;
+  social_message_count: number;
+  news_polarity: number;
+  social_polarity: number;
+  polarity_velocity: number;
+  volume_velocity: number | null;
+  sentiment_confidence: number;  // 0-1
+  model_used: string;            // "finbert" | "lexicon"
+  catalysts: SentimentCatalyst[];
+  source_mix: Record<string, number>;
+  unavailable_sources: UnavailableSource[];
+  sec_tone_detail: Record<string, unknown>;
+}
+
 export interface FullAnalysis {
   sector?: string | null;
   sector_comparison?: SectorComparison;
@@ -102,18 +147,27 @@ export interface FullAnalysis {
   confidence_index: number;
   fundamental_score: number;
   technical_score: number;
-  quantitative_score: number;
+  sentiment_score: number;
   fundamental: PillarScore & {
     pe_ratio: number | null; pb_ratio?: number | null; gross_margin: number | null;
     roe: number | null; debt_to_equity: number | null; free_cash_flow: number | null;
+    // Declared explicitly rather than left to PillarScore's `[k: string]: unknown`
+    // index signature — reaching them through that returns `unknown`, which the
+    // metrics grid then cannot pass to a number formatter.
+    operating_margin?: number | null;
+    revenue_growth_yoy?: number | null;
+    current_ratio?: number | null;
+    ev_to_ebitda?: number | null;
+    price_to_sales?: number | null;
+    fcf_yield?: number | null;
+    roic?: number | null;
+    interest_coverage?: number | null;
+    market_cap?: number | null;
     dcf_detail: { intrinsic_value_per_share: number; current_price: number; margin_of_safety: number } | null;
     dcf_skip_reason?: string | null;
   };
   technical: PillarScore & { rsi_14: number | null };
-  quantitative: PillarScore & {
-    beta_vs_spy: number | null; alpha_vs_spy: number | null;
-    sharpe_ratio: number | null; rolling_volatility_30d: number | null;
-  };
+  sentiment: SentimentPillar;
   market_data_provider: string;
   fundamental_data_provider: string;
   reasoning: string;
@@ -559,3 +613,133 @@ export const signup = (req: { email: string; password: string; display_name?: st
   apiFetch<{ user_id: string; email: string; tier: string }>("/api/v1/auth/signup", {
     method: "POST", body: JSON.stringify(req),
   });
+
+// ── Quant Lab (Elite / Institutional) ────────────────────────────────────────
+// Every endpoint here is tier-gated server-side (see backend app/core/tiers.py)
+// and returns HTTP 402 with the caller's current and required tier when the
+// plan is too low — which is what the upgrade prompt renders from.
+
+export interface FactorLoading {
+  factor: string;        // Mkt-RF | SMB | HML | RMW | CMA
+  label: string;
+  meaning: string;
+  loading: number;
+  t_stat: number;
+  significant: boolean;  // |t| >= 1.96
+}
+
+export interface FactorModel {
+  model: string;
+  observations: number;
+  start: string;
+  end: string;
+  alpha_daily: number;
+  alpha_annualised: number;
+  alpha_t_stat: number;
+  alpha_significant: boolean;
+  r_squared: number;
+  loadings: FactorLoading[];
+}
+
+export interface VarResult {
+  var_pct: number | null;
+  cvar_pct: number | null;
+  confidence: number;
+  horizon_days: number;
+  observations: number;
+  worst_observed_pct?: number;
+}
+
+export interface MonteCarloResult {
+  horizon_days: number;
+  paths: number;
+  method: string;
+  mean_return: number;
+  median_return: number;
+  percentiles: Record<string, number>;
+  var_pct: number;
+  cvar_pct: number;
+  probability_of_loss: number;
+  histogram: { lower: number; upper: number; mid: number; count: number }[];
+}
+
+export interface BetaStability {
+  window_days: number;
+  full_sample_beta: number | null;
+  rolling_mean: number;
+  rolling_std: number;
+  rolling_min: number;
+  rolling_max: number;
+  instability: number | null;
+  series: { date: string; beta: number }[];
+}
+
+export interface ZScoreSignal {
+  window_days: number;
+  z_score: number;
+  rolling_mean: number;
+  rolling_std: number;
+  current_price: number;
+  percentile_in_window: number;
+  interpretation: string;
+  series: { date: string; z: number }[];
+}
+
+export interface QuantLabReport {
+  ticker: string;
+  benchmark: string;
+  start_date: string;
+  end_date: string;
+  observations: number;
+  current_price: number;
+  notes: string[];
+  tier: string;
+  disclaimer: string;
+  factor_model_5: FactorModel | null;
+  factor_model_3: FactorModel | null;
+  rolling_factor_betas: Record<string, string | number>[];
+  performance: {
+    sharpe_ratio: number | null; sortino_ratio: number | null;
+    annualised_return: number | null; annualised_volatility: number | null;
+  } | null;
+  var_1d: VarResult | null;
+  var_10d: VarResult | null;
+  monte_carlo: MonteCarloResult | null;
+  max_drawdown: {
+    max_drawdown_pct: number | null; peak_date?: string; trough_date?: string;
+    recovered?: boolean; recovery_date?: string | null;
+  } | null;
+  beta_stability: BetaStability | null;
+  zscore: ZScoreSignal | null;
+  half_life: { half_life_days: number | null; reverting: boolean; note: string } | null;
+  volatility_term_structure: {
+    windows: Record<string, number>; short_vs_long_ratio?: number;
+    regime?: string; note?: string;
+  } | null;
+  pairs: {
+    ticker: string; return_correlation: number;
+    observations: number; spread_z_score: number | null;
+  }[];
+}
+
+export interface QuantAccess {
+  user_id: string;
+  tier: string;
+  has_access: boolean;
+  required_tier: string;
+}
+
+export const getQuantAccess = (userId: string): Promise<QuantAccess> =>
+  apiFetch(`/api/v1/quant/access?user_id=${encodeURIComponent(userId)}`);
+
+export const getQuantLab = (
+  ticker: string,
+  userId: string,
+  opts?: { benchmark?: string; monteCarloHorizon?: number; peers?: string[] },
+): Promise<QuantLabReport> => {
+  const q = new URLSearchParams({ user_id: userId });
+  if (opts?.benchmark) q.set("benchmark", opts.benchmark);
+  if (opts?.monteCarloHorizon) q.set("monte_carlo_horizon", String(opts.monteCarloHorizon));
+  if (opts?.peers?.length) q.set("peers", opts.peers.join(","));
+  return apiFetch(`/api/v1/quant/lab/${ticker}?${q.toString()}`);
+};

@@ -6,7 +6,7 @@ specific things the company is doing well vs poorly, and explain why DCF
 was skipped / why FCF is missing."
 
 Strategy: pull every module's signal_breakdown (see fundamental.py,
-technical.py, quantitative.py), rank them, and name the top 2-3 highest-
+technical.py, sentiment.py), rank them, and name the top 2-3 highest-
 scoring as "what's helping" and the bottom 2-3 lowest-scoring as "what's
 hurting" — using the concrete detail string each module already generated,
 not a re-summarized paraphrase. The DCF skip reason (if any) is now always
@@ -15,7 +15,7 @@ surfaced explicitly and specifically, never just "data unavailable."
 
 import logging
 
-from app.analysis.models import EnsembleSignal, FundamentalScore, QuantitativeScore, TechnicalScore
+from app.analysis.models import EnsembleSignal, FundamentalScore, SentimentScore, TechnicalScore
 from app.core.config import get_settings
 from app.agents.guardrails import CORE_ORCHESTRATOR_SYSTEM_PROMPT, validate_llm_output
 
@@ -34,10 +34,10 @@ def _completeness_phrase(completeness: float) -> str:
 
 
 def _collect_all_signals(
-    fundamental: FundamentalScore, technical: TechnicalScore, quantitative: QuantitativeScore,
+    fundamental: FundamentalScore, technical: TechnicalScore, sentiment: SentimentScore,
 ) -> list[dict]:
     all_signals: list[dict] = []
-    for module_name, module in [("Fundamental", fundamental), ("Technical", technical), ("Quantitative", quantitative)]:
+    for module_name, module in [("Fundamental", fundamental), ("Technical", technical), ("Sentiment", sentiment)]:
         for sig in module.signal_breakdown:
             all_signals.append({**sig, "module": module_name})
     return all_signals
@@ -51,8 +51,9 @@ def build_deterministic_reasoning(
     confidence_index: float,
     fundamental: FundamentalScore,
     technical: TechnicalScore,
-    quantitative: QuantitativeScore,
+    sentiment: SentimentScore,
     module_weights: dict,
+    horizon_key: str | None = None,
 ) -> str:
     parts: list[str] = []
 
@@ -61,18 +62,27 @@ def build_deterministic_reasoning(
         f"({signal}, {strength.lower()} conviction)."
     )
 
-    fund_w = module_weights.get("fundamental", 0.35)
-    tech_w = module_weights.get("technical", 0.35)
-    quant_w = module_weights.get("quantitative", 0.30)
-    if abs(fund_w - 0.35) > 0.02 or abs(tech_w - 0.35) > 0.02 or abs(quant_w - 0.30) > 0.02:
+    # Compared against the HORIZON's own baseline, not a hardcoded 35/35/30.
+    # Weights are horizon-dependent (see ensemble._HORIZON_WEIGHTS), so a
+    # fixed reference would report "adjusted" on every short- and long-term
+    # run even when nothing was reweighted at all.
+    from app.analysis.ensemble import _HORIZON_WEIGHTS
+    baseline = _HORIZON_WEIGHTS.get(horizon_key or "medium_term", _HORIZON_WEIGHTS["medium_term"])
+    b_fund, b_tech, b_sent = baseline
+    fund_w = module_weights.get("fundamental", b_fund)
+    tech_w = module_weights.get("technical", b_tech)
+    sent_w = module_weights.get("sentiment", b_sent)
+    if (abs(fund_w - b_fund) > 0.02 or abs(tech_w - b_tech) > 0.02
+            or abs(sent_w - b_sent) > 0.02):
         parts.append(
-            f"Module weighting was adjusted from the standard 35/35/30 split to "
-            f"{fund_w*100:.0f}% fundamental / {tech_w*100:.0f}% technical / {quant_w*100:.0f}% quantitative "
+            f"Module weighting was adjusted from this horizon's standard "
+            f"{b_fund*100:.0f}/{b_tech*100:.0f}/{b_sent*100:.0f} split to "
+            f"{fund_w*100:.0f}% fundamental / {tech_w*100:.0f}% technical / {sent_w*100:.0f}% sentiment "
             f"because some data sources didn't return usable figures for this ticker."
         )
 
     # ── What's helping / what's hurting — the direct fix ────────────────
-    all_signals = _collect_all_signals(fundamental, technical, quantitative)
+    all_signals = _collect_all_signals(fundamental, technical, sentiment)
     strengths = sorted([s for s in all_signals if s["score"] >= _STRENGTH_THRESHOLD], key=lambda s: -s["score"])[:_MAX_CALLOUTS]
     weaknesses = sorted([s for s in all_signals if s["score"] <= _WEAKNESS_THRESHOLD], key=lambda s: s["score"])[:_MAX_CALLOUTS]
 
@@ -100,10 +110,10 @@ def build_deterministic_reasoning(
     # ── Module completeness footnotes ────────────────────────────────────
     fc = _completeness_phrase(fundamental.data_completeness)
     tc = _completeness_phrase(technical.data_completeness)
-    qc = _completeness_phrase(quantitative.data_completeness)
+    sc = _completeness_phrase(sentiment.data_completeness)
     parts.append(
         f"Module scores: fundamental {fundamental.score:.0f}/100 ({fc}), "
-        f"technical {technical.score:.0f}/100 ({tc}), quantitative {quantitative.score:.0f}/100 ({qc})."
+        f"technical {technical.score:.0f}/100 ({tc}), sentiment {sentiment.score:.0f}/100 ({sc})."
     )
 
     return " ".join(p for p in parts if p.strip())
@@ -153,12 +163,12 @@ def polish_with_llm(deterministic_text: str, ticker: str) -> tuple[str, str]:
 
 def generate_reasoning(
     ticker: str, time_horizon_label: str, signal: str, strength: str, confidence_index: float,
-    fundamental: FundamentalScore, technical: TechnicalScore, quantitative: QuantitativeScore,
-    module_weights: dict, use_llm_polish: bool = True,
+    fundamental: FundamentalScore, technical: TechnicalScore, sentiment: SentimentScore,
+    module_weights: dict, use_llm_polish: bool = True, horizon_key: str | None = None,
 ) -> tuple[str, str]:
     deterministic = build_deterministic_reasoning(
         ticker, time_horizon_label, signal, strength, confidence_index,
-        fundamental, technical, quantitative, module_weights,
+        fundamental, technical, sentiment, module_weights, horizon_key=horizon_key,
     )
     if not use_llm_polish:
         return deterministic, "deterministic"

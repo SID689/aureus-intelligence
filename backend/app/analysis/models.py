@@ -96,7 +96,66 @@ class TechnicalScore:
 
 
 @dataclass
+class SentimentScore:
+    """
+    The Sentiment pillar's result — third of the three primary pillars,
+    alongside Fundamental and Technical.
+
+    Field layout deliberately mirrors FundamentalScore/TechnicalScore:
+    a composite `score`, the sub-scores that produced it, and the
+    data_completeness / effective_weights / signal_breakdown trio that
+    the reweighting, reasoning and thesis layers all depend on.
+    """
+    ticker: str
+    score: float
+    news_score: float
+    social_score: float
+    sec_tone_score: float
+    # Whether each sub-stream produced a real reading. Mirrors the
+    # `computed` flag every other pillar's sub-signals carry, so the
+    # thesis and reasoning layers can tell "neutral because the coverage
+    # was balanced" apart from "50 because nothing was retrievable".
+    news_computed: bool = False
+    social_computed: bool = False
+    sec_tone_computed: bool = False
+    # Display labels, resolved server-side so the UI never re-derives a
+    # band boundary and drifts out of step with the engine.
+    overall_label: str = "Neutral"          # Bullish | Neutral | Bearish
+    sec_tone_label: str = "Unavailable"     # Positive | Neutral | Cautious
+    velocity_label: str = "Steady"
+    news_document_count: int = 0
+    social_message_count: int = 0
+    news_polarity: float = 0.0              # -1..+1
+    social_polarity: float = 0.0
+    polarity_velocity: float = 0.0          # 24h vs prior period
+    volume_velocity: float | None = None    # None when the sample can't support it
+    sentiment_confidence: float = 0.0       # 0-1, sample-size backed
+    model_used: str = "lexicon"             # "finbert" | "lexicon"
+    catalysts: list[dict] = field(default_factory=list)
+    source_mix: dict = field(default_factory=dict)
+    unavailable_sources: list[dict] = field(default_factory=list)
+    sec_tone_detail: dict = field(default_factory=dict)
+    data_completeness: float = 1.0
+    effective_weights: dict = field(default_factory=dict)
+    signal_breakdown: list[dict] = field(default_factory=list)
+    analysis_notes: list[str] = field(default_factory=list)
+
+
+@dataclass
 class QuantitativeScore:
+    """
+    NOTE: no longer one of the three primary pillars.
+
+    Quantitative analysis moved out of the main Fundamental / Technical /
+    Sentiment blend and into the dedicated Quant Lab (app/quant/,
+    /api/v1/quant, /quant-lab), where it belongs: factor models, Monte
+    Carlo, VaR/CVaR and mean-reversion are institutional research tools,
+    not a third opinion to average against a DCF.
+
+    This dataclass is retained because app/backtesting/engine.py still
+    replays the historical ensemble with it, and because the Quant Lab's
+    summary endpoint reuses the same shape.
+    """
     ticker: str
     score: float
     volatility_score: float
@@ -123,10 +182,10 @@ class EnsembleSignal:
     confidence_index: float
     fundamental_score: float
     technical_score: float
-    quantitative_score: float
+    sentiment_score: float
     fundamental: FundamentalScore
     technical: TechnicalScore
-    quantitative: QuantitativeScore
+    sentiment: SentimentScore
     market_data_provider: str
     fundamental_data_provider: str
     # NEW fields — this is the direct fix for "scores need explanations"

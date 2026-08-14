@@ -1,5 +1,21 @@
 """
 app/analysis/quantitative.py  (Phase 6 rewrite — dynamic reweighting)
+
+===================================================================
+NO LONGER A PRIMARY PILLAR
+===================================================================
+The three primary pillars are Fundamental, Technical and SENTIMENT.
+Quantitative analysis moved to the Quant Lab (app/quant/), where factor
+models, Monte Carlo, VaR/CVaR and mean-reversion statistics are presented
+as research output rather than collapsed into a 0-100 vote.
+
+This module survives for exactly one caller: app/backtesting/engine.py,
+which replays historical signals and cannot use the sentiment pillar
+without look-ahead bias (news and social APIs serve only a recent window,
+so "what was sentiment on this date in 2023" is unobtainable). Technical
+plus quantitative is the honest historical blend.
+
+Do not wire this back into ensemble.py.
 """
 
 import logging

@@ -49,6 +49,30 @@ class Settings(BaseSettings):
     # 3B model is genuinely adequate for the job. Override for a bigger box.
     ollama_model: str = Field(default="llama3.2:3b")
 
+    # ── Sentiment pillar ──────────────────────────────────────
+    # "lexicon" (default) uses the finance-domain lexicon in
+    # app/sentiment/lexicon.py — zero dependencies, no download, and
+    # genuinely strong on headline-length text. "finbert" switches to
+    # ProsusAI/finbert, which needs transformers+torch installed and
+    # pulls ~440MB on first use; it falls back to the lexicon by itself
+    # if those aren't present, so setting it is never fatal.
+    sentiment_model: str = Field(default="lexicon", pattern="^(lexicon|finbert)$")
+    # How far back news is gathered for the news sub-score. 7 days keeps
+    # the pillar responsive to catalysts; older articles are already
+    # reflected in price and mostly add drift.
+    sentiment_news_lookback_days: int = 7
+    # Social sources are noisier than news by a wide margin and are the
+    # main vector for coordinated manipulation, so they are capped at a
+    # minority of the blend no matter how loud they get.
+    sentiment_max_social_weight: float = 0.30
+    # Minimum scored documents before the news sub-score is trusted at
+    # all. Below this, one article would set the whole pillar.
+    sentiment_min_documents: int = 3
+
+    # ── Quant Lab ─────────────────────────────────────────────
+    quant_monte_carlo_paths: int = 10_000
+    quant_var_confidence: float = 0.95
+
     # ── Stripe ────────────────────────────────────────────────
     stripe_secret_key: str = Field(default="")
     stripe_webhook_secret: str = Field(default="")

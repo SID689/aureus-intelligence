@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
   LayoutDashboard, LineChart, Mic, FlaskConical, GraduationCap, Gamepad2,
-  Settings, LogOut, Lock,
+  Settings, LogOut, Lock, Sigma,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: "/analysis", label: "Analysis",   icon: LineChart       },
   { href: "/voice",    label: "Voice",      icon: Mic, tier: "elite" as TierName },
   { href: "/backtest", label: "Backtest",   icon: FlaskConical    },
+  { href: "/quant-lab", label: "Quant Lab", icon: Sigma, tier: "elite" as TierName },
   { href: "/education", label: "Education", icon: GraduationCap   },
   { href: "/games",    label: "Games",     icon: Gamepad2        },
   { href: "/settings", label: "Settings",   icon: Settings        },

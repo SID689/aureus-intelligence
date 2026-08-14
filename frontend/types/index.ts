@@ -75,7 +75,7 @@ export interface AnalysisResult {
   confidence_index: number;
   fundamental_score: number;
   technical_score: number;
-  quantitative_score: number;
+  sentiment_score: number;
   time_horizon: string;
   generated_at: string;
   disclaimer: string;

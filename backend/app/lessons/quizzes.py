@@ -633,6 +633,65 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "in hindsight.",
         ),
     ],
+    "l016": [
+        QuizQuestion(
+            "What does a sentiment score actually measure?",
+            ["The quality of the underlying business",
+             "How a company is currently being talked about and believed in",
+             "Whether a stock is undervalued",
+             "The company's future earnings"],
+            1,
+            "Sentiment measures belief, not reality. A company can be beloved and unprofitable, or "
+            "excellent and ignored — sentiment reports the popularity in both cases, which is why it "
+            "is one pillar of three rather than a verdict on its own.",
+        ),
+        QuizQuestion(
+            "Why is sentiment VELOCITY tracked separately from the sentiment level?",
+            ["Velocity is easier to compute",
+             "The level is largely already reflected in the price, while a change is not",
+             "Velocity is more accurate",
+             "Regulators require it"],
+            1,
+            "If a company has been covered positively for months, that optimism is already in the price. "
+            "The information that is not yet priced in is the shift — which is why the change is tracked "
+            "as its own signal.",
+        ),
+        QuizQuestion(
+            "Aureus weights sentiment at 40% for a short horizon but only 15% for a long one. Why?",
+            ["Long-term data is harder to get",
+             "Sentiment decays quickly — this quarter's mood says little about a business in five years",
+             "Long-term investors don't read news",
+             "It is an arbitrary choice"],
+            1,
+            "Sentiment has the shortest half-life of the three pillars. A news catalyst is fully absorbed "
+            "within weeks, so it dominates short horizons and becomes close to noise over multi-year ones, "
+            "where fundamentals do the work instead.",
+        ),
+    ],
+    "l017": [
+        QuizQuestion(
+            "Why do general-purpose sentiment tools systematically misread financial filings?",
+            ["Filings are too long",
+             "Ordinary accounting words like 'liability', 'cost' and 'debt' sound negative in everyday English but are neutral in a filing",
+             "Filings contain too many numbers",
+             "They are written in legal language"],
+            1,
+            "This is the core failure and it has a direction: every company has liabilities and reports "
+            "expenses, so a general model reads routine accounting description as distress and scores "
+            "ordinary businesses negative.",
+        ),
+        QuizQuestion(
+            "A general sentiment model scores 'the company did not beat estimates' as exactly neutral. What did it miss?",
+            ["That 'company' is a positive word",
+             "That 'beat estimates' is a decisive financial phrase, and 'did not' inverts it",
+             "That estimates are always wrong",
+             "Nothing — the sentence is neutral"],
+            1,
+            "Two failures at once: it does not recognise 'beat estimates' as a phrase carrying strong "
+            "positive meaning, and it does not handle the negation that flips it. In financial text, short "
+            "phrases carry far more signal than individual words.",
+        ),
+    ],
 }
 
 

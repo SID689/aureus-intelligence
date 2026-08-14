@@ -151,15 +151,15 @@ export default function AnalysisPanel() {
           <div>
             {!weightsAreStandard && (
               <p className="text-xs text-aureus-muted mb-2">
-                ⚠ Module weights adjusted from the standard 35/35/30 split because some data
-                sources didn&apos;t return complete figures for this ticker — see percentages below.
+                ⚠ Module weights adjusted from this horizon&apos;s standard split because some
+                data sources didn&apos;t return complete figures for this ticker — see percentages below.
               </p>
             )}
             <div className="grid grid-cols-3 gap-3">
               {[
                 { label: "Fundamental",  score: r.fundamental_score,  weight: weights.fundamental,  completeness: result?.result?.overall_data_completeness },
                 { label: "Technical",    score: r.technical_score,    weight: weights.technical },
-                { label: "Quantitative", score: r.quantitative_score, weight: weights.quantitative },
+                { label: "Sentiment",    score: r.sentiment_score,    weight: weights.sentiment },
               ].map(({ label, score, weight }) => (
                 <div key={label} className="rounded border border-aureus-border p-3 text-center"
                      style={{ background: "var(--bg)" }}>

@@ -12,7 +12,7 @@ export type OnboardingStep =
   | "welcome"
   | "fundamental"
   | "technical"
-  | "quantitative"
+  | "sentiment"
   | "synthesis"
   | "sophistication_quiz"
   | "risk_acknowledgment"
@@ -22,7 +22,7 @@ const STEP_ORDER: OnboardingStep[] = [
   "welcome",
   "fundamental",
   "technical",
-  "quantitative",
+  "sentiment",
   "synthesis",
   "sophistication_quiz",
   "risk_acknowledgment",

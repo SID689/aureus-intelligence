@@ -14,7 +14,7 @@ history and db/migrations/004 for the matching user data migration.
 Quiz questions live in quizzes.py, keyed by lesson id.
 """
 
-from app.lessons.models import Lesson, TIER_FOUNDATIONAL
+from app.lessons.models import Callout, GlossaryTerm, Lesson, TIER_FOUNDATIONAL
 
 TIER_1_FOUNDATIONAL: list[Lesson] = [
 
@@ -163,4 +163,81 @@ TIER_1_FOUNDATIONAL: list[Lesson] = [
         "distribution of likely outcomes was genuinely wide beforehand — a 70%-probability outcome "
         "still surprises the market 30% of the time, and that's not irrationality, that's just probability.",
         "'Priced in' means the market's probability-weighted expectation matches an outcome — it doesn't mean surprises can't happen."),
+Lesson("l016", "Sentiment Is a Measure of Belief, Not of Business Quality", "Sentiment", TIER_FOUNDATIONAL,
+        "Sentiment analysis measures how a company is being TALKED ABOUT — in news, in filings, and "
+        "among traders — and turns that into a directional score. It sits alongside fundamental and "
+        "technical analysis as one of the three pillars, and it answers a question neither of the "
+        "others can: what does the market currently believe, and how fast is that belief changing?\n\n"
+        "The reason this matters is timing. A stock does not fall 8% on an earnings miss because the "
+        "balance sheet changed overnight — it falls because thousands of people revised their beliefs "
+        "at once. Fundamental analysis can tell you a business is worth more than its price; it "
+        "cannot tell you what will make the market notice. Sentiment is often the thing that does.\n\n"
+        "The critical limitation is right there in the definition. Sentiment measures belief, not "
+        "reality. A company can be beloved and structurally unprofitable, or quietly excellent and "
+        "completely ignored, and sentiment reports the popularity in both cases. It is also blind to "
+        "anything nobody has written about yet — an unreported fraud generates no negative coverage "
+        "precisely because it is still unreported.",
+        "Sentiment tells you what the market believes right now, which is a genuinely different thing from what is true.",
+        glossary=[
+            GlossaryTerm("Sentiment velocity",
+                "The change in sentiment over the last 24 hours versus the prior period. The LEVEL of "
+                "sentiment is largely already reflected in the price; the CHANGE is the part that isn't."),
+            GlossaryTerm("Aspect-based sentiment",
+                "Scoring only the parts of an article that refer to a specific company. An article titled "
+                "'Nvidia soars while Intel slumps' is strongly positive for one and negative for the other; "
+                "scoring it as a single block gives both a meaningless neutral."),
+        ],
+        callouts=[
+            Callout("key_idea", "The change matters more than the level",
+                "If a company has been covered positively for months, that optimism is in the price. What "
+                "isn't in the price is a shift — which is why sentiment velocity is tracked separately "
+                "from the sentiment score itself."),
+            Callout("common_mistake", "Treating a social sentiment spike as confirmation",
+                "Retail chatter volume is the easiest signal in markets to manufacture. A sentiment spike "
+                "driven mostly by post volume, with no news and no filing behind it, is the single most "
+                "common false positive in this pillar — and buying it means buying exactly when the crowd "
+                "is most excited."),
+            Callout("why_it_matters", "Why sentiment is weighted by horizon",
+                "Sentiment decays fast. Aureus weights it at 40% over a short horizon, 30% over medium, "
+                "and just 15% over long — because this quarter's mood tells you nothing about where a "
+                "business will be in five years, while a DCF tells you very little about next week."),
+        ]),
+    Lesson("l017", "Why General Sentiment Tools Fail on Financial Text", "Sentiment", TIER_FOUNDATIONAL,
+        "Most off-the-shelf sentiment tools are trained on product reviews and social media. Point one "
+        "at a 10-K and it does not merely lose accuracy — it fails in a specific, systematic direction.\n\n"
+        "The reason is vocabulary. The language of accounting is full of words that carry strong "
+        "negative emotion in ordinary English and none whatsoever in a filing: liability, cost, expense, "
+        "debt, charge, obligation, depreciation, impairment, risk. Every company has liabilities. Every "
+        "company reports expenses. A general-purpose model reads a routine balance-sheet description and "
+        "concludes the company is in trouble.\n\n"
+        "This is measurable. Run a neutral sentence like 'total costs and liabilities rose as "
+        "depreciation and debt expense increased' through a general social-media sentiment model and it "
+        "scores meaningfully negative — the correct answer is zero. Run 'the company did not beat "
+        "estimates' through the same model and it scores exactly neutral, because it has no idea that "
+        "'beat estimates' is a phrase or that 'did not' inverts it.\n\n"
+        "That second failure points at the fix. In financial text, short PHRASES carry far more signal "
+        "than individual words. 'Beat' alone is ambiguous. 'Beat estimates' is close to the most "
+        "informative two-word sequence in the entire domain. Finance-specific models — whether a "
+        "domain lexicon or a model like FinBERT trained on financial text — are built around exactly "
+        "that difference.",
+        "General sentiment tools misread financial text in a predictable direction, because ordinary accounting vocabulary sounds alarming in everyday English.",
+        glossary=[
+            GlossaryTerm("FinBERT",
+                "A version of the BERT language model fine-tuned on financial text, so it learns that "
+                "'liability' is neutral in a filing and that 'cut guidance' is decisively negative."),
+            GlossaryTerm("Negation handling",
+                "Detecting that 'did not beat estimates' means the opposite of 'beat estimates'. Naive "
+                "word-counting misses this entirely and scores the phrase positive."),
+        ],
+        callouts=[
+            Callout("example", "The same sentence, two models",
+                "'Total costs and liabilities rose as depreciation and debt expense increased.' A general "
+                "social-media model scores this around -0.35 (negative). A finance-specific model scores "
+                "it 0.00 — correctly, because the sentence describes an accounting fact and takes no "
+                "directional position at all."),
+            Callout("key_idea", "Phrases beat words",
+                "'Cut guidance', 'going concern', 'FDA approval', 'material weakness' — each of these is "
+                "worth more than any single word in the sentence containing it. This is why financial "
+                "sentiment scoring matches phrases first and individual words second."),
+        ]),
 ]

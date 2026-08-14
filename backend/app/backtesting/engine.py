@@ -26,6 +26,15 @@ HOW LOOK-AHEAD BIAS IS MITIGATED (explicit, per the Phase 6 brief)
    at the time (a classic, severe form of look-ahead bias). Rather than
    fake point-in-time fundamentals, the backtest re-weights the ensemble
    to technical + quantitative only, using the SAME reweight() utility
+
+   NOTE (pillar refactor): the live three-pillar blend is now
+   Fundamental / Technical / SENTIMENT, with quantitative relocated to
+   the Quant Lab. This backtest deliberately keeps using the quantitative
+   module rather than following that change, because sentiment cannot be
+   replayed historically without look-ahead bias — the news and social
+   APIs serve only a recent window, so "what was sentiment on this date
+   in 2023" is unobtainable, and substituting today's reading would be
+   precisely the look-ahead error this module exists to avoid.
    as production so the math is consistent, and this exclusion is
    logged in every report so results are never misread as "the full
    ensemble backtested well" when only 2 of 3 legs were actually tested.

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import PillarCard from "@/components/analysis/PillarCard";
 import ThesisCard from "@/components/analysis/ThesisCard";
 import SectorComparisonCard from "@/components/analysis/SectorComparisonCard";
+import SentimentCard from "@/components/analysis/SentimentCard";
 import PriceChart from "@/components/charts/PriceChart";
 import { getFullAnalysis } from "@/lib/api";
 import type { FullAnalysis } from "@/lib/api";
@@ -81,7 +82,7 @@ export default function TickerAnalysisPage() {
   const v = data ? verdict(data) : null;
   const f = data?.fundamental;
   const t = data?.technical;
-  const q = data?.quantitative;
+  const sn = data?.sentiment;
 
   return (
     <div className="space-y-6">
@@ -194,11 +195,14 @@ export default function TickerAnalysisPage() {
                         weight={data.module_weights_used.technical ?? 0}
                         completeness={t?.data_completeness ?? 0}
                         signals={t?.signal_breakdown ?? []} />
-            <PillarCard title="Quantitative" score={data.quantitative_score}
-                        weight={data.module_weights_used.quantitative ?? 0}
-                        completeness={q?.data_completeness ?? 0}
-                        signals={q?.signal_breakdown ?? []} />
+            <PillarCard title="Sentiment" score={data.sentiment_score}
+                        weight={data.module_weights_used.sentiment ?? 0}
+                        completeness={sn?.data_completeness ?? 0}
+                        signals={sn?.signal_breakdown ?? []} />
           </div>
+
+          {/* ── Sentiment detail ──────────────────────────────── */}
+          {sn && <SentimentCard sentiment={sn} />}
 
           {/* ── Bull vs Bear ──────────────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
@@ -237,11 +241,26 @@ export default function TickerAnalysisPage() {
                 />
                 <MetricTile label="RSI (14)" value={fmtNum(t?.rsi_14, 0)} />
 
-                <MetricTile label="Beta vs SPY" value={fmtNum(q?.beta_vs_spy)} />
-                <MetricTile label="Alpha vs SPY" value={fmtPct(q?.alpha_vs_spy, 2)} />
-                <MetricTile label="Sharpe (1y)" value={fmtNum(q?.sharpe_ratio)} />
-                <MetricTile label="30d Volatility" value={fmtPct(q?.rolling_volatility_30d)} />
+                <MetricTile label="Operating Margin" value={fmtPct(f?.operating_margin)} />
+                <MetricTile label="Revenue Growth" value={fmtPct(f?.revenue_growth_yoy)} hint="Year over year" />
+                <MetricTile label="News Sentiment"
+                            value={sn?.news_computed ? `${sn.news_score.toFixed(0)}/100` : "—"}
+                            hint={sn?.news_computed ? `${sn.news_document_count} articles` : "Not measured"} />
+                <MetricTile label="Sentiment Velocity"
+                            value={sn ? `${sn.polarity_velocity >= 0 ? "+" : ""}${sn.polarity_velocity.toFixed(2)}` : "—"}
+                            hint={sn?.velocity_label} />
               </div>
+
+              {/* Beta, alpha, Sharpe and volatility moved to the Quant Lab —
+                  they are research statistics, not a third opinion to average
+                  against a DCF. Point users at where they now live. */}
+              <p className="text-[11px] text-aureus-muted mt-3 leading-relaxed">
+                Looking for beta, alpha, Sharpe or volatility? Factor exposures, Monte Carlo and
+                VaR now live in the{" "}
+                <a href={`/quant-lab?ticker=${ticker}`} className="text-aureus-gold hover:underline">
+                  Quant Lab
+                </a>.
+              </p>
 
               {f?.dcf_skip_reason && !f.dcf_detail && (
                 <p className="text-[11px] text-aureus-muted mt-3 leading-relaxed">

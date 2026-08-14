@@ -37,7 +37,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Literal
 
-from app.analysis.models import FundamentalScore, QuantitativeScore, TechnicalScore
+from app.analysis.models import FundamentalScore, SentimentScore, TechnicalScore
 from app.core.config import get_settings
 
 logger = logging.getLogger("aureus.analysis.thesis")
@@ -92,7 +92,7 @@ def _pct(v: float | None, digits: int = 1) -> str:
 # Bull case
 # =====================================================================
 
-def _bull_points(f: FundamentalScore, t: TechnicalScore, q: QuantitativeScore,
+def _bull_points(f: FundamentalScore, t: TechnicalScore, sn: SentimentScore,
                  fd, horizon: Horizon) -> list[ThesisPoint]:
     pts: list[ThesisPoint] = []
 
@@ -202,23 +202,34 @@ def _bull_points(f: FundamentalScore, t: TechnicalScore, q: QuantitativeScore,
                 "RSI (14)", f"{t.rsi_14:.0f}" if t.rsi_14 else "n/a",
             ))
 
-    # ── Risk-Adjusted Performance ──────────────────────────────────
-    if q.sharpe_ratio is not None and q.sharpe_ratio > 0.8:
+    # ── Market Sentiment ───────────────────────────────────────────
+    if sn.news_document_count > 0 and sn.news_score >= 60.0:
         pts.append(ThesisPoint(
-            "Risk-Adjusted Performance",
-            "Returns have compensated for the risk taken",
-            f"A Sharpe ratio of {q.sharpe_ratio:.2f} means past return has been earned per unit of "
-            f"volatility rather than by simply holding a more volatile asset — the distinction between "
-            f"skill-like and beta-like performance.",
-            "Sharpe (1y)", f"{q.sharpe_ratio:.2f}",
+            "Market Sentiment",
+            "News coverage is running constructive",
+            f"Across {sn.news_document_count} articles in the last week, authority- and recency-weighted "
+            f"coverage scores {sn.news_score:.0f}/100. Positive coverage does not make a business better, "
+            f"but it does shape who is willing to buy it over the next few weeks.",
+            "News Sentiment", f"{sn.news_score:.0f}/100",
         ))
-    if q.alpha_vs_spy is not None and q.alpha_vs_spy > 0:
+    if sn.polarity_velocity >= 0.15:
         pts.append(ThesisPoint(
-            "Risk-Adjusted Performance",
-            "Outperformance is not explained by market exposure alone",
-            f"Rolling alpha versus SPY is {_pct(q.alpha_vs_spy, 2)}, meaning the return is not merely the market "
-            f"move scaled by beta. Idiosyncratic performance is what a concentrated position is for.",
-            "Alpha vs SPY", _pct(q.alpha_vs_spy, 2),
+            "Market Sentiment",
+            "Sentiment is improving, not merely positive",
+            f"Tone over the last 24 hours runs {sn.polarity_velocity:+.2f} against the prior period's baseline "
+            f"({sn.velocity_label.lower()}). A rising trajectory tends to matter more than the level, because the "
+            f"level is already reflected in the price and the change is not yet.",
+            "Sentiment Velocity", f"{sn.polarity_velocity:+.2f}",
+        ))
+    if sn.sec_tone_label == "Positive":
+        d = sn.sec_tone_detail or {}
+        pts.append(ThesisPoint(
+            "Market Sentiment",
+            "Management's own filing language is constructive",
+            f"The MD&A section of the {d.get('form', 'latest filing')} filed {d.get('filing_date', 'recently')} "
+            f"reads more confident than the prior filing, with no material increase in hedging or risk language. "
+            f"This is management's assessment written under legal liability, not commentary about them.",
+            "SEC Filing Tone", "Positive",
         ))
 
     return pts
@@ -228,7 +239,7 @@ def _bull_points(f: FundamentalScore, t: TechnicalScore, q: QuantitativeScore,
 # Bear case
 # =====================================================================
 
-def _bear_points(f: FundamentalScore, t: TechnicalScore, q: QuantitativeScore,
+def _bear_points(f: FundamentalScore, t: TechnicalScore, sn: SentimentScore,
                  fd, horizon: Horizon) -> list[ThesisPoint]:
     pts: list[ThesisPoint] = []
 
@@ -325,30 +336,52 @@ def _bear_points(f: FundamentalScore, t: TechnicalScore, q: QuantitativeScore,
                 "OBV", "Falling",
             ))
 
-    # ── Risk Profile ───────────────────────────────────────────────
-    if q.sharpe_ratio is not None and q.sharpe_ratio < 0.3:
+    # ── Market Sentiment ───────────────────────────────────────────
+    if sn.news_document_count > 0 and sn.news_score <= 40.0:
         pts.append(ThesisPoint(
-            "Risk Profile",
-            "Recent returns have not compensated for volatility",
-            f"A Sharpe ratio of {q.sharpe_ratio:.2f} means holders absorbed meaningful volatility without "
-            f"being paid for it. Capital committed here has been carrying risk it did not earn a return on.",
-            "Sharpe (1y)", f"{q.sharpe_ratio:.2f}",
+            "Market Sentiment",
+            "News coverage is running negative",
+            f"Across {sn.news_document_count} articles in the last week, authority- and recency-weighted "
+            f"coverage scores {sn.news_score:.0f}/100. Sustained negative coverage suppresses the marginal "
+            f"buyer regardless of what the fundamentals say.",
+            "News Sentiment", f"{sn.news_score:.0f}/100",
         ))
-    if q.beta_vs_spy is not None and q.beta_vs_spy > 1.3:
+    if sn.polarity_velocity <= -0.15:
         pts.append(ThesisPoint(
-            "Risk Profile",
-            "High beta magnifies any market drawdown",
-            f"A beta of {q.beta_vs_spy:.2f} implies roughly {q.beta_vs_spy:.2f}x the market's move. In a broad selloff this "
-            f"position is expected to fall considerably harder than the index, independent of company news.",
-            "Beta", f"{q.beta_vs_spy:.2f}",
+            "Market Sentiment",
+            "Sentiment is deteriorating",
+            f"Tone over the last 24 hours runs {sn.polarity_velocity:+.2f} against the prior period's baseline "
+            f"({sn.velocity_label.lower()}). Deterioration that has not yet resolved is the part not in the price.",
+            "Sentiment Velocity", f"{sn.polarity_velocity:+.2f}",
         ))
-    if q.rolling_volatility_30d is not None and q.rolling_volatility_30d > 0.45:
+    if sn.sec_tone_label == "Cautious":
+        d = sn.sec_tone_detail or {}
+        unc = d.get("uncertainty_shift")
+        detail = (
+            f"The MD&A section of the {d.get('form', 'latest filing')} filed {d.get('filing_date', 'recently')} "
+            f"carries denser hedging and risk language than the prior filing"
+        )
+        if isinstance(unc, (int, float)):
+            detail += f" (+{unc*100:.2f}pp uncertainty vocabulary)"
+        detail += (
+            ". Management changing how cautiously it writes, in the same house style as last quarter, is a "
+            "signal that usually precedes the numbers."
+        )
         pts.append(ThesisPoint(
-            "Risk Profile",
-            "Realised volatility is elevated",
-            f"30-day annualised volatility of {_pct(q.rolling_volatility_30d)} means wide swings are the base case. "
-            f"Position sizing that ignores this converts an acceptable thesis into an unacceptable drawdown.",
-            "30d Volatility", _pct(q.rolling_volatility_30d),
+            "Market Sentiment", "Management's filing language turned more cautious",
+            detail, "SEC Filing Tone", "Cautious",
+        ))
+    # Crowd euphoria is a BEAR point, not a bull one: a retail crowd far
+    # more bullish than the news flow is a positioning risk, because that
+    # is the configuration that unwinds fastest on any disappointment.
+    if sn.social_computed and sn.news_computed and (sn.social_score - sn.news_score) >= 15.0:
+        pts.append(ThesisPoint(
+            "Market Sentiment",
+            "Retail positioning is running well ahead of the news",
+            f"Retail sentiment scores {sn.social_score:.0f}/100 against news at {sn.news_score:.0f}/100. A crowd "
+            f"materially more bullish than the underlying coverage is a crowded-trade risk — it is the "
+            f"configuration that unwinds hardest on any disappointment.",
+            "Social vs News", f"+{sn.social_score - sn.news_score:.0f} pts",
         ))
 
     return pts
@@ -371,7 +404,7 @@ def _order_and_trim(points: list[ThesisPoint], horizon: Horizon, limit: int = 6)
     return sorted(points, key=rank)[:limit]
 
 
-def _falsifiers(stance: str, f: FundamentalScore, t: TechnicalScore, q: QuantitativeScore, fd) -> list[str]:
+def _falsifiers(stance: str, f: FundamentalScore, t: TechnicalScore, sn: SentimentScore, fd) -> list[str]:
     out: list[str] = []
     if stance == "bull":
         if fd.revenue_growth_yoy is not None:
@@ -413,15 +446,15 @@ def _summary(stance: str, ticker: str, points: list[ThesisPoint], horizon: Horiz
 
 def build_theses(ticker: str, horizon: Horizon,
                  fundamental: FundamentalScore, technical: TechnicalScore,
-                 quantitative: QuantitativeScore, fundamental_data) -> tuple[Thesis, Thesis]:
+                 sentiment: SentimentScore, fundamental_data) -> tuple[Thesis, Thesis]:
     """Build the bull and bear cases. Always returns both, never raises."""
-    bull_pts = _order_and_trim(_bull_points(fundamental, technical, quantitative, fundamental_data, horizon), horizon)
-    bear_pts = _order_and_trim(_bear_points(fundamental, technical, quantitative, fundamental_data, horizon), horizon)
+    bull_pts = _order_and_trim(_bull_points(fundamental, technical, sentiment, fundamental_data, horizon), horizon)
+    bear_pts = _order_and_trim(_bear_points(fundamental, technical, sentiment, fundamental_data, horizon), horizon)
 
     bull = Thesis("bull", _summary("bull", ticker, bull_pts, horizon), bull_pts,
-                  _falsifiers("bull", fundamental, technical, quantitative, fundamental_data))
+                  _falsifiers("bull", fundamental, technical, sentiment, fundamental_data))
     bear = Thesis("bear", _summary("bear", ticker, bear_pts, horizon), bear_pts,
-                  _falsifiers("bear", fundamental, technical, quantitative, fundamental_data))
+                  _falsifiers("bear", fundamental, technical, sentiment, fundamental_data))
 
     return _with_cached_polish(ticker, horizon, bull, bear)
 
