@@ -11,30 +11,34 @@ interface Props {
   onClose?:      () => void;
 }
 
-// These are checked against what the backend actually enforces
-// (db/migrations/008_tier_entitlements.sql). The previous list advertised
+// Checked against what the backend actually enforces
+// (db/migrations/008-010). An earlier version of this list advertised
 // live execution, direct Alpaca trading, "5 concurrent live agent
 // strategies" and human-in-the-loop alerts — all four were removed from
-// the product when agentic execution was deleted, and every one of them
-// had zero implementing files. Do not add a line here without a limit or
-// feature flag in subscription_tiers to back it.
+// the product and had zero implementing files. Do not add a line here
+// without a limit or feature flag in subscription_tiers to back it.
 const TIER_BENEFITS = {
   elite: [
-    "200 full analyses per day (vs 15 free)",
+    "Claude-powered analysis (Haiku, Sonnet on deep dives)",
+    "25,000 credits/month — ~1,600 AI analyses",
+    "Real-time market data via Polygon (no 15-min delay)",
     "The Quant Lab — factor models, Monte Carlo, VaR",
-    "SEC filing-tone analysis and full news catalysts",
-    "Real-time news feed (no 15-minute delay)",
-    "50 backtests/day, 5 tickers, 10 years of history",
-    "500 voice conversation minutes per month",
+    "5-minute cache, priority queue, 3 concurrent jobs",
+    "300 voice minutes + 2 programmatic API keys",
   ],
   institutional: [
     "Everything in Elite, uncapped",
-    "Unlimited analyses, backtests and voice minutes",
-    "10 years of factor history (vs 3)",
-    "50,000-path Monte Carlo simulations (vs 10,000)",
-    "Custom peer sets for relative-value work",
-    "25 tickers per backtest, unlimited history",
+    "Claude Sonnet standard, Opus on deep dives",
+    "150,000 credits/month — ~2,500 Sonnet analyses",
+    "Every premium data source: Polygon Advanced, Finnhub, X, Reddit",
+    "60-second cache, top queue priority, 10 concurrent jobs",
+    "10 years of factor history, 50,000-path simulations",
   ],
+};
+
+const TIER_PRICE: Record<"elite" | "institutional", string> = {
+  elite: "99",
+  institutional: "499",
 };
 
 export default function UpgradeModal({ feature, requiredTier = "elite", onClose }: Props) {
@@ -93,7 +97,7 @@ export default function UpgradeModal({ feature, requiredTier = "elite", onClose 
                 <div>
                   <div className="text-white font-bold capitalize">{tier}</div>
                   <div className="text-aureus-gold text-lg font-bold">
-                    ${tier === "elite" ? "50" : "100"}
+                    ${TIER_PRICE[tier]}
                     <span className="text-aureus-muted text-xs font-normal">/mo</span>
                   </div>
                 </div>

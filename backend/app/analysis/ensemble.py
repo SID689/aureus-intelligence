@@ -101,6 +101,7 @@ def run_ensemble_analysis(
     ticker: str,
     time_horizon: Literal["short_term", "medium_term", "long_term"] = "medium_term",
     use_llm_reasoning: bool = True,
+    user_id: str | None = None,
 ) -> EnsembleSignal:
     ticker = ticker.upper().strip()
     cfg = _HORIZON_CONFIG.get(time_horizon, _HORIZON_CONFIG["medium_term"])
@@ -190,9 +191,11 @@ def run_ensemble_analysis(
         use_llm_polish=use_llm_reasoning, horizon_key=time_horizon,
     )
 
+    # user_id decides which model (if any) polishes the thesis and whose
+    # credits pay for it. None = deterministic output, no spend.
     bull, bear = build_theses(
         ticker, time_horizon, fundamental_result, technical_result,
-        sentiment_result, fund_data,
+        sentiment_result, fund_data, user_id=user_id,
     )
 
     logger.info("Ensemble analysis complete", extra={

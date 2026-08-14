@@ -1,119 +1,200 @@
 """
 app/analysis/llm_provider.py
 ------------------------------
-Pluggable LLM backend for the synthesis steps, so the app is not tied to a
-single paid vendor.
+Tier-aware LLM synthesis, billed per call against the caller's credits.
 
 =====================================================================
-WHY THIS EXISTS
+OLLAMA HAS BEEN REMOVED
 =====================================================================
-The thesis engine was built deterministic-first and works with no LLM at
-all. But the brief asks for genuine LLM synthesis, and paying Anthropic for
-API credits is a real cost the owner would rather not carry. Anthropic's
-consumer Pro subscription does NOT include API access — they are separately
-billed products — so "I have Claude Pro" does not make the API free.
+Ollama was the right answer while this was a single-user local app: free,
+private, no key. It is the wrong answer for a paid product, for reasons
+that only appear once there is more than one user:
 
-The free path is a LOCAL model. Ollama runs quantised open-weight models on
-the owner's own machine at zero marginal cost, exposes an OpenAI-ish HTTP
-API, and needs no key. This module picks whichever backend is actually
-available at call time, in cost order:
+  - It is not free at scale, it is free at the MARGIN and expensive in
+    fixed terms. Every concurrent request needs several GB of resident
+    RAM on a machine the owner pays for, so "no API bill" becomes "a
+    larger server bill" plus a hard concurrency ceiling.
+  - A 3B quantised model cannot produce the output quality a $99/month
+    plan implies. It was adequate for restating bullets under a strict
+    schema and is not adequate as the product.
+  - It made cost invisible. A paid tier has to know what each call cost
+    in order to bill it, and a local model reports nothing.
 
-    1. Ollama          — free, local, no key, no quota
-    2. OpenAI          — only if OPENAI_API_KEY is already set (it is, for
-                         voice transcription, so it costs nothing extra to
-                         reuse)
-    3. Anthropic       — only if a real key is configured
-    4. None            — caller keeps its deterministic output
-
-Because every caller already has a complete deterministic result, "no LLM
-available" is a normal operating state, not an error. Nothing here raises
-on absence.
+Paid tiers now use Anthropic. The free tier uses no LLM at all: its
+output is the deterministic thesis engine, which builds every bullet from
+a metric that actually computed. That is an honest free tier, not a
+crippled one — what it lacks is prose polish, not substance.
 
 =====================================================================
-SETUP (owner action required for the free path)
+MODEL SELECTION IS A PLAN PROPERTY
 =====================================================================
-    brew install ollama          # or https://ollama.com/download
-    ollama pull llama3.2:3b      # ~2GB
-    ollama serve                 # usually already running as a service
+Each tier declares llm_model_default and llm_model_deep in
+subscription_tiers. Routine synthesis runs on the default; work flagged
+`deep=True` runs on the stronger model.
 
-Then set in backend/.env:
-    OLLAMA_BASE_URL=http://host.docker.internal:11434
-    OLLAMA_MODEL=llama3.2:3b
+    Sovereign      none / none            deterministic only
+    Elite          Haiku / Sonnet
+    Institutional  Sonnet / Opus
 
-MODEL SIZING: pick against FREE RAM, not total. This stack already runs
-Postgres, Redis, the API, the frontend and three Celery workers, so an 8B
-model (~5-6GB resident) will swap on an 8GB machine. The polish step only
-restates bullets it is handed, under a strict JSON schema — it never authors
-a claim — so a 3B model does the job. Move up only if you have headroom.
+This is the single biggest lever on unit economics. Haiku is roughly a
+quarter of Sonnet's price and about a nineteenth of Opus's, so routing
+routine work to it is what makes the volume in these plans affordable.
 
-`host.docker.internal` is required rather than `localhost` because the
-backend runs inside a container and Ollama runs on the host.
+=====================================================================
+BILLING
+=====================================================================
+Every call reserves an estimate, runs, then settles on the token counts
+Anthropic reports. A user with no credits is refused BEFORE the vendor is
+called, which is where "cannot exceed what they paid for" is actually
+enforced — after the call the money is already spent.
 """
 
 import json
 import logging
-from typing import Literal
-
-import httpx
+from dataclasses import dataclass
+from decimal import Decimal
 
 from app.core.config import get_settings
 
 logger = logging.getLogger("aureus.analysis.llm")
 
-Backend = Literal["ollama", "openai", "anthropic", "none"]
+# Maps the tier's model name to a concrete Anthropic model id and to the
+# rate rows seeded in migration 009. Kept here rather than in the
+# database because the id is a code-level API contract, while the PRICE
+# lives in vendor_cost_rates where it can change without a deploy.
+_MODEL_IDS: dict[str, str] = {
+    "claude-haiku": "claude-haiku-4-5-20251001",
+    "claude-sonnet": "claude-sonnet-4-6",
+    "claude-opus": "claude-opus-4-1",
+}
 
-_TIMEOUT = 90.0  # local models on CPU are slow; this is a background-quality step
-
-
-def available_backend() -> Backend:
-    """Cheapest working backend, checked in cost order."""
-    s = get_settings()
-
-    if s.ollama_base_url:
-        try:
-            r = httpx.get(f"{s.ollama_base_url.rstrip('/')}/api/tags", timeout=2.5)
-            if r.status_code == 200:
-                return "ollama"
-        except Exception:
-            pass  # not running — fall through, this is not an error
-
-    if s.openai_configured:
-        return "openai"
-    if s.anthropic_configured:
-        return "anthropic"
-    return "none"
+# Conservative token estimate used for the pre-call reservation. Measured
+# on this codebase's own synthesis prompts; deliberately biased high so
+# the reservation rarely under-covers, with the excess refunded at
+# settlement.
+_ESTIMATE_INPUT_TOKENS = 3000
+_ESTIMATE_OUTPUT_TOKENS = 1000
 
 
-def complete_json(system: str, user: str, max_tokens: int = 1500) -> dict | None:
+@dataclass
+class LLMResult:
+    text: str
+    model: str
+    input_tokens: int
+    output_tokens: int
+    credits_charged: float
+    billed: bool
+
+
+class LLMUnavailable(Exception):
+    """No model is available for this caller — use deterministic output."""
+
+
+def model_for_user(user_id: str | None, deep: bool = False) -> str | None:
     """
-    Ask the available backend for a JSON object.
+    The Anthropic model this user's plan entitles them to, or None.
 
-    Returns None on any failure — unavailable backend, timeout, refusal,
-    malformed JSON. Callers treat None as "keep the deterministic version",
-    so a failure here degrades quality rather than breaking the request.
+    None is a normal, expected state — it is what the free tier gets, and
+    every caller already has a deterministic path for it.
     """
-    backend = available_backend()
-    if backend == "none":
+    if not user_id:
         return None
     try:
-        if backend == "ollama":
-            raw = _ollama(system, user, max_tokens)
-        elif backend == "openai":
-            raw = _openai(system, user, max_tokens)
-        else:
-            raw = _anthropic(system, user, max_tokens)
-        if not raw:
-            return None
-        return _parse_json(raw)
+        from app.core.entitlements import resolve_entitlements
+        ent = resolve_entitlements(user_id)
     except Exception as exc:
-        logger.warning("LLM completion failed — using deterministic output",
-                       extra={"backend": backend, "error": str(exc)})
+        logger.warning("Tier lookup failed for LLM routing",
+                       extra={"user_id": user_id, "error": str(exc)})
         return None
+    raw = ent.llm_model_deep if deep else ent.llm_model_default
+    return raw or None
+
+
+def anthropic_configured() -> bool:
+    return get_settings().anthropic_configured
+
+
+def complete_json(
+    system: str,
+    user: str,
+    user_id: str | None = None,
+    deep: bool = False,
+    max_tokens: int = 1500,
+    operation: str = "synthesis",
+) -> dict | None:
+    """
+    Ask the caller's entitled model for a JSON object, billing the call.
+
+    Returns None whenever synthesis is unavailable or fails — no model on
+    this plan, no API key configured, insufficient credits, a timeout, or
+    malformed JSON. Every caller treats None as "keep the deterministic
+    version", so a failure here degrades quality rather than breaking the
+    request. That contract is what makes the free tier and an outage the
+    same code path.
+    """
+    model_key = model_for_user(user_id, deep=deep)
+    if model_key is None:
+        return None
+    if not anthropic_configured():
+        logger.info("Anthropic not configured — deterministic output",
+                    extra={"user_id": user_id})
+        return None
+
+    model_id = _MODEL_IDS.get(model_key)
+    if model_id is None:
+        logger.warning("Unknown model in tier config", extra={"model": model_key})
+        return None
+
+    from app.billing.credits import (
+        InsufficientCredits, price_llm_call, reserve, settle,
+    )
+
+    estimate = price_llm_call(model_key, _ESTIMATE_INPUT_TOKENS, _ESTIMATE_OUTPUT_TOKENS)
+    try:
+        reservation = reserve(user_id, estimate, "anthropic", f"{operation}:{model_key}")
+    except InsufficientCredits as exc:
+        logger.info("LLM call refused — out of credits",
+                    extra={"user_id": user_id, "needed": float(exc.required),
+                           "available": float(exc.available)})
+        return None
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=get_settings().anthropic_api_key)
+        resp = client.messages.create(
+            model=model_id,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+            temperature=0.2,
+        )
+        raw = resp.content[0].text
+        in_tok = int(resp.usage.input_tokens)
+        out_tok = int(resp.usage.output_tokens)
+    except Exception as exc:
+        # The call failed, so nothing was consumed upstream — refund the
+        # whole reservation rather than charging for a response the user
+        # never received.
+        settle(user_id, reservation, Decimal(0), "anthropic", f"{operation}:{model_key}")
+        logger.warning("LLM call failed — deterministic output kept",
+                       extra={"model": model_id, "error": str(exc)})
+        return None
+
+    actual = price_llm_call(model_key, in_tok, out_tok)
+    settle(user_id, reservation, actual, "anthropic", f"{operation}:{model_key}",
+           usd_cost=None, quantity=in_tok + out_tok, unit="token")
+
+    logger.info("LLM synthesis billed", extra={
+        "user_id": user_id, "model": model_id,
+        "input_tokens": in_tok, "output_tokens": out_tok,
+        "credits": float(actual),
+    })
+    return _parse_json(raw)
 
 
 def _parse_json(raw: str) -> dict | None:
     """Models wrap JSON in prose or fences more often than they should."""
-    raw = raw.strip()
+    raw = (raw or "").strip()
     if raw.startswith("```"):
         lines = raw.split("\n")
         raw = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
@@ -129,46 +210,11 @@ def _parse_json(raw: str) -> dict | None:
         return None
 
 
-def _ollama(system: str, user: str, max_tokens: int) -> str:
-    s = get_settings()
-    resp = httpx.post(
-        f"{s.ollama_base_url.rstrip('/')}/api/chat",
-        json={
-            "model": s.ollama_model,
-            "messages": [{"role": "system", "content": system},
-                         {"role": "user", "content": user}],
-            "stream": False,
-            # Ollama honours a JSON output mode, which removes most of the
-            # "here is your JSON:" preamble problem at the source.
-            "format": "json",
-            "options": {"temperature": 0.2, "num_predict": max_tokens},
-        },
-        timeout=_TIMEOUT,
-    )
-    resp.raise_for_status()
-    return resp.json().get("message", {}).get("content", "")
+def available_backend() -> str:
+    """
+    Retained for callers that only ask "is synthesis possible at all".
 
-
-def _openai(system: str, user: str, max_tokens: int) -> str:
-    from openai import OpenAI
-    client = OpenAI(api_key=get_settings().openai_api_key)
-    r = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-        max_tokens=max_tokens,
-        temperature=0.2,
-        response_format={"type": "json_object"},
-    )
-    return r.choices[0].message.content or ""
-
-
-def _anthropic(system: str, user: str, max_tokens: int) -> str:
-    import anthropic
-    client = anthropic.Anthropic(api_key=get_settings().anthropic_api_key)
-    r = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=max_tokens,
-        system=system,
-        messages=[{"role": "user", "content": user}],
-    )
-    return r.content[0].text
+    Returns 'anthropic' or 'none'. The Ollama branch is gone; see the
+    module docstring.
+    """
+    return "anthropic" if anthropic_configured() else "none"

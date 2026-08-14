@@ -773,7 +773,27 @@ export interface UsageBlock {
   resets: string;
 }
 
+export interface PlanQuality {
+  llm_model_default: string | null;   // null = deterministic, no LLM
+  llm_model_deep: string | null;
+  market_data_providers: string[];
+  sentiment_sources: string[];
+  queue_priority: number;
+}
+
+export interface CreditBalance {
+  allowance: number;
+  consumed: number;
+  purchased: number;
+  remaining: number;
+  usd_value_remaining: number;
+}
+
 export interface PlanLimits {
+  monthly_credits: number;
+  cache_ttl_seconds: number;
+  max_concurrent_jobs: number;
+  api_keys_allowed: number;
   analysis_requests_per_day: number | null;
   backtests_per_day: number | null;
   backtest_tickers: number | null;
@@ -792,6 +812,7 @@ export interface Plan {
   display_name: string;
   price_cents: number;
   limits: PlanLimits;
+  quality: PlanQuality;
   features: Record<string, boolean>;
 }
 
@@ -805,3 +826,36 @@ export const getEntitlements = (userId: string): Promise<AccountEntitlements> =>
 
 /** All active plans, served from the DB so pricing can't drift from enforcement. */
 export const getPlans = (): Promise<{ plans: Plan[] }> => apiFetch("/api/v1/account/plans");
+
+export const getCredits = (userId: string): Promise<{
+  user_id: string;
+  balance: CreditBalance;
+  transactions: {
+    kind: string; credits: number; vendor: string | null;
+    operation: string | null; at: string | null;
+  }[];
+  unit: string;
+}> => apiFetch(`/api/v1/account/credits?user_id=${encodeURIComponent(userId)}`);
+
+export interface PlatformApiKey {
+  id: string; key_prefix: string; name: string; environment: string;
+  scopes: string[]; last_used_at: string | null; request_count: number;
+  revoked: boolean; created_at: string | null;
+}
+
+export const getApiKeys = (userId: string): Promise<{
+  keys: PlatformApiKey[]; allowed: number; tier: string;
+}> => apiFetch(`/api/v1/account/api-keys?user_id=${encodeURIComponent(userId)}`);
+
+/** The plaintext key is returned ONCE and never retrievable again. */
+export const createApiKey = (userId: string, name: string): Promise<{
+  id: string; api_key: string; key_prefix: string; warning: string;
+}> => apiFetch("/api/v1/account/api-keys", {
+  method: "POST", body: JSON.stringify({ user_id: userId, name }),
+});
+
+export const revokeApiKey = (keyId: string, userId: string) =>
+  apiFetch<{ revoked: boolean }>(
+    `/api/v1/account/api-keys/${keyId}?user_id=${encodeURIComponent(userId)}`,
+    { method: "DELETE" },
+  );

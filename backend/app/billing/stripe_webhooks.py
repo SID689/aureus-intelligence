@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import create_engine, text
 
+from app.billing.credits import grant_allowance, revoke_all_keys, revoke_allowance
 from app.core.entitlements import invalidate_entitlements
 from app.core.config import get_settings
 
@@ -99,6 +100,7 @@ def update_user_tier(
         # until the cache TTL expires, which reads as "I upgraded and
         # nothing happened".
         invalidate_entitlements(user_id)
+        _provision_for_tier(user_id, new_tier, subscription_status)
 
         return {
             "status":   "updated",
@@ -136,3 +138,57 @@ def handle_payment_failed(stripe_customer_id: str) -> dict:
         return {"status": "error", "error": str(exc)}
     finally:
         engine.dispose()
+
+
+def _provision_for_tier(user_id: str, new_tier: str, status: str) -> None:
+    """
+    Bring a user's credits and API keys in line with the tier they now
+    hold. This is the moment "they bought it" becomes "they can use it".
+
+    Ordering matters: entitlements are invalidated first (above) so any
+    request racing this sees the new plan, then the spendable balance is
+    set. Granting credits before the tier is visible would let someone
+    spend an Institutional allowance under Elite limits.
+
+    Never raises. A provisioning failure must not make the webhook fail,
+    because Stripe would then retry the whole event and re-run the tier
+    update; the reconciliation job is what repairs a missed grant.
+    """
+    from sqlalchemy import text as _text
+
+    try:
+        engine = _get_engine()
+        with engine.connect() as conn:
+            row = conn.execute(
+                _text("SELECT monthly_credits, api_keys_allowed FROM subscription_tiers WHERE tier_name = :t"),
+                {"t": new_tier},
+            ).fetchone()
+        credits = int(row[0]) if row else 0
+        keys_allowed = int(row[1]) if row else 0
+    except Exception as exc:
+        logger.error("Could not read tier for provisioning",
+                     extra={"user_id": user_id, "tier": new_tier, "error": str(exc)})
+        return
+
+    active = status in ("active", "trialing")
+
+    try:
+        if active and credits > 0:
+            grant_allowance(user_id, credits, reason=f"subscription_{new_tier}")
+        else:
+            # Cancelled, past_due or a zero-credit plan: withdraw the
+            # allowance and kill live keys. A lapsed subscription must not
+            # keep programmatic access — that is the one path that bills
+            # the platform owner for a customer who has stopped paying.
+            revoke_allowance(user_id, reason=f"subscription_{status}")
+            if keys_allowed == 0:
+                n = revoke_all_keys(user_id, reason=f"subscription_{status}")
+                if n:
+                    logger.info("API keys revoked on downgrade",
+                                extra={"user_id": user_id, "count": n})
+        logger.info("Provisioned for tier", extra={
+            "user_id": user_id, "tier": new_tier, "credits": credits, "active": active,
+        })
+    except Exception as exc:
+        logger.error("Provisioning failed",
+                     extra={"user_id": user_id, "error": str(exc)}, exc_info=True)

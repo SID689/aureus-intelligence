@@ -5,8 +5,8 @@ import { useSession } from "next-auth/react";
 import { Infinity as InfinityIcon, Lock, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getEntitlements } from "@/lib/api";
-import type { AccountEntitlements, UsageBlock } from "@/lib/api";
+import { getCredits, getEntitlements } from "@/lib/api";
+import type { AccountEntitlements, CreditBalance, UsageBlock } from "@/lib/api";
 
 /**
  * The user's plan, what it includes, and how much they've used.
@@ -69,6 +69,7 @@ export default function PlanUsageCard() {
   const { data: session } = useSession();
   const userId = (session?.user as { id?: string } | undefined)?.id ?? "";
   const [data, setData] = useState<AccountEntitlements | null>(null);
+  const [credits, setCredits] = useState<CreditBalance | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -76,6 +77,7 @@ export default function PlanUsageCard() {
     getEntitlements(userId)
       .then(setData)
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "Could not load plan"));
+    getCredits(userId).then((c) => setCredits(c.balance)).catch(() => setCredits(null));
   }, [userId]);
 
   if (error) {
@@ -105,6 +107,40 @@ export default function PlanUsageCard() {
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Credits are the real spend ceiling — the request counters below
+            are a secondary abuse guard. Shown first for that reason. */}
+        {credits && l.monthly_credits > 0 && (
+          <div className="rounded-lg border border-aureus-gold/30 p-3 space-y-1.5"
+               style={{ background: "var(--bg)" }}>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-xs text-aureus-gold font-medium">AI Credits</span>
+              <span className="text-[11px] font-mono text-white">
+                {credits.remaining.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                <span className="text-aureus-muted"> / {l.monthly_credits.toLocaleString()}</span>
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-aureus-rule overflow-hidden">
+              <div className="h-full rounded-full"
+                   style={{
+                     width: `${Math.max(0, Math.min(100, (credits.remaining / l.monthly_credits) * 100))}%`,
+                     background: credits.remaining / l.monthly_credits < 0.15 ? "#ef4444" : "#d4a843",
+                   }} />
+            </div>
+            <div className="text-[10px] text-aureus-muted">
+              Covers ${credits.usd_value_remaining.toFixed(2)} of AI analysis and voice ·
+              resets monthly
+            </div>
+            {data.quality.llm_model_default && (
+              <div className="text-[10px] text-aureus-muted">
+                Model: <span className="text-aureus-text">{data.quality.llm_model_default}</span>
+                {data.quality.llm_model_deep && (
+                  <> · deep dives on <span className="text-aureus-text">{data.quality.llm_model_deep}</span></>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="space-y-3">
           <UsageBar label="Analyses" u={data.usage.analysis} />
           <UsageBar label="Backtests" u={data.usage.backtest} />
@@ -118,6 +154,9 @@ export default function PlanUsageCard() {
           <Limit label="Backtest tickers per run" value={l.backtest_tickers} />
           <Limit label="Backtest history" value={l.backtest_years} suffix=" yrs" />
           <Limit label="Portfolio positions" value={l.portfolio_holdings} />
+          <Limit label="Data freshness (cache)" value={l.cache_ttl_seconds / 60} suffix=" min" />
+          <Limit label="Concurrent jobs" value={l.max_concurrent_jobs} />
+          <Limit label="API keys" value={l.api_keys_allowed} />
           <Limit label="News feed delay"
                  value={l.news_feed_delay_seconds === 0 ? null : l.news_feed_delay_seconds / 60}
                  suffix=" min" />

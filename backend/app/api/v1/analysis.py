@@ -227,7 +227,8 @@ def quick_analysis(
     record_usage(user_id, "analysis_request", 1.0)
 
     try:
-        signal = run_ensemble_analysis(ticker=ticker_clean, time_horizon=time_horizon)
+        signal = run_ensemble_analysis(ticker=ticker_clean, time_horizon=time_horizon,
+                                       user_id=user_id)
         from dataclasses import asdict
         result_dict = asdict(signal)
         result_dict["generated_at"] = signal.generated_at.isoformat()

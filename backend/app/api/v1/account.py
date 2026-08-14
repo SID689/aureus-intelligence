@@ -15,6 +15,7 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 from sqlalchemy import text
 
 from app.core.entitlements import (
@@ -66,3 +67,81 @@ def list_plans() -> dict:
         raise HTTPException(status_code=503, detail="Plan information temporarily unavailable")
 
     return {"plans": [_row_to_entitlements(r).to_dict() for r in rows]}
+
+
+# ── Credits, API keys, treasury ───────────────────────────────────────
+
+class ApiKeyRequest(BaseModel):
+    user_id: str = Field(..., min_length=1)
+    name: str = Field(default="Default key", max_length=80)
+
+
+@router.get("/credits")
+def get_credits(user_id: Annotated[str, Query(min_length=1)]) -> dict:
+    """Credit balance plus the recent ledger, so a charge is explainable."""
+    from app.billing.credits import get_balance, recent_transactions
+    return {
+        "user_id": user_id,
+        "balance": get_balance(user_id).to_dict(),
+        "transactions": recent_transactions(user_id, limit=25),
+        "unit": "1 credit = $0.001 of underlying vendor cost",
+    }
+
+
+@router.get("/api-keys")
+def get_api_keys(user_id: Annotated[str, Query(min_length=1)]) -> dict:
+    from app.billing.credits import list_api_keys
+    ent = resolve_entitlements(user_id)
+    return {
+        "keys": list_api_keys(user_id),
+        "allowed": ent.api_keys_allowed,
+        "tier": ent.tier,
+    }
+
+
+@router.post("/api-keys")
+def create_api_key(req: ApiKeyRequest) -> dict:
+    """
+    Mint a platform key. The plaintext is returned exactly once.
+
+    This is an Aureus key, not a vendor key — see app/billing/credits.py
+    for why upstream credentials are never handed out.
+    """
+    from app.billing.credits import issue_api_key
+    try:
+        return issue_api_key(req.user_id, name=req.name)
+    except PermissionError as exc:
+        ent = resolve_entitlements(req.user_id)
+        raise HTTPException(status_code=402, detail={
+            "error": "tier_required",
+            "message": str(exc),
+            "current_tier": ent.tier,
+            "suggested_tier": "elite" if ent.tier == "sovereign" else "institutional",
+        })
+    except Exception as exc:
+        logger.error("API key issue failed", extra={"error": str(exc)})
+        raise HTTPException(status_code=500, detail="Could not issue API key")
+
+
+@router.delete("/api-keys/{key_id}")
+def delete_api_key(key_id: str, user_id: Annotated[str, Query(min_length=1)]) -> dict:
+    from app.billing.credits import revoke_api_key
+    return {"revoked": revoke_api_key(user_id, key_id)}
+
+
+@router.get("/treasury")
+def get_treasury(admin_key: Annotated[str, Query(min_length=1)]) -> dict:
+    """
+    Platform economics: revenue, vendor cost, margin, break-even.
+
+    Owner-only — this is the business's P&L, not a customer's data. Gated
+    on the internal secret rather than a tier, because no subscription
+    level should expose it.
+    """
+    import os
+    import secrets as _secrets
+    expected = os.getenv("INTERNAL_API_SECRET", "")
+    if not expected or not _secrets.compare_digest(admin_key, expected):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    from app.billing.treasury import treasury_summary
+    return treasury_summary()

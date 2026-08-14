@@ -37,17 +37,13 @@ class Settings(BaseSettings):
     # ── Phase 4: OpenAI (Whisper STT + TTS) ──────────────────
     openai_api_key: str = Field(default="")
 
-    # ── Local LLM (free) ─────────────────────────────────────
-    # Ollama runs open-weight models on the host at zero marginal cost and
-    # needs no API key. Must be host.docker.internal, not localhost — the
-    # backend is containerised and Ollama runs on the host.
-    ollama_base_url: str = Field(default="")
-    # Default sized for an 8GB machine that is ALSO running the Docker stack
-    # (Postgres, Redis, backend, frontend, 3 Celery workers). An 8B model needs
-    # ~5-6GB resident and would swap here. The polish step only restates text
-    # it is given under a strict JSON schema — it never authors claims — so a
-    # 3B model is genuinely adequate for the job. Override for a bigger box.
-    ollama_model: str = Field(default="llama3.2:3b")
+    # ── Local LLM ────────────────────────────────────────────
+    # Ollama was removed when the paid tiers launched. It was correct for
+    # a single-user local app and wrong for a product: several GB of
+    # resident RAM per concurrent request on a server the owner pays for,
+    # output quality below what a $99/month plan implies, and no way to
+    # measure what a call cost — which a billed tier has to know.
+    # See app/analysis/llm_provider.py.
 
     # ── Sentiment pillar ──────────────────────────────────────
     # "lexicon" (default) uses the finance-domain lexicon in

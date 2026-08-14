@@ -10,13 +10,14 @@ In production, add mutual TLS or an internal service token check.
 """
 
 import logging
+import secrets
 import os
 import uuid
 from typing import Literal
 
 import bcrypt
-from fastapi import APIRouter, Header, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Header, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, text
 
 from app.billing.stripe_webhooks import handle_payment_failed, update_user_tier
@@ -25,12 +26,33 @@ from app.core.config import get_settings
 logger = logging.getLogger("aureus.api.billing")
 router = APIRouter(tags=["billing-internal"])
 
+def _get_engine():
+    """Local engine helper — matches the per-router convention used by the
+    other v1 routers in this codebase."""
+    return create_engine(get_settings().database_url, pool_pre_ping=True)
+
+
 INTERNAL_SECRET = os.getenv("INTERNAL_API_SECRET", "")
 
 
 def _verify_internal(x_internal_secret: str = Header(default="")) -> None:
-    """Simple shared-secret check for internal service calls."""
-    if INTERNAL_SECRET and x_internal_secret != INTERNAL_SECRET:
+    """
+    Shared-secret check for internal service calls.
+
+    Previously this read `if INTERNAL_SECRET and ...`, which SKIPPED the
+    check entirely when the secret was unset — leaving an endpoint that
+    can promote any account to Institutional completely open whenever the
+    environment was misconfigured. Auth that disappears when a config
+    value is missing is not auth.
+
+    Now an unset secret refuses every call. Failing closed on a billing
+    mutation is the only safe direction: the cost of a false refusal is a
+    retried webhook, the cost of a false accept is free paid plans.
+    """
+    if not INTERNAL_SECRET:
+        logger.error("INTERNAL_API_SECRET is not configured — refusing internal call")
+        raise HTTPException(status_code=503, detail="Internal auth not configured")
+    if not secrets.compare_digest(x_internal_secret or "", INTERNAL_SECRET):
         raise HTTPException(status_code=403, detail="Unauthorized internal call")
 
 
@@ -279,5 +301,71 @@ def oauth_upsert(req: OAuthUpsertRequest, x_internal_secret: str = Header(defaul
     except Exception as exc:
         logger.error("OAuth upsert failed", extra={"error": str(exc)}, exc_info=True)
         raise HTTPException(status_code=500, detail="Account provisioning failed")
+    finally:
+        engine.dispose()
+
+
+# ── Stripe event idempotency ──────────────────────────────────────────
+# Stripe delivers at least once, so the same event can arrive twice —
+# and a duplicate checkout.session.completed would grant a second month
+# of credits for a single payment. The webhook claims an id here before
+# doing any work.
+
+class EventClaimRequest(BaseModel):
+    event_id:   str = Field(..., min_length=1, max_length=255)
+    event_type: str = Field(..., min_length=1, max_length=120)
+
+
+class EventStatusRequest(BaseModel):
+    event_id: str = Field(..., min_length=1, max_length=255)
+    status:   str = Field(..., min_length=1, max_length=40)
+    error:    str | None = None
+
+
+@router.post("/api/v1/billing/event-claim", dependencies=[Depends(_verify_internal)])
+def claim_event(req: EventClaimRequest) -> dict:
+    """
+    Claim an event id. `duplicate: true` means it was already seen and
+    the caller should skip processing.
+
+    The INSERT ... ON CONFLICT DO NOTHING is the whole mechanism: two
+    concurrent deliveries of the same event race on the primary key and
+    exactly one wins, which a SELECT-then-INSERT could not guarantee.
+    """
+    engine = _get_engine()
+    try:
+        with engine.begin() as conn:
+            res = conn.execute(
+                text("""INSERT INTO stripe_events (event_id, event_type, status)
+                        VALUES (:i, :t, 'processing')
+                        ON CONFLICT (event_id) DO NOTHING"""),
+                {"i": req.event_id, "t": req.event_type},
+            )
+            return {"duplicate": res.rowcount == 0}
+    except Exception as exc:
+        logger.warning("Event claim failed — allowing processing",
+                       extra={"event_id": req.event_id, "error": str(exc)})
+        # Fail open: processing twice is recoverable, dropping a payment
+        # event is not.
+        return {"duplicate": False}
+    finally:
+        engine.dispose()
+
+
+@router.post("/api/v1/billing/event-status", dependencies=[Depends(_verify_internal)])
+def set_event_status(req: EventStatusRequest) -> dict:
+    engine = _get_engine()
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text("""UPDATE stripe_events
+                           SET status = :s, error = :e, processed_at = now()
+                         WHERE event_id = :i"""),
+                {"i": req.event_id, "s": req.status, "e": req.error},
+            )
+        return {"recorded": True}
+    except Exception as exc:
+        logger.warning("Event status write failed", extra={"error": str(exc)})
+        return {"recorded": False}
     finally:
         engine.dispose()

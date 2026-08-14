@@ -111,6 +111,19 @@ class Entitlements:
     max_sentiment_catalysts: int | None = 3
     sec_filing_tone_enabled: bool = False
 
+    # ── Cost/quality/speed profile (migrations 009-010) ──────────────
+    # monthly_credits is the real spend ceiling; the request counters
+    # above are only a coarse abuse guard now.
+    monthly_credits: int = 0
+    llm_model_default: str | None = None      # None = deterministic only
+    llm_model_deep: str | None = None
+    market_data_providers: list = field(default_factory=lambda: ["yfinance"])
+    sentiment_sources: list = field(default_factory=lambda: ["finnhub_free", "yahoo", "stocktwits"])
+    cache_ttl_seconds: int = 3600
+    queue_priority: int = 1
+    max_concurrent_jobs: int = 1
+    api_keys_allowed: int = 0
+
     features: dict = field(default_factory=dict)
 
     def unlimited(self, attr: str) -> bool:
@@ -133,6 +146,17 @@ class Entitlements:
                 "sentiment_catalysts": self.max_sentiment_catalysts,
                 "quant_history_years": self.quant_history_years,
                 "quant_monte_carlo_paths": self.quant_monte_carlo_paths,
+                "monthly_credits": self.monthly_credits,
+                "cache_ttl_seconds": self.cache_ttl_seconds,
+                "max_concurrent_jobs": self.max_concurrent_jobs,
+                "api_keys_allowed": self.api_keys_allowed,
+            },
+            "quality": {
+                "llm_model_default": self.llm_model_default,
+                "llm_model_deep": self.llm_model_deep,
+                "market_data_providers": self.market_data_providers,
+                "sentiment_sources": self.sentiment_sources,
+                "queue_priority": self.queue_priority,
             },
             "features": {
                 "quant_lab": self.quant_lab_enabled,
@@ -170,6 +194,15 @@ def _row_to_entitlements(row) -> Entitlements:
         max_sentiment_catalysts=m["max_sentiment_catalysts"],
         sec_filing_tone_enabled=bool(m["sec_filing_tone_enabled"]),
         features=dict(m["features"] or {}),
+        monthly_credits=int(m["monthly_credits"] or 0),
+        llm_model_default=m["llm_model_default"],
+        llm_model_deep=m["llm_model_deep"],
+        market_data_providers=list(m["market_data_providers"] or ["yfinance"]),
+        sentiment_sources=list(m["sentiment_sources"] or []),
+        cache_ttl_seconds=int(m["cache_ttl_seconds"] or 3600),
+        queue_priority=int(m["queue_priority"] or 1),
+        max_concurrent_jobs=int(m["max_concurrent_jobs"] or 1),
+        api_keys_allowed=int(m["api_keys_allowed"] or 0),
     )
 
 
@@ -179,7 +212,10 @@ _TIER_COLUMNS = """
     max_backtests_per_day, max_backtest_tickers, max_backtest_years,
     max_portfolio_holdings, max_portfolios,
     quant_lab_enabled, quant_history_years, quant_monte_carlo_paths, quant_custom_peers,
-    max_sentiment_catalysts, sec_filing_tone_enabled, features
+    max_sentiment_catalysts, sec_filing_tone_enabled, features,
+    monthly_credits, llm_model_default, llm_model_deep,
+    market_data_providers, sentiment_sources,
+    cache_ttl_seconds, queue_priority, max_concurrent_jobs, api_keys_allowed
 """
 
 

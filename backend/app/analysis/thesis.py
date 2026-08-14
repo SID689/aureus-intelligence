@@ -446,7 +446,8 @@ def _summary(stance: str, ticker: str, points: list[ThesisPoint], horizon: Horiz
 
 def build_theses(ticker: str, horizon: Horizon,
                  fundamental: FundamentalScore, technical: TechnicalScore,
-                 sentiment: SentimentScore, fundamental_data) -> tuple[Thesis, Thesis]:
+                 sentiment: SentimentScore, fundamental_data,
+                 user_id: str | None = None) -> tuple[Thesis, Thesis]:
     """Build the bull and bear cases. Always returns both, never raises."""
     bull_pts = _order_and_trim(_bull_points(fundamental, technical, sentiment, fundamental_data, horizon), horizon)
     bear_pts = _order_and_trim(_bear_points(fundamental, technical, sentiment, fundamental_data, horizon), horizon)
@@ -456,7 +457,7 @@ def build_theses(ticker: str, horizon: Horizon,
     bear = Thesis("bear", _summary("bear", ticker, bear_pts, horizon), bear_pts,
                   _falsifiers("bear", fundamental, technical, sentiment, fundamental_data))
 
-    return _with_cached_polish(ticker, horizon, bull, bear)
+    return _with_cached_polish(ticker, horizon, bull, bear, user_id)
 
 
 # ── Non-blocking polish ──────────────────────────────────────────────────
@@ -475,17 +476,29 @@ def build_theses(ticker: str, horizon: Horizon,
 _POLISH_CACHE_TTL = 60 * 60 * 12   # theses move slowly; half a day is plenty
 
 
-def _cache_key(ticker: str, horizon: str, stance: str) -> str:
+def _cache_key(ticker: str, horizon: str, stance: str, model: str = "none") -> str:
+    """
+    The MODEL is part of the key, deliberately.
+
+    Elite polishes with Haiku and Institutional with Sonnet. Keying only
+    on (ticker, horizon, stance) would let whichever plan ran first
+    populate the cache for everyone — an Institutional customer paying
+    $499 would be served an Elite user's Haiku output, and the difference
+    they are paying for would silently vanish behind a cache hit.
+    """
     return f"thesis_polished:{ticker}:{horizon}:{stance}"
 
 
 def _with_cached_polish(ticker: str, horizon: Horizon,
-                        bull: Thesis, bear: Thesis) -> tuple[Thesis, Thesis]:
+                        bull: Thesis, bear: Thesis,
+                        user_id: str | None = None) -> tuple[Thesis, Thesis]:
     import json as _json
 
-    from app.analysis.llm_provider import available_backend
+    from app.analysis.llm_provider import available_backend, model_for_user
 
-    if available_backend() == "none":
+    # No model on this plan (the free tier) means no polish and no spend.
+    model = model_for_user(user_id)
+    if model is None or available_backend() == "none":
         return bull, bear
 
     try:
@@ -498,7 +511,7 @@ def _with_cached_polish(ticker: str, horizon: Horizon,
     missing: list[Thesis] = []
     for th in (bull, bear):
         try:
-            raw = redis.get(_cache_key(ticker, horizon, th.stance))
+            raw = redis.get(_cache_key(ticker, horizon, th.stance, model))
         except Exception:
             raw = None
         if raw:
@@ -513,11 +526,12 @@ def _with_cached_polish(ticker: str, horizon: Horizon,
         out.append(th)
 
     if missing:
-        _spawn_background_polish(ticker, horizon, missing)
+        _spawn_background_polish(ticker, horizon, missing, user_id, model)
     return out[0], out[1]
 
 
-def _spawn_background_polish(ticker: str, horizon: Horizon, theses: list[Thesis]) -> None:
+def _spawn_background_polish(ticker: str, horizon: Horizon, theses: list[Thesis],
+                             user_id: str | None = None, model: str = "none") -> None:
     """Fire-and-forget: polish off the request path and cache the result."""
     import json as _json
     import threading
@@ -527,10 +541,10 @@ def _spawn_background_polish(ticker: str, horizon: Horizon, theses: list[Thesis]
             from app.core.redis_client import get_redis_client
             redis = get_redis_client()
             for th in theses:
-                polished = _polish(th, ticker, horizon)
+                polished = _polish(th, ticker, horizon, user_id)
                 if polished:
                     redis.setex(
-                        _cache_key(ticker, horizon, th.stance),
+                        _cache_key(ticker, horizon, th.stance, model),
                         _POLISH_CACHE_TTL,
                         _json.dumps([p.detail for p in polished.points]),
                     )
@@ -582,10 +596,13 @@ def _strip_redundant_prefix(detail: str, point: ThesisPoint) -> str:
     return cleaned
 
 
-def _polish(thesis: Thesis, ticker: str, horizon: Horizon) -> Thesis | None:
+def _polish(thesis: Thesis, ticker: str, horizon: Horizon,
+            user_id: str | None = None) -> Thesis | None:
     """
-    Optional LLM rewrite of the prose only, through whichever backend is
-    available (Ollama first — free and local — then OpenAI, then Anthropic).
+    Optional LLM rewrite of the prose only, on whichever Anthropic model
+    the caller's plan entitles them to. Ollama was removed — see
+    analysis/llm_provider.py for why a local model is the wrong answer
+    once the output is something people pay for.
 
     The model never sees a blank page: it receives finished, metric-backed
     bullets and may only restate them. Output is validated by the shared
@@ -603,7 +620,9 @@ def _polish(thesis: Thesis, ticker: str, horizon: Horizon) -> Thesis | None:
     data = complete_json(
         CORE_ORCHESTRATOR_SYSTEM_PROMPT,
         _POLISH_TEMPLATE.format(n=len(thesis.points), payload=payload),
+        user_id=user_id,
         max_tokens=800,
+        operation="thesis_polish",
     )
     if not data:
         return None
