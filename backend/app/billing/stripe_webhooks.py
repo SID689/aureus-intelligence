@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import create_engine, text
 
+from app.core.entitlements import invalidate_entitlements
 from app.core.config import get_settings
 
 logger = logging.getLogger("aureus.billing")
@@ -93,13 +94,18 @@ def update_user_tier(
             },
         )
 
+        # Must run BEFORE the return, and after the transaction commits.
+        # Otherwise a customer who just paid keeps hitting their old limits
+        # until the cache TTL expires, which reads as "I upgraded and
+        # nothing happened".
+        invalidate_entitlements(user_id)
+
         return {
             "status":   "updated",
             "user_id":  user_id,
             "old_tier": current_tier,
             "new_tier": new_tier,
         }
-
     except Exception as exc:
         logger.error("Tier update failed", extra={"error": str(exc)}, exc_info=True)
         return {"status": "error", "error": str(exc)}

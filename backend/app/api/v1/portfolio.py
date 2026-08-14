@@ -16,6 +16,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, text
 
+from app.core.entitlements import resolve_entitlements
 from app.core.config import get_settings
 from app.ingestion.market_data import MarketDataService
 from app.ingestion.rate_limiter import FallbackExhaustedError
@@ -178,6 +179,7 @@ def add_or_update_holding(req: AddHoldingRequest) -> dict:
     """
     ticker = req.ticker.upper().strip()
     engine = _get_engine()
+    ent = resolve_entitlements(req.user_id)
 
     try:
         with engine.begin() as conn:
@@ -185,6 +187,30 @@ def add_or_update_holding(req: AddHoldingRequest) -> dict:
                 text("SELECT id, quantity, average_cost_basis FROM portfolio_holdings WHERE portfolio_id = :pid AND ticker = :ticker"),
                 {"pid": req.portfolio_id, "ticker": ticker},
             ).fetchone()
+
+            # The cap applies to DISTINCT positions, so adding to a ticker
+            # already held is always allowed even at the limit — otherwise
+            # a user at the cap could not average into what they own, which
+            # would be a bizarre restriction to hit.
+            if existing is None and ent.max_portfolio_holdings is not None:
+                held = conn.execute(
+                    text("SELECT count(*) FROM portfolio_holdings WHERE portfolio_id = :pid"),
+                    {"pid": req.portfolio_id},
+                ).scalar() or 0
+                if held >= ent.max_portfolio_holdings:
+                    raise HTTPException(status_code=402, detail={
+                        "error": "limit_exceeded",
+                        "resource": "portfolio_holdings",
+                        "message": (
+                            f"The {ent.display_name} plan holds up to "
+                            f"{ent.max_portfolio_holdings} positions per portfolio. "
+                            f"Remove one, or upgrade for more."
+                        ),
+                        "limit": ent.max_portfolio_holdings,
+                        "current": held,
+                        "current_tier": ent.tier,
+                        "suggested_tier": "elite" if ent.tier == "sovereign" else "institutional",
+                    })
 
             if existing:
                 old_qty, old_cost = float(existing.quantity), float(existing.average_cost_basis)

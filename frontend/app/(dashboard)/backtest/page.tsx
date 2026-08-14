@@ -5,19 +5,22 @@ import StrategyBuilder from "@/components/backtest/StrategyBuilder";
 import ResultsOverviewCards from "@/components/backtest/ResultsOverviewCards";
 import EquityCurveChart from "@/components/backtest/EquityCurveChart";
 import TradesTable from "@/components/backtest/TradesTable";
+import { useSession } from "next-auth/react";
 import { runStrategyBacktest } from "@/lib/api";
 import type { StrategyBacktestRequest, StrategyBacktestResult } from "@/lib/api";
 
 export default function BacktestPage() {
+  const { data: session } = useSession();
+  const userId = (session?.user as { id?: string } | undefined)?.id ?? "";
   const [result, setResult] = useState<StrategyBacktestResult | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleRun = async (req: StrategyBacktestRequest) => {
+  const handleRun = async (req: Omit<StrategyBacktestRequest, "user_id">) => {
     setRunning(true);
     setError(null);
     try {
-      const res = await runStrategyBacktest(req);
+      const res = await runStrategyBacktest({ ...req, user_id: userId });
       setResult(res);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Backtest failed — check the backend is reachable and the date range has historical data available.");

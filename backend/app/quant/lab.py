@@ -37,6 +37,8 @@ def run_quant_lab(
     benchmark: str = "SPY",
     peers: list[str] | None = None,
     monte_carlo_horizon: int = 21,
+    history_years: int | None = None,
+    monte_carlo_paths: int | None = None,
 ) -> dict:
     """
     Full Quant Lab report for one ticker.
@@ -48,7 +50,12 @@ def run_quant_lab(
     settings = get_settings()
     ticker = ticker.upper().strip()
     end = date.today()
-    start = end - timedelta(days=_LOOKBACK_DAYS)
+    # Both are plan-scaled by the caller (see app/api/v1/quant.py). Falling
+    # back to the module/settings default keeps this callable directly from
+    # a script or notebook without an entitlement lookup.
+    lookback_days = 365 * history_years if history_years else _LOOKBACK_DAYS
+    paths = monte_carlo_paths or settings.quant_monte_carlo_paths
+    start = end - timedelta(days=lookback_days)
 
     svc = MarketDataService()
     bars = svc.fetch_bars(ticker, start, end, frequency="1d").bars
@@ -67,6 +74,8 @@ def run_quant_lab(
         "start_date": str(start),
         "end_date": str(end),
         "observations": int(len(prices)),
+        "history_years": round(lookback_days / 365.25, 1),
+        "monte_carlo_paths": paths,
         "current_price": round(float(prices.iloc[-1]), 2),
         "notes": [],
     }
@@ -104,7 +113,7 @@ def run_quant_lab(
         lambda: rk.value_at_risk(prices, settings.quant_var_confidence, 10))
     report["monte_carlo"] = _section("Monte Carlo", lambda: rk.monte_carlo(
         prices, horizon_days=monte_carlo_horizon,
-        paths=settings.quant_monte_carlo_paths,
+        paths=paths,
         confidence=settings.quant_var_confidence))
     report["max_drawdown"] = _section("Max drawdown", lambda: rk.max_drawdown(prices))
 

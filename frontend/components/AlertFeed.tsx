@@ -81,7 +81,7 @@ export default function AlertFeed({ userId }: { userId: string }) {
     setNewsLoading(true);
     setNewsError(null);
     try {
-      const res = await getRecentNews(30);
+      const res = await getRecentNews(30, userId || undefined);
       setMarketNews(res.articles);
     } catch (e: unknown) {
       setNewsError(e instanceof Error ? e.message : "Could not load market news");

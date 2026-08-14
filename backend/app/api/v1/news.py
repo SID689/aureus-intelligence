@@ -24,6 +24,7 @@ import time
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import create_engine, text
 
+from app.core.entitlements import resolve_entitlements
 from app.core.config import get_settings
 from app.streaming.news_ingestion import FinnhubNewsPoller, RSSNewsPoller
 from app.streaming.preprocessor import PreprocessingWorker
@@ -94,14 +95,46 @@ def manual_refresh() -> dict:
     return result
 
 
+def _free_tier_news_delay() -> int:
+    """The sovereign plan's feed delay, read from the tier table."""
+    try:
+        from app.core.entitlements import _engine as _ent_engine
+        with _ent_engine().connect() as conn:
+            row = conn.execute(text(
+                "SELECT news_feed_delay_seconds FROM subscription_tiers WHERE tier_name = 'sovereign'"
+            )).fetchone()
+        return int(row[0]) if row else 900
+    except Exception:
+        return 900
+
+
 @router.get("/recent")
-def recent_articles(limit: int = Query(default=25, ge=1, le=100)) -> dict:
+def recent_articles(
+    limit: int = Query(default=25, ge=1, le=100),
+    user_id: str | None = Query(default=None),
+) -> dict:
     """
     Return the most recently processed news articles with their sentiment,
     regardless of whether they matched any user's portfolio. This is what
     powers a general "market news" view so the feed isn't empty just
     because you don't hold the affected ticker.
+
+    Free plans see the feed on a delay (the standard arrangement for free
+    market data). The delay is applied in SQL rather than by filtering the
+    result set, so a delayed caller still receives `limit` articles —
+    trimming afterwards would silently shrink a free user's feed to
+    nothing during an active news hour, which reads as a broken page
+    rather than as a delay.
+
+    `user_id` is optional here: this endpoint also backs unauthenticated
+    surfaces, and an absent user is treated as the free tier.
     """
+    delay_seconds = 0
+    if user_id:
+        delay_seconds = resolve_entitlements(user_id).news_feed_delay_seconds
+    else:
+        delay_seconds = _free_tier_news_delay()
+
     engine = _get_engine()
     try:
         with engine.connect() as conn:
@@ -113,10 +146,11 @@ def recent_articles(limit: int = Query(default=25, ge=1, le=100)) -> dict:
                         na.ticker, na.sentiment_score, na.summary, na.created_at
                     FROM news_alerts na
                     JOIN news_articles art ON na.news_article_id = art.id
+                    WHERE art.published_at <= now() - make_interval(secs => :delay)
                     ORDER BY na.created_at DESC
                     LIMIT :limit
                 """),
-                {"limit": limit},
+                {"limit": limit, "delay": delay_seconds},
             ).fetchall()
     except Exception as exc:
         logger.error("Recent articles query failed", extra={"error": str(exc)})
@@ -126,6 +160,7 @@ def recent_articles(limit: int = Query(default=25, ge=1, le=100)) -> dict:
 
     return {
         "count": len(rows),
+        "delayed_by_seconds": delay_seconds,
         "articles": [
             {
                 # id is the news_alerts row's own PK, not the article's — one

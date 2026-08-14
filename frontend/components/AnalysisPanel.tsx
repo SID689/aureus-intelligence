@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { runQuickAnalysis } from "@/lib/api";
 import type { AnalysisResult } from "@/lib/api";
 
@@ -16,6 +17,8 @@ const SIGNAL_STYLE = {
 };
 
 export default function AnalysisPanel() {
+  const { data: session } = useSession();
+  const userId = (session?.user as { id?: string } | undefined)?.id ?? "";
   const [ticker,   setTicker]   = useState("AAPL");
   const [horizon,  setHorizon]  = useState<"short_term" | "medium_term" | "long_term">("medium_term");
   const [loading,  setLoading]  = useState(false);
@@ -28,7 +31,7 @@ export default function AnalysisPanel() {
     setError(null);
     setResult(null);
     try {
-      const data = await runQuickAnalysis(ticker.toUpperCase(), horizon);
+      const data = await runQuickAnalysis(ticker.toUpperCase(), userId, horizon);
       setResult(data);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Analysis failed");

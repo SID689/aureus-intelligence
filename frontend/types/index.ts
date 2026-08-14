@@ -97,34 +97,16 @@ export interface PortfolioAlert {
   requires_human_review?: boolean;
 }
 
-// ── Tier feature map ──────────────────────────────────────────────────────────
+// ── Tier display metadata ─────────────────────────────────────────────────────
+// COSMETIC ONLY. The numeric limits that used to live here (analyses per day,
+// voice minutes, real-time news) drifted out of sync with the database the
+// moment the plans were edited — this map still claimed 10 analyses/day for
+// Sovereign after the real limit became 15, and "unlimited" for Elite after it
+// became 200. Limits now come from GET /api/v1/account/entitlements, which
+// reads subscription_tiers. Do not reintroduce limit values here.
 
-export const TIER_FEATURES: Record<TierName, {
-  label: string;
-  color: string;
-  maxAnalysisPerDay: number | null;
-  voiceMinutes: number | null;
-  realtimeNews: boolean;
-}> = {
-  sovereign: {
-    label: "Sovereign",
-    color: "text-aureus-muted",
-    maxAnalysisPerDay: 10,
-    voiceMinutes: 0,
-    realtimeNews: false,
-  },
-  elite: {
-    label: "Elite",
-    color: "text-aureus-gold",
-    maxAnalysisPerDay: null,
-    voiceMinutes: 500,
-    realtimeNews: true,
-  },
-  institutional: {
-    label: "Institutional",
-    color: "text-purple-400",
-    maxAnalysisPerDay: null,
-    voiceMinutes: null,
-    realtimeNews: true,
-  },
+export const TIER_FEATURES: Record<TierName, { label: string; color: string }> = {
+  sovereign:     { label: "Sovereign",     color: "text-aureus-muted" },
+  elite:         { label: "Elite",         color: "text-aureus-gold" },
+  institutional: { label: "Institutional", color: "text-purple-400" },
 };

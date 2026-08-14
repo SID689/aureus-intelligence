@@ -663,3 +663,25 @@ COMMENT ON TABLE sentiment_snapshots IS
   'Time series of sentiment pillar readings per ticker. Exists because social APIs '
   'serve only a present-moment snapshot, so multi-day velocity must be accumulated '
   'rather than fetched. Also the audit trail for historical pillar scores.';
+
+-- =====================================================================
+-- TIER ENTITLEMENT COLUMNS — added by 008_tier_entitlements.sql
+-- NULL means UNLIMITED (not "unset"); 0 means genuinely zero. See
+-- backend/app/core/entitlements.py for why that distinction is
+-- load-bearing.
+-- =====================================================================
+ALTER TABLE subscription_tiers
+  ADD COLUMN IF NOT EXISTS max_backtests_per_day        INTEGER,
+  ADD COLUMN IF NOT EXISTS max_backtest_tickers         INTEGER,
+  ADD COLUMN IF NOT EXISTS max_backtest_years           INTEGER,
+  ADD COLUMN IF NOT EXISTS max_portfolio_holdings       INTEGER,
+  ADD COLUMN IF NOT EXISTS max_portfolios               INTEGER,
+  ADD COLUMN IF NOT EXISTS quant_lab_enabled            BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS quant_history_years          INTEGER,
+  ADD COLUMN IF NOT EXISTS quant_monte_carlo_paths      INTEGER,
+  ADD COLUMN IF NOT EXISTS quant_custom_peers           BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS max_sentiment_catalysts      INTEGER,
+  ADD COLUMN IF NOT EXISTS sec_filing_tone_enabled      BOOLEAN NOT NULL DEFAULT false;
+
+CREATE INDEX IF NOT EXISTS idx_usage_counters_lookup
+  ON usage_counters(user_id, counter_type, period_key);

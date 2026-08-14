@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,8 @@ function MetricTile({ label, value, hint }: { label: string; value: string; hint
 export default function TickerAnalysisPage() {
   const params = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
+  const userId = (session?.user as { id?: string } | undefined)?.id ?? "";
   const ticker = String(params?.ticker ?? "").toUpperCase();
 
   const [horizon, setHorizon] = useState<Horizon>("medium_term");
@@ -62,11 +65,11 @@ export default function TickerAnalysisPage() {
   const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
-    if (!ticker) return;
+    if (!ticker || !userId) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await getFullAnalysis(ticker, horizon);
+      const res = await getFullAnalysis(ticker, userId, horizon);
       if (!res.result) throw new Error(res.error || "No analysis returned");
       setData(res.result);
     } catch (e: unknown) {
@@ -75,7 +78,7 @@ export default function TickerAnalysisPage() {
     } finally {
       setLoading(false);
     }
-  }, [ticker, horizon]);
+  }, [ticker, horizon, userId]);
 
   useEffect(() => { load(); }, [load]);
 

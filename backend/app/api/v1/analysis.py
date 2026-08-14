@@ -22,11 +22,16 @@ to return analysis results without the required regulatory language.
 import json
 import logging
 import uuid
-from typing import Annotated, Any, Literal
+from typing import Any, Literal
+
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from app.core.entitlements import (
+    Entitlements, check_quota, current_entitlements, record_usage, resolve_entitlements,
+)
 from app.core.redis_client import get_redis_client
 from app.workers.analysis_tasks import run_analysis_task
 
@@ -48,6 +53,9 @@ DISCLAIMER = (
 class AnalysisRequest(BaseModel):
     ticker: str = Field(..., min_length=1, max_length=10, pattern=r"^[A-Za-z0-9.\-]+$")
     time_horizon: Literal["short_term", "medium_term", "long_term"] = "medium_term"
+    # Required so the run can be metered against the caller's plan. The
+    # client states WHO it is; the server decides what that permits.
+    user_id: str = Field(..., min_length=1)
 
 
 class JobEnqueuedResponse(BaseModel):
@@ -67,6 +75,48 @@ class AnalysisResultResponse(BaseModel):
     disclaimer: str = DISCLAIMER
 
 
+def _apply_sentiment_entitlements(result: dict, ent) -> dict:
+    """
+    Trim the sentiment pillar's research depth to what the plan includes.
+
+    The pillar SCORE is never withheld. Hiding it would leave the headline
+    confidence index unexplainable — a user would see a number moved by a
+    factor they cannot see at all, which is worse than showing a free-tier
+    user less detail. What is gated is the DEPTH behind it: the full
+    catalyst list and the SEC filing-tone breakdown.
+
+    Anything removed is replaced with an explicit `*_locked` marker rather
+    than silently dropped, so the UI can render "3 of 12 catalysts —
+    upgrade to see the rest" instead of appearing to have less data.
+    """
+    sent = result.get("sentiment")
+    if not isinstance(sent, dict):
+        return result
+
+    cap = ent.max_sentiment_catalysts
+    catalysts = sent.get("catalysts") or []
+    if cap is not None and len(catalysts) > cap:
+        sent["catalysts_total"] = len(catalysts)
+        sent["catalysts"] = catalysts[:cap]
+        sent["catalysts_locked"] = len(catalysts) - cap
+    else:
+        sent["catalysts_total"] = len(catalysts)
+        sent["catalysts_locked"] = 0
+
+    if not ent.sec_filing_tone_enabled:
+        # Zero out the reading but keep the shape, so the card renders a
+        # locked state rather than an error or a phantom neutral 50.
+        sent["sec_tone_detail"] = {}
+        sent["sec_tone_computed"] = False
+        sent["sec_tone_label"] = "Locked"
+        sent["sec_tone_locked"] = True
+    else:
+        sent["sec_tone_locked"] = False
+
+    result["sentiment"] = sent
+    return result
+
+
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
 @router.post("/run", response_model=JobEnqueuedResponse, status_code=202)
@@ -75,13 +125,19 @@ def enqueue_analysis(request: AnalysisRequest) -> JobEnqueuedResponse:
     Enqueue an ensemble analysis job.
     Returns a job_id immediately; the heavy work runs in a Celery worker.
 
-    Tier enforcement note: in the full application, a middleware layer
-    checks the user's subscription_tier and rate-limits Sovereign users
-    to 10 requests/day via usage_counters (Phase 1 schema). That middleware
-    is not implemented in this Phase 2 scope — the endpoint is currently open.
+    Metered against the caller's plan before the job is dispatched, so a
+    user over quota never occupies a worker slot.
     """
     ticker    = request.ticker.upper().strip()
     job_id    = str(uuid.uuid4())
+
+    ent = resolve_entitlements(request.user_id)
+    check_quota(request.user_id, ent, "analysis_request", "Analysis", "runs")
+    # Counted at dispatch rather than on completion. Counting on success
+    # would let a user retry a failing ticker without limit, and the cost
+    # being metered — provider calls and worker time — is already spent by
+    # the time the job runs.
+    record_usage(request.user_id, "analysis_request", 1.0)
 
     # Pre-write a "queued" status so the poll endpoint returns immediately
     try:
@@ -151,12 +207,12 @@ def get_analysis_result(job_id: str) -> AnalysisResultResponse:
 @router.get("/quick/{ticker}", response_model=AnalysisResultResponse)
 def quick_analysis(
     ticker: str,
+    ent: Annotated[Entitlements, Depends(current_entitlements)],
+    user_id: Annotated[str, Query(min_length=1)],
     time_horizon: Literal["short_term", "medium_term", "long_term"] = Query(default="medium_term"),
 ) -> AnalysisResultResponse:
     """
     Synchronous analysis — runs inline and blocks until complete.
-    Intended for Elite/Institutional tiers where latency is expected to be
-    acceptable. Sovereign users should use the async POST /run → GET /result flow.
 
     WARNING: this endpoint can take 5-15 seconds depending on provider latency.
     Do not call this from a UI thread without a loading state.
@@ -167,11 +223,15 @@ def quick_analysis(
     ticker_clean = ticker.upper().strip()
     job_id       = str(uuid.uuid4())
 
+    check_quota(user_id, ent, "analysis_request", "Analysis", "runs")
+    record_usage(user_id, "analysis_request", 1.0)
+
     try:
         signal = run_ensemble_analysis(ticker=ticker_clean, time_horizon=time_horizon)
         from dataclasses import asdict
         result_dict = asdict(signal)
         result_dict["generated_at"] = signal.generated_at.isoformat()
+        result_dict = _apply_sentiment_entitlements(result_dict, ent)
 
         return AnalysisResultResponse(
             job_id=job_id,

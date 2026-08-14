@@ -31,6 +31,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.core.entitlements import check_quota, record_usage, resolve_entitlements
 from app.backtesting.engine import BacktestConfig, run_backtest
 from app.backtesting.strategy_engine import (
     BacktestRunConfig,
@@ -77,7 +78,11 @@ class MACrossoverRuleRequest(BaseModel):
 
 
 class StrategyBacktestRequest(BaseModel):
-    tickers: list[str] = Field(min_length=1, max_length=5)
+    # Upper bound is the highest any plan allows (Institutional = 25);
+    # the caller's actual cap is enforced against their plan below, so
+    # this only rejects the absurd.
+    tickers: list[str] = Field(min_length=1, max_length=25)
+    user_id: str = Field(..., min_length=1)
     start_date: date
     end_date: date
     frequency: Literal["1d", "1h", "5m"] = "1d"
@@ -116,6 +121,47 @@ def _to_engine_rule(rule: RSIRuleRequest | MACrossoverRuleRequest) -> RSIRule | 
 
 @router.post("/strategy")
 def run_strategy_backtest_endpoint(req: StrategyBacktestRequest) -> dict:
+    ent = resolve_entitlements(req.user_id)
+
+    # Three separate limits, because a backtest can be expensive along
+    # three independent axes: how often you run one, how many symbols it
+    # replays, and how far back it reaches. Capping only the count would
+    # let a free account run a 25-ticker, 20-year replay three times a day
+    # and cost more than an Elite user doing fifty single-ticker runs.
+    check_quota(req.user_id, ent, "backtest_run", "Backtests", "runs")
+
+    if ent.max_backtest_tickers is not None and len(req.tickers) > ent.max_backtest_tickers:
+        raise HTTPException(status_code=402, detail={
+            "error": "limit_exceeded",
+            "resource": "backtest_tickers",
+            "message": (
+                f"The {ent.display_name} plan allows {ent.max_backtest_tickers} "
+                f"ticker{'s' if ent.max_backtest_tickers != 1 else ''} per backtest; "
+                f"you requested {len(req.tickers)}."
+            ),
+            "limit": ent.max_backtest_tickers,
+            "requested": len(req.tickers),
+            "current_tier": ent.tier,
+            "suggested_tier": "elite" if ent.tier == "sovereign" else "institutional",
+        })
+
+    span_years = (req.end_date - req.start_date).days / 365.25
+    if ent.max_backtest_years is not None and span_years > ent.max_backtest_years + 0.01:
+        raise HTTPException(status_code=402, detail={
+            "error": "limit_exceeded",
+            "resource": "backtest_years",
+            "message": (
+                f"The {ent.display_name} plan allows {ent.max_backtest_years} years of "
+                f"backtest history; you requested {span_years:.1f}."
+            ),
+            "limit": ent.max_backtest_years,
+            "requested": round(span_years, 1),
+            "current_tier": ent.tier,
+            "suggested_tier": "elite" if ent.tier == "sovereign" else "institutional",
+        })
+
+    record_usage(req.user_id, "backtest_run", 1.0)
+
     cfg = BacktestRunConfig(
         tickers=req.tickers,
         start_date=req.start_date,

@@ -18,7 +18,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.core.tiers import require_tier, resolve_user_tier, tier_rank
+from app.core.entitlements import (
+    Entitlements, current_entitlements, require_feature, resolve_entitlements,
+)
 
 logger = logging.getLogger("aureus.api.quant")
 
@@ -44,19 +46,26 @@ def quant_access(user_id: Annotated[str, Query(min_length=1)]) -> dict:
     rendering the lab and rendering an upgrade prompt, so gating it would
     make the upgrade path itself unreachable for the users who need it.
     """
-    tier = resolve_user_tier(user_id)
+    ent = resolve_entitlements(user_id)
     return {
         "user_id": user_id,
-        "tier": tier,
-        "has_access": tier_rank(tier) >= tier_rank(_REQUIRED_TIER),
+        "tier": ent.tier,
+        "display_name": ent.display_name,
+        "has_access": ent.quant_lab_enabled,
         "required_tier": _REQUIRED_TIER,
+        # Surfaced so the lab can show what this plan's run actually used,
+        # rather than presenting Elite's 10k-path simulation as if it were
+        # the same analysis Institutional receives.
+        "history_years": ent.quant_history_years,
+        "monte_carlo_paths": ent.quant_monte_carlo_paths,
+        "custom_peers": ent.quant_custom_peers,
     }
 
 
 @router.get("/lab/{ticker}")
 def quant_lab(
     ticker: str,
-    tier: Annotated[str, Depends(require_tier(_REQUIRED_TIER))],
+    ent: Annotated[Entitlements, Depends(require_feature("quant_lab_enabled", "The Quant Lab"))],
     benchmark: str = Query(default="SPY", max_length=10),
     monte_carlo_horizon: int = Query(default=21, ge=1, le=252),
     peers: str | None = Query(default=None, description="Comma-separated tickers"),
@@ -73,15 +82,21 @@ def quant_lab(
     from app.quant.lab import run_quant_lab
 
     ticker_clean = ticker.upper().strip()
-    peer_list = (
-        [p.strip().upper() for p in peers.split(",") if p.strip()][:12]
-        if peers else None
-    )
+
+    # Custom peer sets are an Institutional feature. A lower plan asking
+    # for one falls back to the default basket rather than erroring — the
+    # report is still fully valid, just not bespoke, and failing the whole
+    # request over an optional refinement would be worse than ignoring it.
+    peer_list = None
+    if peers and ent.quant_custom_peers:
+        peer_list = [p.strip().upper() for p in peers.split(",") if p.strip()][:12]
 
     try:
         report = run_quant_lab(
             ticker_clean, benchmark=benchmark.upper().strip(),
             peers=peer_list, monte_carlo_horizon=monte_carlo_horizon,
+            history_years=ent.quant_history_years,
+            monte_carlo_paths=ent.quant_monte_carlo_paths,
         )
     except FallbackExhaustedError as exc:
         raise HTTPException(
@@ -94,7 +109,14 @@ def quant_lab(
                      extra={"ticker": ticker_clean, "error": str(exc)}, exc_info=True)
         raise HTTPException(status_code=500, detail="Quant Lab engine error")
 
-    report["tier"] = tier
+    report["tier"] = ent.tier
+    report["plan"] = {
+        "display_name": ent.display_name,
+        "history_years": ent.quant_history_years,
+        "monte_carlo_paths": ent.quant_monte_carlo_paths,
+        "custom_peers": ent.quant_custom_peers,
+        "custom_peers_ignored": bool(peers) and not ent.quant_custom_peers,
+    }
     report["disclaimer"] = DISCLAIMER
     return report
 
@@ -102,7 +124,7 @@ def quant_lab(
 @router.get("/factors/{ticker}")
 def quant_factors(
     ticker: str,
-    tier: Annotated[str, Depends(require_tier(_REQUIRED_TIER))],
+    ent: Annotated[Entitlements, Depends(require_feature("quant_lab_enabled", "The Quant Lab"))],
     model: str = Query(default="ff5", pattern="^(ff3|ff5)$"),
 ) -> dict:
     """Factor exposures alone — no Monte Carlo, no peer fetches."""
@@ -113,7 +135,7 @@ def quant_factors(
 
     ticker_clean = ticker.upper().strip()
     end = date.today()
-    start = end - timedelta(days=365 * 3)
+    start = end - timedelta(days=365 * (ent.quant_history_years or 3))
 
     try:
         bars = MarketDataService().fetch_bars(ticker_clean, start, end, frequency="1d").bars
@@ -132,7 +154,7 @@ def quant_factors(
         )
 
     return {
-        "ticker": ticker_clean, "tier": tier,
+        "ticker": ticker_clean, "tier": ent.tier,
         "exposures": exposures, "rolling_betas": rolling,
         "disclaimer": DISCLAIMER,
     }

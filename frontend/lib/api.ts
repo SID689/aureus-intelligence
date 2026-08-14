@@ -39,19 +39,24 @@ export interface AnalysisResult {
   error?: string;
 }
 
+// Analysis is metered against the caller's plan, so userId is required.
+// The server resolves the LIMITS from the database — passing a user id
+// identifies you, it does not grant you anything.
 export const runQuickAnalysis = (
   ticker: string,
+  userId: string,
   horizon: "short_term" | "medium_term" | "long_term" = "medium_term"
 ): Promise<AnalysisResult> =>
-  apiFetch(`/api/v1/analysis/quick/${ticker}?time_horizon=${horizon}`);
+  apiFetch(`/api/v1/analysis/quick/${ticker}?time_horizon=${horizon}&user_id=${encodeURIComponent(userId)}`);
 
 export const enqueueAnalysis = (
   ticker: string,
+  userId: string,
   horizon: "short_term" | "medium_term" | "long_term" = "medium_term"
 ): Promise<{ job_id: string; poll_url: string }> =>
   apiFetch("/api/v1/analysis/run", {
     method: "POST",
-    body: JSON.stringify({ ticker, time_horizon: horizon }),
+    body: JSON.stringify({ ticker, time_horizon: horizon, user_id: userId }),
   });
 
 export const pollAnalysis = (jobId: string): Promise<AnalysisResult> =>
@@ -114,6 +119,11 @@ export interface UnavailableSource {
 }
 
 export interface SentimentPillar extends PillarScore {
+  // Plan-dependent depth. The pillar SCORE is always present; these say
+  // how much of the research behind it this plan includes.
+  catalysts_total?: number;
+  catalysts_locked?: number;
+  sec_tone_locked?: boolean;
   news_score: number;
   social_score: number;
   sec_tone_score: number;
@@ -181,9 +191,10 @@ export interface FullAnalysis {
 
 export const getFullAnalysis = (
   ticker: string,
+  userId: string,
   horizon: "short_term" | "medium_term" | "long_term" = "medium_term",
 ): Promise<{ job_id: string; status: string; result: FullAnalysis | null; error?: string }> =>
-  apiFetch(`/api/v1/analysis/quick/${ticker}?time_horizon=${horizon}`);
+  apiFetch(`/api/v1/analysis/quick/${ticker}?time_horizon=${horizon}&user_id=${encodeURIComponent(userId)}`);
 
 // ── Market data (real bars — fixes the mock-data chart bug) ──────────────────
 
@@ -290,8 +301,13 @@ export interface NewsArticle {
   published_at: string | null; processed_at: string | null;
 }
 
-export const getRecentNews = (limit = 25): Promise<{ count: number; articles: NewsArticle[] }> =>
-  apiFetch(`/api/v1/news/recent?limit=${limit}`);
+// userId is optional: this feed also backs unauthenticated views, and the
+// server treats an absent user as the free tier (delayed).
+export const getRecentNews = (
+  limit = 25,
+  userId?: string,
+): Promise<{ count: number; delayed_by_seconds: number; articles: NewsArticle[] }> =>
+  apiFetch(`/api/v1/news/recent?limit=${limit}${userId ? `&user_id=${encodeURIComponent(userId)}` : ""}`);
 
 export const refreshNews = (): Promise<{ stages: Record<string, unknown>; elapsed_seconds: number; note: string }> =>
   apiFetch("/api/v1/news/refresh", { method: "POST" });
@@ -551,6 +567,7 @@ export interface MACrossoverRuleRequest {
 }
 
 export interface StrategyBacktestRequest {
+  user_id: string;
   tickers: string[];
   start_date: string;   // YYYY-MM-DD
   end_date: string;
@@ -743,3 +760,48 @@ export const getQuantLab = (
   if (opts?.peers?.length) q.set("peers", opts.peers.join(","));
   return apiFetch(`/api/v1/quant/lab/${ticker}?${q.toString()}`);
 };
+
+// ── Account: plan limits and usage ───────────────────────────────────────────
+
+export interface UsageBlock {
+  used: number;
+  limit: number | null;      // null = unlimited
+  unlimited: boolean;
+  remaining: number | null;
+  exceeded: boolean;
+  unit: string;
+  resets: string;
+}
+
+export interface PlanLimits {
+  analysis_requests_per_day: number | null;
+  backtests_per_day: number | null;
+  backtest_tickers: number | null;
+  backtest_years: number | null;
+  portfolio_holdings: number | null;
+  portfolios: number | null;
+  voice_minutes_per_month: number | null;
+  news_feed_delay_seconds: number;
+  sentiment_catalysts: number | null;
+  quant_history_years: number | null;
+  quant_monte_carlo_paths: number | null;
+}
+
+export interface Plan {
+  tier: string;
+  display_name: string;
+  price_cents: number;
+  limits: PlanLimits;
+  features: Record<string, boolean>;
+}
+
+export interface AccountEntitlements extends Plan {
+  user_id: string;
+  usage: { analysis: UsageBlock; backtest: UsageBlock; voice: UsageBlock };
+}
+
+export const getEntitlements = (userId: string): Promise<AccountEntitlements> =>
+  apiFetch(`/api/v1/account/entitlements?user_id=${encodeURIComponent(userId)}`);
+
+/** All active plans, served from the DB so pricing can't drift from enforcement. */
+export const getPlans = (): Promise<{ plans: Plan[] }> => apiFetch("/api/v1/account/plans");

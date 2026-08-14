@@ -6,6 +6,7 @@ import {
   type TooltipProps,
 } from "recharts";
 import type { PriceBar } from "@/lib/api";
+import { useSession } from "next-auth/react";
 import { runQuickAnalysis, getBars } from "@/lib/api";
 
 interface Props {
@@ -72,6 +73,8 @@ function injectSignal(bars: PriceBar[], signal: string, confidence: number): Pri
 // ── Main component ──────────────────────────────────────────────────────────
 
 export default function PriceChart({ ticker, horizon = "medium_term", days = 180 }: Props) {
+  const { data: session } = useSession();
+  const userId = (session?.user as { id?: string } | undefined)?.id ?? "";
   const [bars,     setBars]     = useState<PriceBar[]>([]);
   const [provider, setProvider] = useState<string>("");
   const [loading,  setLoading]  = useState(true);
@@ -89,7 +92,7 @@ export default function PriceChart({ ticker, horizon = "medium_term", days = 180
 
       // Overlay the latest ensemble signal on the most recent bar
       try {
-        const result = await runQuickAnalysis(ticker, horizon);
+        const result = await runQuickAnalysis(ticker, userId, horizon);
         if (result.result) {
           bars = injectSignal(bars, result.result.signal, result.result.confidence_index);
         }

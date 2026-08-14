@@ -11,21 +11,29 @@ interface Props {
   onClose?:      () => void;
 }
 
+// These are checked against what the backend actually enforces
+// (db/migrations/008_tier_entitlements.sql). The previous list advertised
+// live execution, direct Alpaca trading, "5 concurrent live agent
+// strategies" and human-in-the-loop alerts — all four were removed from
+// the product when agentic execution was deleted, and every one of them
+// had zero implementing files. Do not add a line here without a limit or
+// feature flag in subscription_tiers to back it.
 const TIER_BENEFITS = {
   elite: [
-    "Unlimited real-time analysis",
-    "500 voice conversation minutes/month",
-    "5 concurrent live agent strategies",
-    "Direct Alpaca paper/live execution",
-    "Real-time news alerts",
+    "200 full analyses per day (vs 15 free)",
+    "The Quant Lab — factor models, Monte Carlo, VaR",
+    "SEC filing-tone analysis and full news catalysts",
+    "Real-time news feed (no 15-minute delay)",
+    "50 backtests/day, 5 tickers, 10 years of history",
+    "500 voice conversation minutes per month",
   ],
   institutional: [
-    "Everything in Elite",
-    "Sub-second dedicated news streaming",
-    "Unthrottled voice interface",
-    "Custom multi-agent ensembles",
-    "Human-in-the-loop cross-portfolio alerts",
-    "Priority support",
+    "Everything in Elite, uncapped",
+    "Unlimited analyses, backtests and voice minutes",
+    "10 years of factor history (vs 3)",
+    "50,000-path Monte Carlo simulations (vs 10,000)",
+    "Custom peer sets for relative-value work",
+    "25 tickers per backtest, unlimited history",
   ],
 };
 

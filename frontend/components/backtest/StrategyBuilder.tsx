@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import type { StrategyBacktestRequest } from "@/lib/api";
 
 interface Props {
-  onRun: (req: StrategyBacktestRequest) => void;
+  // The builder composes the strategy; the page attaches the caller's
+  // identity, which is what the server meters the run against.
+  onRun: (req: Omit<StrategyBacktestRequest, "user_id">) => void;
   running: boolean;
 }
 

@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import UpgradeModal from "@/components/billing/UpgradeModal";
 import LearningLevelCard from "@/components/dashboard/LearningLevelCard";
+import PlanUsageCard from "@/components/account/PlanUsageCard";
 import { TIER_FEATURES } from "@/types";
 import type { TierName } from "@/types";
-import { Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -16,7 +17,6 @@ export default function SettingsPage() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const tier = (session?.user?.tier ?? "sovereign") as TierName;
-  const features = TIER_FEATURES[tier];
 
   const openPortal = async () => {
     setPortalLoading(true);
@@ -55,40 +55,14 @@ export default function SettingsPage() {
           <div className="flex justify-between text-sm items-center">
             <span className="text-aureus-muted">Subscription Tier</span>
             <Badge variant={tier === "institutional" ? "institutional" : tier === "elite" ? "default" : "muted"}>
-              {features.label}
+              {TIER_FEATURES[tier].label}
             </Badge>
           </div>
         </CardContent>
       </Card>
 
-      {/* Current plan features */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Plan Features</CardTitle>
-            {tier !== "institutional" && (
-              <Button size="sm" onClick={() => setShowUpgrade(true)}>Upgrade</Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-2.5">
-          {[
-            { label: "Daily Analysis Requests", value: features.maxAnalysisPerDay == null ? "Unlimited" : String(features.maxAnalysisPerDay), enabled: true },
-            { label: "Voice Minutes / Month",   value: features.voiceMinutes == null ? "Unlimited" : features.voiceMinutes === 0 ? "Not included" : `${features.voiceMinutes} min`, enabled: features.voiceMinutes !== 0 },
-            { label: "Real-Time News",          value: features.realtimeNews ? "Enabled" : "15-min delayed",  enabled: features.realtimeNews },
-          ].map(({ label, value, enabled }) => (
-            <div key={label} className="flex items-center justify-between text-sm py-1.5 border-b border-aureus-border/50 last:border-0">
-              <div className="flex items-center gap-2 text-aureus-muted">
-                {enabled
-                  ? <Check className="w-3.5 h-3.5 text-aureus-green" />
-                  : <X     className="w-3.5 h-3.5 text-aureus-red"   />}
-                {label}
-              </div>
-              <span className={enabled ? "text-white" : "text-aureus-muted"}>{value}</span>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      {/* Plan, limits and live usage — served from the database */}
+      <PlanUsageCard />
 
       {/* Learning level */}
       <LearningLevelCard userId={userId} />
