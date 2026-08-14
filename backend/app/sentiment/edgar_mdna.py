@@ -64,6 +64,26 @@ _CACHE_PREFIX = "mdna:"
 _MAX_MDNA_CHARS = 60_000
 
 
+# One or more descriptive words, then a single contact email at the end.
+# Exactly one "@" overall, which is what catches the malformed
+# "company@domain@gmail.com" shape this validator exists to reject.
+_VALID_UA_RE = re.compile(
+    r"[^@\s]+(?:\s+[^@\s]+)*\s+[^@\s]+@[^@\s]+\.[A-Za-z]{2,}"
+)
+
+
+# Domains that are obviously stand-ins. SEC does not verify the address, so a
+# placeholder passes format validation and gets served normally — which is worse
+# than failing, because the fair-access policy exists so SEC can contact a heavy
+# requester, and nobody answers at yourdomain.com.
+_PLACEHOLDER_UA_DOMAINS = ("yourdomain.", "example.", "domain.com", "changeme")
+
+
+def _is_placeholder_ua(value: str) -> bool:
+    low = value.lower()
+    return any(d in low for d in _PLACEHOLDER_UA_DOMAINS)
+
+
 def _ua() -> str:
     """
     SEC's fair-access policy wants a real contact address.
@@ -75,8 +95,18 @@ def _ua() -> str:
     back to a known-good literal keeps the source working even when the
     setting is wrong, and logs why.
     """
-    configured = (get_settings().sec_edgar_user_agent or "").strip()
-    if re.fullmatch(r"[^@\s]+\s+[^@\s]+@[^@\s.]+\.[^@\s]+", configured):
+    # Strip surrounding quotes: a .env value written as
+    #   SEC_EDGAR_USER_AGENT="Aureus Intelligence you@example.com"
+    # can arrive with the quotes attached depending on how the file is
+    # loaded, and a leading quote makes the whole string fail validation.
+    configured = (get_settings().sec_edgar_user_agent or "").strip().strip('"\'')
+
+    # SEC asks for a declaring name plus a contact address. The name is
+    # normally several words ("Aureus Intelligence"), so the prefix must
+    # allow multiple tokens — an earlier single-token pattern here
+    # rejected every realistic value, including the correct one, and sent
+    # a valid agent down the fallback path.
+    if _VALID_UA_RE.fullmatch(configured) and not _is_placeholder_ua(configured):
         return configured
     logger.warning(
         "SEC_EDGAR_USER_AGENT is not a valid 'Name email@domain' string — "
