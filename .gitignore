@@ -26,3 +26,6 @@ celerybeat.pid
 # Editors
 .vscode/
 .idea/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
