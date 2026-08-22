@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Brain, LineChart, Mic, ShieldCheck, Zap } from "lucide-react";
+import Logo from "@/components/brand/Logo";
 
 export default function WelcomePage() {
   return (
@@ -15,7 +16,7 @@ export default function WelcomePage() {
       <div className="relative z-10">
         {/* Nav */}
         <nav className="flex items-center justify-between px-8 py-6 max-w-6xl mx-auto">
-          <div className="font-display text-aureus-gold text-lg tracking-wide" style={{ fontWeight: 600 }}>Aureus</div>
+          <Logo size={26} withWordmark wordmarkClassName="text-lg" />
           <div className="flex items-center gap-4">
             <Link href="/sign-in" className="text-sm text-aureus-muted hover:text-white transition-colors">Sign in</Link>
             <Link href="/sign-up"
@@ -29,7 +30,7 @@ export default function WelcomePage() {
         <div className="max-w-4xl mx-auto px-8 pt-20 pb-16 text-center">
           <div className="inline-flex items-center gap-2 text-xs text-aureus-gold border border-aureus-gold/30 rounded-full px-3 py-1 mb-6"
                style={{ background: "rgba(212,168,67,0.08)" }}>
-            <Zap className="w-3 h-3" /> Fundamental · Technical · Quantitative — unified
+            <Zap className="w-3 h-3" /> Fundamental · Technical · Sentiment — unified
           </div>
           <h1 className="font-display text-5xl text-white tracking-tight leading-tight mb-6" style={{ fontWeight: 600 }}>
             Analysis that shows its work,<br />

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import Logo from "@/components/brand/Logo";
 import type { TierName } from "@/types";
 
 const NAV_ITEMS = [
@@ -36,12 +37,10 @@ export default function Sidebar() {
   return (
     <aside className="w-56 flex-shrink-0 flex flex-col border-r border-aureus-rule h-screen sticky top-0"
            style={{ background: "var(--panel)" }}>
-      {/* Logo — serif wordmark is the one typographic flourish here */}
+      {/* Mark + serif wordmark — rendered through components/brand/Logo
+          so every brand surface stays in step with a single asset. */}
       <div className="px-5 py-5 border-b border-aureus-rule">
-        <div className="font-display text-aureus-gold text-xl tracking-wide" style={{ fontWeight: 600 }}>
-          Aureus
-        </div>
-        <div className="text-aureus-muted text-[10px] mt-0.5 tracking-widest uppercase">Intelligence Platform</div>
+        <Logo size={30} withWordmark wordmarkClassName="text-xl" tagline="Intelligence Platform" />
       </div>
 
       {/* Tier badge */}

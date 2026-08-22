@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { SignalBreakdownItem } from "@/lib/api";
 
 /**
- * One pillar (Fundamental / Technical / Quantitative) with a circular gauge,
+ * One pillar (Fundamental / Technical / Sentiment) with a circular gauge,
  * its weight in the composite, and the sub-signals actually driving it.
  *
  * The gauge is an SVG arc rather than a chart library: it's a single value,

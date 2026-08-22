@@ -51,6 +51,12 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|welcome|sign-in|sign-up|api/auth|api/webhooks).*)",
+    // The trailing extension group is load-bearing, not tidiness. Without
+    // it the auth middleware ran on static assets and 307'd them to
+    // /sign-in — so the logo on the sign-in page itself failed to load,
+    // because fetching it required being signed in. Listing files one by
+    // one (as `favicon.ico` was) fixes only the asset you remember;
+    // excluding by extension covers every asset added later.
+    "/((?!_next/static|_next/image|favicon.ico|welcome|sign-in|sign-up|api/auth|api/webhooks|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|avif|woff|woff2|ttf)$).*)",
   ],
 };

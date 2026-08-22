@@ -26,7 +26,7 @@ export default function AnalysisIndexPage() {
       <div>
         <h1 className="text-2xl font-bold text-white">Deep Analysis</h1>
         <p className="text-aureus-muted text-sm mt-0.5">
-          Fundamental · Technical · Quantitative ensemble scoring, re-weighted by time horizon,
+          Fundamental · Technical · Sentiment ensemble scoring, re-weighted by time horizon,
           with a metric-backed bull and bear case.
         </p>
       </div>

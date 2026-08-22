@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signup } from "@/lib/api";
+import Logo from "@/components/brand/Logo";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -42,6 +43,7 @@ export default function SignUpPage() {
     <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
+          <Logo size={64} className="inline-block mb-3" />
           <div className="font-display text-aureus-gold text-3xl tracking-wide mb-1" style={{ fontWeight: 600 }}>Aureus</div>
           <p className="text-aureus-muted text-sm">Create your account</p>
         </div>
