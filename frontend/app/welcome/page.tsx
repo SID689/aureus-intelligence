@@ -250,35 +250,6 @@ export default function WelcomePage() {
           </div>
         </section>
 
-        {/* ── The differentiator ───────────────────────────────── */}
-        <section className="max-w-6xl mx-auto px-8 py-16">
-          <div className="rounded-2xl border border-aureus-rule overflow-hidden grid lg:grid-cols-2"
-               style={{ background: "var(--panel)" }}>
-            <div className="p-9 lg:p-11">
-              <div className="text-[11px] uppercase tracking-widest text-aureus-gold mb-4">
-                What makes a score trustworthy
-              </div>
-              <h2 className="font-display text-3xl text-white leading-tight mb-5" style={{ fontWeight: 600 }}>
-                A missing signal should lower confidence, not quietly average to fifty
-              </h2>
-              <p className="text-sm text-aureus-muted leading-relaxed mb-4">
-                When a data provider returns nothing for a company, most tools substitute a neutral
-                value and carry on. That single decision drags every score toward the middle and
-                makes an uninformed reading indistinguishable from a balanced one.
-              </p>
-              <p className="text-sm text-aureus-muted leading-relaxed">
-                Aureus drops the signal instead and redistributes its weight across the pillars that
-                genuinely computed. The score you see is built only from what is actually known
-                about that specific company — and the page tells you how much that was.
-              </p>
-            </div>
-            <div className="p-9 lg:p-11 border-t lg:border-t-0 lg:border-l border-aureus-rule"
-                 style={{ background: "var(--bg)" }}>
-              <ReweightIllustration />
-            </div>
-          </div>
-        </section>
-
         {/* ── Feature grid ─────────────────────────────────────── */}
         <section className="max-w-6xl mx-auto px-8 py-16">
           <SectionHeading
@@ -514,61 +485,6 @@ function MockAnalysisCard() {
           <span>35% fundamental</span><span>35% technical</span><span>30% sentiment</span>
         </div>
       </div>
-    </div>
-  );
-}
-
-/** Side-by-side of the naive approach and the reweighted one. */
-function ReweightIllustration() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <span className="w-1.5 h-1.5 rounded-full bg-aureus-red" />
-          <span className="text-[11px] uppercase tracking-widest text-aureus-red">The usual approach</span>
-        </div>
-        <div className="space-y-2">
-          {[["Fundamental", "no data → 50", 50, true],
-            ["Technical", "72", 72, false],
-            ["Sentiment", "68", 68, false]].map(([n, v, w, faded]) => (
-            <Row key={n as string} name={n as string} value={v as string} pct={w as number} faded={faded as boolean} />
-          ))}
-        </div>
-        <div className="mt-3 pt-3 border-t border-aureus-rule flex items-baseline justify-between">
-          <span className="text-[11px] text-aureus-muted">Composite</span>
-          <span className="font-mono-num text-aureus-red">63.3 — dragged toward the middle</span>
-        </div>
-      </div>
-
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <span className="w-1.5 h-1.5 rounded-full bg-aureus-green" />
-          <span className="text-[11px] uppercase tracking-widest text-aureus-green">Aureus</span>
-        </div>
-        <div className="space-y-2">
-          {[["Fundamental", "dropped — weight redistributed", 0, true],
-            ["Technical", "72", 72, false],
-            ["Sentiment", "68", 68, false]].map(([n, v, w, faded]) => (
-            <Row key={n as string} name={n as string} value={v as string} pct={w as number} faded={faded as boolean} />
-          ))}
-        </div>
-        <div className="mt-3 pt-3 border-t border-aureus-rule flex items-baseline justify-between">
-          <span className="text-[11px] text-aureus-muted">Composite</span>
-          <span className="font-mono-num text-aureus-green">70.1 — built only on what is known</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Row({ name, value, pct, faded }: { name: string; value: string; pct: number; faded: boolean }) {
-  return (
-    <div className={`flex items-center gap-3 text-[11px] ${faded ? "opacity-40" : ""}`}>
-      <span className="w-24 text-aureus-text">{name}</span>
-      <div className="flex-1 h-1.5 rounded-full bg-aureus-rule overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--gold)" }} />
-      </div>
-      <span className="text-aureus-muted whitespace-nowrap">{value}</span>
     </div>
   );
 }
