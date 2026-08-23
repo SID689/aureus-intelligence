@@ -20,7 +20,37 @@ export function connectAlertStream(
   onMessage: (msg: AlertMessage) => void,
   onClose?: () => void,
 ): WebSocket {
-  const ws = new WebSocket(`${WS_BASE}/api/v1/ws/alerts/${userId}`);
+  const url = `${WS_BASE}/api/v1/ws/alerts/${userId}`;
+  const ws = new WebSocket(url);
+
+  // Tracks a close WE asked for, so an aborted handshake can be told
+  // apart from a genuine connection failure.
+  //
+  // Why this is needed: React StrictMode (enabled in next.config.ts)
+  // deliberately runs every effect twice in development — mount,
+  // cleanup, mount. AlertFeed's cleanup is `ws.close()`, so the very
+  // first socket gets closed while still CONNECTING. Per the WebSocket
+  // spec, closing during the handshake fires `error` and then `close`,
+  // which is what produced the console error on every page load.
+  //
+  // The same thing happens in production whenever someone navigates away
+  // mid-handshake, so this is not a dev-only workaround.
+  let closeRequested = false;
+  const nativeClose = ws.close.bind(ws);
+  ws.close = (code?: number, reason?: string) => {
+    closeRequested = true;
+    if (ws.readyState === WebSocket.CONNECTING) {
+      // Aborting a handshake is what the browser itself warns about
+      // ("WebSocket is closed before the connection is established"), and
+      // that warning is emitted natively — no JS handler can suppress it.
+      // So don't abort: let the handshake finish, then close cleanly on
+      // the open event. The socket lives a few extra milliseconds and the
+      // console stays quiet.
+      ws.addEventListener("open", () => nativeClose(code, reason), { once: true });
+      return;
+    }
+    nativeClose(code, reason);
+  };
 
   ws.onmessage = (event) => {
     try {
@@ -31,10 +61,27 @@ export function connectAlertStream(
     }
   };
 
-  ws.onclose = () => onClose?.();
+  ws.onclose = (event) => {
+    // 1000 is a normal closure and 1005 means no status was supplied —
+    // neither is worth reporting. Anything else ended unexpectedly, and
+    // unlike the error event this one carries a usable code.
+    if (!closeRequested && event.code !== 1000 && event.code !== 1005) {
+      console.warn(
+        `Alert stream closed unexpectedly (code ${event.code}` +
+        `${event.reason ? `: ${event.reason}` : ""}). Live alerts are paused until reload.`
+      );
+    }
+    onClose?.();
+  };
 
-  ws.onerror = (err) => {
-    console.error("Alert WebSocket error:", err);
+  ws.onerror = () => {
+    // A WebSocket ErrorEvent carries no detail whatsoever — the spec
+    // withholds it so a page cannot probe internal networks by reading
+    // failure reasons. Logging the event object only ever prints `{}`,
+    // which is what the old `console.error("...", err)` did. The close
+    // handler above reports the code instead, which is actionable.
+    if (closeRequested || ws.readyState === WebSocket.CLOSING) return;
+    console.warn(`Alert stream could not connect to ${url}. Is the backend running?`);
   };
 
   return ws;
@@ -45,6 +92,8 @@ export function connectAlertStream(
 export class VoiceWebSocket {
   private ws: WebSocket | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Set by disconnect() so onclose knows not to schedule a reconnect. */
+  private intentionalClose = false;
   private onMessage: (msg: VoiceMessage) => void;
   private userId: string;
   private tier: string;
@@ -61,6 +110,7 @@ export class VoiceWebSocket {
 
   connect(): void {
     if (this.ws?.readyState === WebSocket.OPEN) return;
+    this.intentionalClose = false;
 
     this.ws = new WebSocket(`${WS_BASE}/api/v1/ws/voice/${this.userId}`);
 
@@ -84,13 +134,23 @@ export class VoiceWebSocket {
       }
     };
 
-    this.ws.onclose = () => {
-      // Auto-reconnect after 3s
+    this.ws.onclose = (event) => {
+      // Do NOT reconnect a socket we deliberately closed. Previously
+      // this scheduled unconditionally, so disconnect() — which clears
+      // the timer and then calls close() — triggered onclose, which set
+      // a fresh timer, and the socket reopened three seconds later. The
+      // voice session could not actually be ended.
+      if (this.intentionalClose) return;
+      if (event.code === 1000) return;   // normal server-side closure
       this.reconnectTimer = setTimeout(() => this.connect(), 3000);
     };
 
-    this.ws.onerror = (err) => {
-      console.error("Voice WebSocket error:", err);
+    this.ws.onerror = () => {
+      // See connectAlertStream: the error event carries no detail, so
+      // there is nothing worth printing from it. An abandoned handshake
+      // (StrictMode remount, navigation) is expected and silent.
+      if (this.intentionalClose) return;
+      console.warn("Voice stream connection failed — retrying in 3s.");
     };
   }
 
@@ -105,8 +165,14 @@ export class VoiceWebSocket {
   }
 
   disconnect(): void {
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-    this.ws?.close();
+    // Order matters: flag first, so the onclose handler fired by close()
+    // below sees it and skips the reconnect.
+    this.intentionalClose = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.ws?.close(1000, "client disconnect");
     this.ws = null;
   }
 

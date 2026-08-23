@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 /**
@@ -41,9 +41,17 @@ export const metadata: Metadata = {
       "Fundamental, technical and sentiment analysis with transparent, metric-backed reasoning.",
     images: ["/brand/mark-1024.png"],
   },
-  // The mark is gold on near-black and reads as a dark-UI product; this
-  // colours the mobile browser chrome to match rather than leaving a
-  // white bar above it.
+};
+
+/**
+ * themeColor lives here, not in `metadata`.
+ *
+ * Next 15 moved it to the viewport export and warns on every render if
+ * it is declared in metadata — which it was, producing an "Unsupported
+ * metadata themeColor" warning on each page. Colours the mobile browser
+ * chrome to match the dark UI instead of leaving a white bar above it.
+ */
+export const viewport: Viewport = {
   themeColor: "#0b0d09",
 };
 
