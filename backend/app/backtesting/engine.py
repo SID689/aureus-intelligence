@@ -25,7 +25,7 @@ HOW LOOK-AHEAD BIAS IS MITIGATED (explicit, per the Phase 6 brief)
    from a year ago would leak information the model could not have had
    at the time (a classic, severe form of look-ahead bias). Rather than
    fake point-in-time fundamentals, the backtest re-weights the ensemble
-   to technical + quantitative only, using the SAME reweight() utility
+   to technical + quantitative only, using the SAME aggregator
 
    NOTE (pillar refactor): the live three-pillar blend is now
    Fundamental / Technical / SENTIMENT, with quantitative relocated to
@@ -35,9 +35,22 @@ HOW LOOK-AHEAD BIAS IS MITIGATED (explicit, per the Phase 6 brief)
    APIs serve only a recent window, so "what was sentiment on this date
    in 2023" is unobtainable, and substituting today's reading would be
    precisely the look-ahead error this module exists to avoid.
-   as production so the math is consistent, and this exclusion is
-   logged in every report so results are never misread as "the full
-   ensemble backtested well" when only 2 of 3 legs were actually tested.
+   (analysis/aggregation.py) as production so the math is consistent,
+   and this exclusion is logged in every report so results are never
+   misread as "the full ensemble backtested well" when only 2 of 3 legs
+   were actually tested.
+
+   KEEPING THE MATH CONSISTENT IS LOAD-BEARING, not tidiness. When the
+   live ensemble moved from averaging its legs to pooling them as
+   evidence, this file briefly kept averaging while still importing the
+   live BUY/SELL thresholds. The result was not an error anywhere — it
+   was a backtest quietly measuring a different strategy from the one
+   the product runs. Measured over 48 decision points it produced 15 BUY
+   against 1 SELL, because two quantitative scorers (12-1 momentum
+   averaging 70/100, alpha vs SPY averaging 72/100) put the composite
+   permanently near the BUY line and nowhere near the SELL line. Both
+   are now centred on their measured behaviour (analysis/calibration.py)
+   and both legs are pooled the way production pools them.
 
 3. NO PARAMETER FITTING: the BUY/SELL thresholds and module weights used
    here are imported directly from the live `ensemble.py` and the
@@ -61,7 +74,7 @@ import pandas as pd
 
 from app.analysis.ensemble import _BUY_THRESHOLD, _SELL_THRESHOLD, _STRONG_BUY_THRESH, _STRONG_SELL_THRESH
 from app.analysis.quantitative import run_quantitative_analysis
-from app.analysis.reweighting import WeightedSignal, reweight
+from app.analysis.aggregation import EvidenceSignal, combine_evidence
 from app.analysis.technical import run_technical_analysis
 from app.backtesting.metrics import SignalRecord, compile_full_report
 from app.ingestion.market_data import MarketDataService
@@ -140,11 +153,22 @@ def run_backtest(config: BacktestConfig) -> dict:
             logger.warning("Signal generation failed at index", extra={"index": i, "error": str(exc)})
             continue
 
-        # ── Mitigation #3: same reweight utility, same fixed baseline weights ──
-        top = reweight([
-            WeightedSignal("technical", technical_result.score, _BT_W_TECHNICAL, technical_result.data_completeness > 0.15),
-            WeightedSignal("quantitative", quant_result.score, _BT_W_QUANTITATIVE, quant_result.data_completeness > 0.15),
-        ])
+        # ── Mitigation #3: the SAME aggregator the live engine uses ──────
+        # Pools the two legs' standardised evidence, exactly as
+        # ensemble.py pools its three. If the backtester aggregated
+        # differently from production, a backtest would be measuring a
+        # strategy nobody is running — and it would do so silently, which
+        # is the worst version of that failure.
+        top = combine_evidence(
+            [
+                EvidenceSignal("technical", technical_result.evidence_z, _BT_W_TECHNICAL,
+                               technical_result.data_completeness > 0.15),
+                EvidenceSignal("quantitative", quant_result.evidence_z, _BT_W_QUANTITATIVE,
+                               quant_result.data_completeness > 0.15),
+            ],
+            group="backtest",
+            pre_standardised=True,
+        )
         signal = _classify(top.composite_score)
 
         # ── Forward returns (computed AFTER the fact, purely for scoring) ──

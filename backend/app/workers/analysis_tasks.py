@@ -117,3 +117,48 @@ def run_analysis_task(
             raise self.retry(exc=exc)
         except self.MaxRetriesExceededError:
             return {"job_id": job_id, "status": "failed"}
+
+
+# ── Signal calibration refresh ──────────────────────────────────────────
+
+@shared_task(
+    name="app.workers.analysis_tasks.recalibrate_signals",
+    # One attempt. This job makes roughly 160 provider calls; retrying a
+    # partial failure would double that against rate-limited APIs to
+    # refresh numbers that are, at worst, a month stale. The scheduled
+    # run next month is the retry.
+    max_retries=0,
+    # Generous: 40 tickers x four analysis modules, several of which hit
+    # the network with backoff.
+    time_limit=3600,
+    soft_time_limit=3300,
+)
+def recalibrate_signals(universe: list[str] | None = None) -> dict:
+    """
+    Re-measure sub-signal centres and dispersions into signal_calibration.
+
+    Never raises. A failed refresh must not retry-storm the providers or
+    mark the beat schedule unhealthy — analysis/calibration.py falls back
+    to the last good measurement, and the staleness warning it logs is
+    the signal that this needs attention.
+    """
+    from app.analysis.calibration_job import run as run_calibration
+
+    started = time.time()
+    try:
+        result = run_calibration(universe)
+        payload = {
+            "ok": result.rows_written > 0,
+            "rows_written": result.rows_written,
+            "signals_measured": result.signals_measured,
+            "universe_size": result.universe_size,
+            "partial_failures": len(result.failures),
+            "elapsed_seconds": round(time.time() - started, 1),
+        }
+        logger.info("Signal calibration task complete", extra=payload)
+        return payload
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Signal calibration task failed", extra={
+            "error": str(exc), "elapsed_seconds": round(time.time() - started, 1),
+        })
+        return {"ok": False, "error": str(exc)}

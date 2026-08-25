@@ -38,7 +38,12 @@ market-wide regime shift moves the centres. The shrinkage below limits
 the damage from a stale or thin estimate in the meantime.
 """
 
+import logging
+import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
+
+logger = logging.getLogger("aureus.analysis.calibration")
 
 # Prior for a signal we have not measured, or have barely measured.
 # sd 18 is roughly the median measured dispersion; centre 50 is the
@@ -93,7 +98,151 @@ _MEASURED: dict[str, SignalStats] = {
     "News Sentiment":             SignalStats(38, 55.32,  6.29),
     "SEC Filing Tone":            SignalStats(35, 53.03,  7.89),
     "Social Sentiment":           SignalStats(40, 61.78,  9.66),
+
+    # ── Quantitative (backtest leg only; see backtesting/engine.py) ─
+    # Measured over a 730-day window rather than 365, because that is
+    # the window the backtester actually replays and because 12-1
+    # momentum needs more than a year of history to compute at all —
+    # at a 365-day lookback it silently never fires.
+    #
+    # Two of these are badly centred in the same way the fundamental
+    # scorers were: 12-1 Momentum averages 70.3 and Alpha vs S&P 500
+    # averages 71.7, so a typical stock was scoring "clearly bullish" on
+    # both. That is what tilted backtest signals 15 BUY to 1 SELL.
+    "12-1 Momentum":              SignalStats(40, 70.34, 31.77),
+    "30-Day Volatility":          SignalStats(40, 44.57, 20.82),
+    "Alpha vs S&P 500":           SignalStats(40, 71.72, 29.38),
+    "ML Forward-Return Signal":   SignalStats(40, 57.61, 13.66),
 }
+
+
+# ── Where the numbers come from at runtime ──────────────────────────────
+#
+# The literals above are a FALLBACK, not the source of truth. A scheduled
+# job (app.workers.analysis_tasks.recalibrate_signals) re-measures the
+# universe and writes to the signal_calibration table; this loader
+# prefers those rows whenever they are newer than the literals.
+#
+# Preferring "newer" rather than "database always wins" matters: if the
+# job has not run in a year but someone re-measured and updated the
+# literals last week, the literals are the better estimate and should
+# win. Whichever measurement is more recent is used, and staleness is
+# logged either way.
+
+_BAKED_IN_MEASURED_AT = datetime(2026, 8, 24, tzinfo=timezone.utc)
+
+# Beyond this, warn. Cross-sectional centres drift with the market
+# regime; a centre measured two quarters ago is describing a different
+# market from the one being scored.
+_STALE_AFTER_DAYS = 120
+
+# Cache TTL. These change monthly at most, and the loader runs on every
+# analysis, so re-reading the table per request is pure waste.
+_CACHE_TTL_SECONDS = 3600
+
+_cache: dict[str, SignalStats] | None = None
+_cache_measured_at: datetime | None = None
+_cache_loaded_at: float = 0.0
+
+
+def _row_is_sane(label: str, n: int, mean: float, sd: float) -> bool:
+    """
+    Reject a row rather than let a bad measurement poison every score
+    that uses it. A scorer that broke mid-run, or a universe that
+    returned two usable tickers, can produce statistics that are
+    arithmetically valid and analytically worthless.
+    """
+    if n < 8:
+        logger.warning("Calibration row rejected: too few observations", extra={"label": label, "n": n})
+        return False
+    if not (0.0 <= mean <= 100.0):
+        logger.warning("Calibration row rejected: mean out of range", extra={"label": label, "mean": mean})
+        return False
+    if not (_MIN_SD <= sd <= 60.0):
+        # sd above 60 on a 0-100 scale means the signal is bimodal at the
+        # extremes, which no scorer here should produce.
+        logger.warning("Calibration row rejected: implausible sd", extra={"label": label, "sd": sd})
+        return False
+    return True
+
+
+def _load_measured() -> tuple[dict[str, SignalStats], datetime]:
+    """
+    Merge database rows over the baked-in literals, newest wins.
+
+    Never raises. A database that is down, missing the table, or full of
+    rejected rows degrades to the literals — which is the whole point of
+    keeping them.
+    """
+    global _cache, _cache_measured_at, _cache_loaded_at
+
+    now = time.monotonic()
+    if _cache is not None and (now - _cache_loaded_at) < _CACHE_TTL_SECONDS:
+        return _cache, _cache_measured_at or _BAKED_IN_MEASURED_AT
+
+    merged = dict(_MEASURED)
+    newest = _BAKED_IN_MEASURED_AT
+
+    try:
+        from sqlalchemy import create_engine, text
+        from app.core.config import get_settings
+
+        engine = create_engine(get_settings().database_url, pool_pre_ping=True, pool_size=1)
+        with engine.connect() as conn:
+            rows = conn.execute(text(
+                "SELECT label, n, mean, sd, measured_at FROM signal_calibration"
+            )).fetchall()
+        engine.dispose()
+
+        applied = 0
+        for label, n, mean, sd, measured_at in rows:
+            if not _row_is_sane(label, int(n), float(mean), float(sd)):
+                continue
+            if measured_at.tzinfo is None:
+                measured_at = measured_at.replace(tzinfo=timezone.utc)
+            if measured_at <= _BAKED_IN_MEASURED_AT:
+                # The literals are at least as fresh; keep them.
+                continue
+            merged[label] = SignalStats(int(n), float(mean), float(sd))
+            newest = max(newest, measured_at)
+            applied += 1
+
+        if applied:
+            logger.info("Signal calibration loaded from database",
+                        extra={"rows_applied": applied, "measured_at": newest.isoformat()})
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Signal calibration table unavailable — using baked-in literals",
+                       extra={"error": str(exc)})
+
+    age_days = (datetime.now(timezone.utc) - newest).days
+    if age_days > _STALE_AFTER_DAYS:
+        logger.warning(
+            "Signal calibration is stale — centres may no longer describe the current market",
+            extra={"age_days": age_days, "measured_at": newest.isoformat(),
+                   "remedy": "run app.workers.analysis_tasks.recalibrate_signals"},
+        )
+
+    _cache, _cache_measured_at, _cache_loaded_at = merged, newest, now
+    return merged, newest
+
+
+def calibration_status() -> dict:
+    """Provenance for health checks and the admin surface."""
+    stats, measured_at = _load_measured()
+    age = (datetime.now(timezone.utc) - measured_at).days
+    return {
+        "signals": len(stats),
+        "measured_at": measured_at.isoformat(),
+        "age_days": age,
+        "stale": age > _STALE_AFTER_DAYS,
+        "stale_after_days": _STALE_AFTER_DAYS,
+    }
+
+
+def invalidate_cache() -> None:
+    """Called by the refresh job so a new measurement takes effect at once."""
+    global _cache, _cache_loaded_at
+    _cache, _cache_loaded_at = None, 0.0
 
 
 def centre_and_scale(label: str) -> tuple[float, float]:
@@ -105,7 +254,8 @@ def centre_and_scale(label: str) -> tuple[float, float]:
     adding a new sub-signal safe: it behaves exactly as it would have
     under the old arithmetic until someone re-runs the calibration.
     """
-    st = _MEASURED.get(label)
+    stats, _ = _load_measured()
+    st = stats.get(label)
     if st is None:
         return _PRIOR_MEAN, _PRIOR_SD
 
@@ -175,9 +325,24 @@ _RHO_WITHIN_FUNDAMENTAL = 0.40
 _RHO_WITHIN_SENTIMENT = 0.30
 _RHO_ACROSS_PILLARS = 0.20
 
+# The quantitative leg exists only inside the backtester. Its signals are
+# volatility, alpha against SPY, 12-1 momentum and a ridge-regression
+# forward-return estimate — every one of them a function of the same
+# price series, so internal redundancy is high.
+_RHO_WITHIN_QUANTITATIVE = 0.40
+
+# Technical against quantitative, the backtest's two legs. Measured at
+# r = +0.406 on the pillar scores; set above that because both legs are
+# pure price derivatives (12-1 momentum and MA alignment are two ways of
+# asking the same question) and because score-space attenuation applies
+# here as everywhere else.
+_RHO_BACKTEST_PILLARS = 0.50
+
 RHO: dict[str, float] = {
-    "technical":   _RHO_WITHIN_TECHNICAL,
-    "fundamental": _RHO_WITHIN_FUNDAMENTAL,
-    "sentiment":   _RHO_WITHIN_SENTIMENT,
-    "ensemble":    _RHO_ACROSS_PILLARS,
+    "technical":    _RHO_WITHIN_TECHNICAL,
+    "fundamental":  _RHO_WITHIN_FUNDAMENTAL,
+    "sentiment":    _RHO_WITHIN_SENTIMENT,
+    "ensemble":     _RHO_ACROSS_PILLARS,
+    "quantitative": _RHO_WITHIN_QUANTITATIVE,
+    "backtest":     _RHO_BACKTEST_PILLARS,
 }

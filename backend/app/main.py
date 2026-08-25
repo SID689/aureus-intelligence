@@ -83,4 +83,28 @@ app.include_router(games_router)
 
 @app.get("/health", tags=["ops"])
 def health() -> dict:
-    return {"status": "ok", "version": "0.6.0"}
+    """
+    Liveness, plus the one piece of state that degrades silently.
+
+    Signal calibration is the standardisation the whole scoring engine
+    rests on, and when it goes stale nothing breaks — scores just drift
+    away from the market they claim to describe. Surfacing it here means
+    the drift is visible to monitoring rather than only to whoever reads
+    the logs.
+    """
+    payload: dict = {"status": "ok", "version": "0.6.0"}
+    try:
+        from app.analysis.calibration import calibration_status
+        cal = calibration_status()
+        payload["signal_calibration"] = cal
+        if cal["stale"]:
+            payload["status"] = "degraded"
+            payload["warnings"] = [
+                f"Signal calibration is {cal['age_days']} days old "
+                f"(stale after {cal['stale_after_days']}). Run "
+                f"app.workers.analysis_tasks.recalibrate_signals."
+            ]
+    except Exception as exc:  # noqa: BLE001
+        # Health must answer even when a subsystem cannot.
+        payload["signal_calibration"] = {"error": str(exc)}
+    return payload

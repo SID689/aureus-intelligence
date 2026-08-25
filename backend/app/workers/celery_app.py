@@ -82,6 +82,23 @@ def create_celery_app() -> Celery:
                 "schedule": 30,
                 "options":  {"queue": "agent-orchestration"},
             },
+            # Monthly, and deliberately not more often. The job makes
+            # ~160 provider calls, and what it measures — where each
+            # signal sits across the market — moves on the timescale of a
+            # regime, not a week. 06:00 UTC on the 1st is outside US
+            # market hours, so it competes with nothing.
+            "recalibrate-signals-monthly": {
+                "task":     "app.workers.analysis_tasks.recalibrate_signals",
+                "schedule": crontab(hour=6, minute=0, day_of_month="1"),
+                # market-data, not a queue of its own: there is no
+                # "analysis" queue declared in task_queues and no worker
+                # subscribed to one, so routing there would park this job
+                # in the broker forever with nothing to report it. It is
+                # a market-data refresh in substance anyway — it fetches
+                # bars and fundamentals — and run_analysis_task already
+                # lands on this queue via task_default_queue.
+                "options":  {"queue": "market-data"},
+            },
             "stream-health-check-every-5min": {
                 "task":     "app.workers.news_tasks.check_stream_health",
                 "schedule": 300,

@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 
 from app.analysis.models import QuantitativeScore
-from app.analysis.reweighting import WeightedSignal, reweight
+from app.analysis.aggregation import EvidenceSignal, combine_evidence
 
 logger = logging.getLogger("aureus.analysis.quantitative")
 
@@ -184,12 +184,12 @@ def run_quantitative_analysis(
     else:
         notes.append("Insufficient history for ML signal (need 100+ days) — excluded from composite")
 
-    result = reweight([
-        WeightedSignal("volatility_score", vol_score,      _W_VOL,      vol_computed),
-        WeightedSignal("alpha_score",      alpha_score,    _W_ALPHA,    alpha_computed),
-        WeightedSignal("momentum_score",   momentum_score, _W_MOMENTUM, momentum_computed),
-        WeightedSignal("ml_signal_score",  ml_score,       _W_ML,       ml_computed),
-    ])
+    result = combine_evidence([
+        EvidenceSignal("volatility_score", vol_score,      _W_VOL,      vol_computed,      calibration_label="30-Day Volatility"),
+        EvidenceSignal("alpha_score",      alpha_score,    _W_ALPHA,    alpha_computed,    calibration_label="Alpha vs S&P 500"),
+        EvidenceSignal("momentum_score",   momentum_score, _W_MOMENTUM, momentum_computed, calibration_label="12-1 Momentum"),
+        EvidenceSignal("ml_signal_score",  ml_score,       _W_ML,       ml_computed,       calibration_label="ML Forward-Return Signal"),
+    ], group="quantitative")
     if result.dropped_signals:
         notes.append(f"Excluded from scoring (no real data): {', '.join(result.dropped_signals)}")
 
@@ -208,6 +208,7 @@ def run_quantitative_analysis(
         momentum_12_1=round(momentum_12_1, 4) if momentum_12_1 else None,
         data_completeness=result.data_completeness,
         effective_weights=result.effective_weights,
+        evidence_z=result.z, conviction=result.conviction, agreement=result.agreement,
         signal_breakdown=signals,
         analysis_notes=notes,
     )

@@ -205,6 +205,13 @@ class QuantitativeScore:
     signal_breakdown: list[dict] = field(default_factory=list)
     analysis_notes: list[str] = field(default_factory=list)
 
+    # Standardised evidence, as on the other pillars — see
+    # analysis/aggregation.py. The backtester pools this z-score rather
+    # than the 0-100 score, for the same reason the live ensemble does.
+    evidence_z: float = 0.0
+    conviction: float = 0.0
+    agreement: float = 0.0
+
 
 @dataclass
 class EnsembleSignal:
