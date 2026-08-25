@@ -3,21 +3,31 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
+/**
+ * Gold is the only fill that means "act". Everything else is an outline
+ * or a ghost, so a page never has two things competing to be the primary
+ * action — if two buttons are both gold, neither is the answer.
+ *
+ * `subtle` is the workhorse for secondary actions inside a sheet, where
+ * an outline against the sheet's own border reads as a double rule.
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium tracking-wide transition-colors duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-aureus-gold disabled:opacity-40 disabled:pointer-events-none",
+  "inline-flex items-center justify-center gap-1.5 rounded-md font-medium tracking-wide " +
+    "transition-colors duration-150 disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap",
   {
     variants: {
       variant: {
         default: "bg-aureus-gold text-aureus-ink hover:bg-aureus-goldbright",
-        outline: "border border-aureus-rule text-aureus-text hover:border-aureus-gold hover:text-aureus-gold",
-        ghost:   "text-aureus-muted hover:text-aureus-text",
-        danger:  "border border-aureus-oxblood text-aureus-oxblood hover:bg-aureus-oxblood/10",
-        success: "bg-aureus-verdigris text-aureus-ink hover:opacity-90",
+        outline: "border border-aureus-rulestrong text-aureus-text hover:border-aureus-gold hover:text-aureus-gold",
+        subtle:  "bg-aureus-panellift text-aureus-soft hover:bg-aureus-panelhigh hover:text-aureus-text",
+        ghost:   "text-aureus-muted hover:text-aureus-text hover:bg-aureus-panellift",
+        danger:  "border border-aureus-oxblooddim text-aureus-oxblood hover:bg-aureus-oxblood/10 hover:border-aureus-oxblood",
+        success: "bg-aureus-verdigris text-aureus-ink hover:bg-aureus-verdigrisbright",
       },
       size: {
-        default: "h-9 px-4 py-2",
+        default: "h-9 px-4 text-sm",
         sm:      "h-7 px-3 text-xs",
-        lg:      "h-11 px-6",
+        lg:      "h-11 px-6 text-[15px]",
         icon:    "h-9 w-9",
       },
     },

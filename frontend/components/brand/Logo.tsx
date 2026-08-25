@@ -10,9 +10,9 @@ import Image from "next/image";
  *
  * WHICH FILE GETS USED
  * The transparent variant is the default. The source PNG has its own
- * #151515 background baked in, which is very close to --panel (#14160f)
- * but not identical, so on a dark surface it renders as a faintly
- * lighter square. The transparent cut lets the mark sit on whatever is
+ * #151515 background baked in, which no longer matches --panel at all
+ * now that panels sit at #191d12, so the solid version would render as
+ * a visibly darker square on any surface. The transparent cut lets the mark sit on whatever is
  * behind it — and is the only version that will work when a light
  * marketing page or an emailed invoice needs it.
  *

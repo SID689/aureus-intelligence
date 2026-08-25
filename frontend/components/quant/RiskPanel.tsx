@@ -22,8 +22,8 @@ const pct = (v: number | null | undefined, d = 2) =>
 function Stat({ label, value, hint, tone }: {
   label: string; value: string; hint?: string; tone?: "good" | "bad" | "neutral";
 }) {
-  const color = tone === "good" ? "text-aureus-green"
-              : tone === "bad" ? "text-aureus-red" : "text-white";
+  const color = tone === "good" ? "text-aureus-verdigris"
+              : tone === "bad" ? "text-aureus-oxblood" : "text-aureus-text";
   return (
     <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
       <div className="text-[10px] uppercase tracking-wider text-aureus-muted">{label}</div>
@@ -40,7 +40,7 @@ function VarBlock({ v, label }: { v: VarResult | null; label: string }) {
   return (
     <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
       <div className="text-[10px] uppercase tracking-wider text-aureus-muted">{label}</div>
-      <div className="text-base font-semibold font-mono mt-0.5 text-aureus-red">
+      <div className="text-base font-semibold font-mono mt-0.5 text-aureus-oxblood">
         −{pct(v.var_pct)}
       </div>
       <div className="text-[10px] text-aureus-muted mt-0.5">
@@ -57,7 +57,7 @@ function MonteCarloChart({ mc }: { mc: MonteCarloResult }) {
   const data = mc.histogram.map((h) => ({
     mid: h.mid * 100,
     count: h.count,
-    fill: h.mid < 0 ? "#7f1d1d" : "#14532d",
+    fill: h.mid < 0 ? "var(--oxblood-dim)" : "var(--verdigris-dim)",
   }));
   return (
     <div>
@@ -72,17 +72,17 @@ function MonteCarloChart({ mc }: { mc: MonteCarloResult }) {
       <div className="h-52">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: -18 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" vertical={false} />
-            <XAxis dataKey="mid" tick={{ fontSize: 10, fill: "#8b8b9e" }}
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--rule)" vertical={false} />
+            <XAxis dataKey="mid" tick={{ fontSize: 10, fill: "var(--text-muted)" }}
                    tickFormatter={(v: number) => `${v.toFixed(0)}%`} />
-            <YAxis tick={{ fontSize: 10, fill: "#8b8b9e" }} />
+            <YAxis tick={{ fontSize: 10, fill: "var(--text-muted)" }} />
             <Tooltip
-              contentStyle={{ background: "#12121c", border: "1px solid #2a2a3a", borderRadius: 6, fontSize: 11 }}
+              contentStyle={{ background: "var(--panel-lift)", border: "1px solid var(--rule)", borderRadius: 6, fontSize: 11 }}
               labelFormatter={(v) => `Return ${Number(v).toFixed(1)}%`}
               formatter={(v: number) => [`${v} paths`, "Frequency"]}
             />
-            <ReferenceLine x={0} stroke="#8b8b9e" strokeDasharray="3 3" />
-            <Bar dataKey="count" fill="#d4a843" radius={[2, 2, 0, 0]} />
+            <ReferenceLine x={0} stroke="var(--text-muted)" strokeDasharray="3 3" />
+            <Bar dataKey="count" fill="var(--gold)" radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -92,7 +92,7 @@ function MonteCarloChart({ mc }: { mc: MonteCarloResult }) {
                style={{ background: "var(--bg)" }}>
             <div className="text-[9px] uppercase text-aureus-muted">{k}</div>
             <div className={`text-[11px] font-mono ${
-              mc.percentiles[k] >= 0 ? "text-aureus-green" : "text-aureus-red"}`}>
+              mc.percentiles[k] >= 0 ? "text-aureus-verdigris" : "text-aureus-oxblood"}`}>
               {(mc.percentiles[k] * 100).toFixed(1)}%
             </div>
           </div>
@@ -124,14 +124,14 @@ function BetaChart({ b }: { b: BetaStability }) {
       <div className="h-44">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={b.series} margin={{ top: 4, right: 8, bottom: 4, left: -18 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" vertical={false} />
-            <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#8b8b9e" }} minTickGap={40} />
-            <YAxis tick={{ fontSize: 10, fill: "#8b8b9e" }} domain={["auto", "auto"]} />
-            <Tooltip contentStyle={{ background: "#12121c", border: "1px solid #2a2a3a", borderRadius: 6, fontSize: 11 }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--rule)" vertical={false} />
+            <XAxis dataKey="date" tick={{ fontSize: 9, fill: "var(--text-muted)" }} minTickGap={40} />
+            <YAxis tick={{ fontSize: 10, fill: "var(--text-muted)" }} domain={["auto", "auto"]} />
+            <Tooltip contentStyle={{ background: "var(--panel-lift)", border: "1px solid var(--rule)", borderRadius: 6, fontSize: 11 }} />
             {b.full_sample_beta != null && (
-              <ReferenceLine y={b.full_sample_beta} stroke="#d4a843" strokeDasharray="4 4" />
+              <ReferenceLine y={b.full_sample_beta} stroke="var(--gold)" strokeDasharray="4 4" />
             )}
-            <Line type="monotone" dataKey="beta" stroke="#4a9eff" strokeWidth={1.75} dot={false} />
+            <Line type="monotone" dataKey="beta" stroke="var(--verdigris)" strokeWidth={1.75} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>

@@ -6,6 +6,10 @@ import { useSession } from "next-auth/react";
 import { FlaskConical, Lock, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  CapsLabel, ErrorNote, Input, Note, PageHeader, Sheet,
+} from "@/components/ui/primitives";
 import FactorPanel from "@/components/quant/FactorPanel";
 import RiskPanel from "@/components/quant/RiskPanel";
 import MeanReversionPanel from "@/components/quant/MeanReversionPanel";
@@ -25,9 +29,9 @@ import type { QuantLabReport } from "@/lib/api";
 type Tab = "factors" | "risk" | "reversion";
 
 const TABS: { id: Tab; label: string; blurb: string }[] = [
-  { id: "factors", label: "Factor Models", blurb: "Fama-French exposures and true alpha" },
-  { id: "risk", label: "Risk & Simulation", blurb: "Monte Carlo, VaR, CVaR, beta stability" },
-  { id: "reversion", label: "Mean Reversion", blurb: "Z-score, half-life, pairs, vol regime" },
+  { id: "factors", label: "Factor models", blurb: "Fama-French exposures and true alpha" },
+  { id: "risk", label: "Risk & simulation", blurb: "Monte Carlo, VaR, CVaR, beta stability" },
+  { id: "reversion", label: "Mean reversion", blurb: "Z-score, half-life, pairs, vol regime" },
 ];
 
 function UpgradePrompt({ tier }: { tier: string }) {
@@ -38,22 +42,25 @@ function UpgradePrompt({ tier }: { tier: string }) {
           <Lock className="w-5 h-5 text-aureus-gold" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-white">The Quant Lab is an Elite feature</h2>
+          <h2 className="font-display text-xl text-aureus-text">The Quant Lab is an Elite feature</h2>
           <p className="text-sm text-aureus-muted mt-2 leading-relaxed">
             Factor modelling, Monte Carlo simulation, Value at Risk and statistical
             mean-reversion analysis are institutional research tools. Your current plan is{" "}
             <span className="text-aureus-text font-medium">{tier}</span>.
           </p>
         </div>
-        <div className="text-left rounded-lg border border-aureus-rule p-4 space-y-2"
-             style={{ background: "var(--bg)" }}>
-          <p className="text-[11px] uppercase tracking-wider text-aureus-muted">What you get</p>
-          <ul className="text-xs text-aureus-text space-y-1.5">
-            <li>· Fama-French 3 and 5-factor exposures with significance testing</li>
-            <li>· Monte Carlo return distributions from bootstrapped history</li>
-            <li>· Value at Risk and expected shortfall at 1 and 10-day horizons</li>
-            <li>· Rolling beta stability and drawdown analysis</li>
-            <li>· Z-score deviation, reversion half-life, and pairs correlation</li>
+        <div className="text-left rounded-md border border-aureus-rule bg-aureus-ink p-4">
+          <CapsLabel>What you get</CapsLabel>
+          <ul className="text-[13px] text-aureus-soft mt-2.5">
+            {[
+              "Fama-French 3 and 5-factor exposures with significance testing",
+              "Monte Carlo return distributions from bootstrapped history",
+              "Value at Risk and expected shortfall at 1 and 10-day horizons",
+              "Rolling beta stability and drawdown analysis",
+              "Z-score deviation, reversion half-life, and pairs correlation",
+            ].map((f, i) => (
+              <li key={f} className={`py-2 ${i > 0 ? "border-t border-aureus-rulesoft" : ""}`}>{f}</li>
+            ))}
           </ul>
         </div>
         <div className="flex gap-2 justify-center">
@@ -61,7 +68,7 @@ function UpgradePrompt({ tier }: { tier: string }) {
             <Button>Upgrade to Elite</Button>
           </Link>
           <Link href="/analysis">
-            <Button variant="outline">Back to Analysis</Button>
+            <Button variant="outline">Back to analysis</Button>
           </Link>
         </div>
         <p className="text-[10px] text-aureus-muted">
@@ -112,14 +119,14 @@ function QuantLabInner() {
 
   if (!userId) {
     return (
-      <Card><CardContent className="p-10 text-center text-sm text-aureus-muted">
+      <Card flat><CardContent className="py-16 text-center text-sm text-aureus-muted">
         Sign in to use the Quant Lab.
       </CardContent></Card>
     );
   }
   if (access === null) {
     return (
-      <Card><CardContent className="p-10 text-center text-sm text-aureus-muted">
+      <Card flat><CardContent className="py-16 text-center text-sm text-aureus-muted">
         Checking access…
       </CardContent></Card>
     );
@@ -128,88 +135,85 @@ function QuantLabInner() {
 
   return (
     <div className="space-y-5">
-      <Card>
-        <CardContent className="p-5 space-y-4">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <FlaskConical className="w-5 h-5 text-aureus-gold" strokeWidth={1.75} />
-                <h1 className="text-2xl font-bold text-white tracking-tight">Quant Lab</h1>
-                <span className="rounded bg-aureus-gold/10 border border-aureus-gold/40 px-2 py-0.5
-                                 text-[10px] font-bold tracking-wider text-aureus-gold">
-                  {access.tier.toUpperCase()}
-                </span>
-              </div>
-              <p className="text-xs text-aureus-muted mt-1">
-                Statistical research on <span className="text-aureus-text font-mono">{ticker}</span>
-                {report && ` · ${report.observations} sessions · ${report.start_date} → ${report.end_date}`}
-              </p>
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2.5">
+            <FlaskConical className="w-5 h-5 text-aureus-gold" strokeWidth={1.75} />
+            Quant Lab
+            <Badge>{access.tier}</Badge>
+          </span>
+        }
+        lead={
+          <>
+            Statistical research on <span className="text-aureus-soft font-mono-num">{ticker}</span>
+            {report && ` · ${report.observations} sessions · ${report.start_date} → ${report.end_date}`}
+          </>
+        }
+        actions={
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (input.trim()) { setTicker(input.trim().toUpperCase()); setInput(""); }
+            }}
+            className="flex gap-2"
+          >
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-aureus-muted pointer-events-none" />
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ticker"
+                className="w-36 pl-8 py-1.5"
+                spellCheck={false}
+              />
             </div>
+            <Button type="submit" size="sm" variant="outline">Run</Button>
+          </form>
+        }
+      />
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (input.trim()) { setTicker(input.trim().toUpperCase()); setInput(""); }
-              }}
-              className="flex gap-2"
-            >
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-aureus-muted" />
-                <input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ticker"
-                  className="w-36 rounded-md border border-aureus-border pl-8 pr-3 py-1.5 text-sm text-white
-                             placeholder:text-aureus-muted/50 focus:outline-none focus:border-aureus-gold"
-                  style={{ background: "var(--bg)" }}
-                />
-              </div>
-              <Button type="submit" size="sm" variant="outline">Run</Button>
-            </form>
-          </div>
-
-          <div className="flex gap-1.5">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`flex-1 rounded-md border px-3 py-2 text-left transition-colors ${
-                  tab === t.id
-                    ? "border-aureus-gold bg-aureus-gold/10"
-                    : "border-aureus-border hover:border-aureus-muted"
-                }`}
-              >
-                <div className={`text-xs font-medium ${tab === t.id ? "text-aureus-gold" : "text-aureus-text"}`}>
-                  {t.label}
-                </div>
-                <div className="text-[10px] text-aureus-muted">{t.blurb}</div>
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Tabs carry a one-line blurb because these three are not
+          self-explanatory the way "Overview / Details" would be. */}
+      <div className="grid sm:grid-cols-3 gap-2">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`rounded-md border px-3.5 py-2.5 text-left transition-colors ${
+              tab === t.id
+                ? "border-aureus-gold bg-aureus-gold/[0.08]"
+                : "border-aureus-rule hover:border-aureus-rulestrong hover:bg-aureus-panellift"
+            }`}
+          >
+            <div className={`text-[13px] font-medium ${tab === t.id ? "text-aureus-gold" : "text-aureus-text"}`}>
+              {t.label}
+            </div>
+            <div className="text-[11px] text-aureus-muted mt-0.5">{t.blurb}</div>
+          </button>
+        ))}
+      </div>
 
       {loading && (
-        <Card><CardContent className="p-16 text-center text-sm text-aureus-muted">
+        <Card flat><CardContent className="py-16 text-center text-sm text-aureus-muted">
           Running factor regressions and simulations for {ticker}…
         </CardContent></Card>
       )}
 
       {error && !loading && (
-        <Card><CardContent className="p-8 text-center space-y-3">
-          <p className="text-sm text-aureus-red">{error}</p>
+        <div className="space-y-3">
+          <ErrorNote>{error}</ErrorNote>
           <Button variant="outline" size="sm" onClick={load}>Retry</Button>
-        </CardContent></Card>
+        </div>
       )}
 
       {report && !loading && (
         <>
           {report.notes.length > 0 && (
-            <Card><CardContent className="p-3 space-y-1">
+            <Sheet className="px-4 py-3 border-l-2 border-l-aureus-amber space-y-1">
               {report.notes.map((n) => (
-                <p key={n} className="text-[11px] text-aureus-gold">⚠ {n}</p>
+                <p key={n} className="text-[12px] text-aureus-amber leading-relaxed">{n}</p>
               ))}
-            </CardContent></Card>
+            </Sheet>
           )}
 
           {tab === "factors" && (
@@ -221,9 +225,7 @@ function QuantLabInner() {
           {tab === "risk" && <RiskPanel report={report} />}
           {tab === "reversion" && <MeanReversionPanel report={report} />}
 
-          <Card><CardContent className="p-4">
-            <p className="text-[10px] text-aureus-muted leading-relaxed">{report.disclaimer}</p>
-          </CardContent></Card>
+          <Note>{report.disclaimer}</Note>
         </>
       )}
     </div>

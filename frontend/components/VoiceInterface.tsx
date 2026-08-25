@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useCallback } from "react";
+import { Mic } from "lucide-react";
 import { VoiceWebSocket, speakText, stopSpeaking, startBrowserSTT } from "@/lib/websocket";
 import type { VoiceMessage } from "@/lib/websocket";
 
@@ -64,7 +65,12 @@ export default function VoiceInterface({ userId, tier }: Props) {
       },
       () => {
         setInterim("");
-        if (status === "listening") setStatus("ready");
+        // Functional form, not `if (status === "listening")`. This callback
+        // fires when recognition ends — possibly seconds after
+        // startListening captured `status` — and the guard above has
+        // already narrowed that captured value to "ready", so the old
+        // comparison could never be true and the mic never reset itself.
+        setStatus((s) => (s === "listening" ? "ready" : s));
       },
     );
     srRef.current = recognition;
@@ -87,20 +93,20 @@ export default function VoiceInterface({ userId, tier }: Props) {
   const statusColor: Record<Status, string> = {
     disconnected: "text-aureus-muted",
     connecting:   "text-aureus-muted",
-    ready:        "text-aureus-green",
+    ready:        "text-aureus-verdigris",
     listening:    "text-aureus-gold",
-    thinking:     "text-blue-400",
-    speaking:     "text-purple-400",
+    thinking:     "text-aureus-amber",
+    speaking:     "text-aureus-goldbright",
   };
 
   return (
     <div className="space-y-4">
       {/* Status bar */}
-      <div className="flex items-center justify-between rounded-lg p-3 border border-aureus-border"
-           style={{ background: "var(--surface)" }}>
+      <div className="flex items-center justify-between rounded-lg p-3 border border-aureus-rule"
+           style={{ background: "var(--panel)" }}>
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${
-            status === "ready" ? "bg-aureus-green pulse-gold" :
+            status === "ready" ? "bg-aureus-verdigris pulse-gold" :
             status === "listening" ? "bg-aureus-gold pulse-gold" :
             "bg-aureus-muted"
           }`} />
@@ -112,8 +118,8 @@ export default function VoiceInterface({ userId, tier }: Props) {
       </div>
 
       {/* Conversation history */}
-      <div className="rounded-lg border border-aureus-border overflow-hidden"
-           style={{ background: "var(--surface)" }}>
+      <div className="rounded-lg border border-aureus-rule overflow-hidden"
+           style={{ background: "var(--panel)" }}>
         <div className="h-80 overflow-y-auto p-4 space-y-3">
           {turns.length === 0 && (
             <p className="text-aureus-muted text-sm text-center mt-8">
@@ -123,17 +129,17 @@ export default function VoiceInterface({ userId, tier }: Props) {
           {turns.map((turn, i) => (
             <div key={i} className={`flex gap-2 ${turn.role === "user" ? "justify-end" : "justify-start"}`}>
               {turn.role === "assistant" && (
-                <div className="w-6 h-6 rounded-full bg-aureus-gold flex items-center justify-center text-xs flex-shrink-0">
+                <div className="w-6 h-6 rounded-full bg-aureus-gold text-aureus-ink font-semibold flex items-center justify-center text-[11px] shrink-0">
                   A
                 </div>
               )}
               <div className={`max-w-xs rounded-lg px-3 py-2 text-sm ${
                 turn.role === "user"
-                  ? "bg-aureus-gold text-black"
-                  : "border border-aureus-border text-white"
+                  ? "bg-aureus-gold text-aureus-ink"
+                  : "border border-aureus-rule text-aureus-text"
               }`} style={turn.role === "assistant" ? { background: "var(--bg)" } : {}}>
                 {turn.text}
-                <div className={`text-xs mt-1 ${turn.role === "user" ? "text-amber-800" : "text-aureus-muted"}`}>
+                <div className={`text-xs mt-1 ${turn.role === "user" ? "text-aureus-ink/60" : "text-aureus-muted"}`}>
                   {turn.timestamp}
                 </div>
               </div>
@@ -160,31 +166,33 @@ export default function VoiceInterface({ userId, tier }: Props) {
         </div>
       )}
 
-      {/* Mic button */}
-      <div className="flex justify-center">
+      {/* Push-to-talk. An emoji stood in for the icon here, which on an
+          80px control renders at whatever size and weight the user's OS
+          decided — the one element on the page guaranteed to look
+          different on every machine. The disclaimer that used to sit below
+          now lives on the page, so it isn't stated twice. */}
+      <div className="flex flex-col items-center gap-2.5">
         <button
           onMouseDown={startListening}
           onMouseUp={stopListening}
           onTouchStart={startListening}
           onTouchEnd={stopListening}
           disabled={status === "disconnected" || status === "connecting" || status === "thinking"}
-          className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl
+          aria-label="Hold to speak"
+          className={`w-20 h-20 rounded-full flex items-center justify-center
                       transition-all duration-150 select-none
                       ${status === "listening"
-                        ? "bg-aureus-gold scale-110 shadow-lg shadow-amber-500/30"
-                        : "border-2 border-aureus-border hover:border-aureus-gold"
+                        ? "bg-aureus-gold text-aureus-ink scale-105 shadow-lift2"
+                        : "bg-aureus-panel border border-aureus-rulestrong text-aureus-soft hover:border-aureus-gold hover:text-aureus-gold"
                       }
                       disabled:opacity-40 disabled:cursor-not-allowed`}
-          style={status !== "listening" ? { background: "var(--surface)" } : {}}
         >
-          🎤
+          <Mic className="w-7 h-7" strokeWidth={1.75} />
         </button>
+        <span className="text-[11px] text-aureus-muted">
+          {status === "listening" ? "Release to send" : "Hold to speak"}
+        </span>
       </div>
-
-      <p className="text-center text-xs text-aureus-muted">
-        Nothing said here constitutes financial advice.
-        Voice sessions are processed by AI and may be logged for quality purposes.
-      </p>
     </div>
   );
 }

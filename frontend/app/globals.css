@@ -4,28 +4,82 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────────
+   AUREUS — "Tape"
+
+   Same family as before, with the lights turned up. The old palette read
+   as a dark room: #14160f panels against #0b0d09 ground gave barely five
+   points of luminance to separate a surface from the page, and #8a8676
+   muted text sat close enough to the background to disappear. Everything
+   below is the same hue at a higher value — warm near-black, antique
+   gold, oxidised verdigris, ledger oxblood, bone type.
+
+   Structural rules that go with it:
+   · Rules divide space; boxes are for things that are genuinely objects.
+   · Every number is tabular. Digits must not dance as they update.
+   · Gold is the only accent that means "act" — semantic colour is
+     reserved for direction (verdigris up, oxblood down) and never used
+     decoratively.
+   ───────────────────────────────────────────────────────────────────── */
+
 :root {
-  /* Warm near-black, not blue-black — like aged ledger leather */
-  --ink:       #0b0d09;
-  --panel:     #14160f;
-  --panel-lift: #191c13;
-  --rule:      #2e2c22;
-  --rule-soft: #201f18;
+  /* Ground and surfaces */
+  --ink:        #101309;   /* page ground */
+  --panel:      #191d12;   /* sheet — a card, a table, a panel */
+  --panel-lift: #232719;   /* raised: hover, nested wells, active rows */
+  --panel-high: #2c3120;   /* highest: selected nav, pressed states */
 
-  /* Antique gold, used sparingly — not flooding every border */
-  --gold:      #b8935a;
-  --gold-bright: #d4ac74;
+  /* Rules — three weights, used deliberately */
+  --rule:        #3a3728;  /* the default hairline */
+  --rule-strong: #57523c;  /* section breaks, table heads */
+  --rule-soft:   #2a2820;  /* inside a sheet, between dense rows */
 
-  /* Oxidized-bronze green / ledger-ink red, not flat traffic-light colors */
-  --verdigris: #6fa089;
-  --verdigris-bright: #8bbfa6;
-  --oxblood:   #a14545;
-  --oxblood-bright: #c05f5f;
+  /* Antique gold — the one accent that means "act" */
+  --gold:        #d9b478;
+  --gold-bright: #ecca94;
+  --gold-dim:    #8a7145;
 
-  --text:      #e8e4d8;
-  --text-muted: #8a8676;
+  /* Direction. Oxidised bronze-green and ledger-ink red, never the
+     flat traffic-light #22c55e / #ef4444 this project started with. */
+  --verdigris:        #83bda2;
+  --verdigris-bright: #a3d4bd;
+  --verdigris-dim:    #3f6552;
+  --oxblood:          #c46e6e;
+  --oxblood-bright:   #dc9090;
+  --oxblood-dim:      #6d3a3a;
 
-  /* legacy aliases so existing components using var(--bg)/var(--surface)/var(--border) still resolve */
+  /* Caution — for warnings that are neither gain nor loss */
+  --amber:     #d8a24a;
+  --amber-dim: #6d5227;
+
+  /* Type */
+  --text:       #f4f1e6;
+  --text-soft:  #cdc8b6;
+  --text-muted: #9c9783;
+
+  /* Charts */
+  --grid-line: #262a1c;
+
+  /* Categorical ramp — alternating warm/cool INSIDE the brand family.
+     Replaces the blue/purple/pink rainbow the donut used to draw, which
+     shared no hue with anything else on the page. */
+  --series-1: #d9b478;
+  --series-2: #83bda2;
+  --series-3: #a8894f;
+  --series-4: #5f8f7c;
+  --series-5: #c0a577;
+  --series-6: #4d7a67;
+  --series-7: #8a7145;
+  --series-8: #6f9f8c;
+
+  /* Elevation. A sheet is lifted by a shadow plus a one-pixel top
+     highlight, not by a heavier border. */
+  --lift-1: 0 1px 0 rgba(255, 255, 255, 0.025) inset, 0 6px 18px -10px rgba(0, 0, 0, 0.75);
+  --lift-2: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 14px 34px -14px rgba(0, 0, 0, 0.85);
+  --lift-modal: 0 24px 64px -16px rgba(0, 0, 0, 0.9);
+
+  /* Legacy aliases. Kept so any component not yet converted still
+     resolves rather than falling back to transparent. */
   --bg: var(--ink);
   --surface: var(--panel);
   --border: var(--rule);
@@ -41,23 +95,67 @@ body {
   color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 /* ── Typography roles ────────────────────────────────────────────────── */
+
 .font-display {
   font-family: 'Fraunces', Georgia, serif;
   font-optical-sizing: auto;
+  letter-spacing: -0.015em;
 }
+
+/* Every figure on the platform. Tabular so a column of numbers stays a
+   column when the values change — this is not decoration, it is how
+   trading software has worked since the first Bloomberg terminal. */
 .font-mono-num {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
-/* ── Signature element: guilloché engraving texture ─────────────────────
-   The wavy engine-turned line pattern used on currency and stock
-   certificates as anti-counterfeit engraving. Used sparingly — corner
-   accents only, low opacity — as the one throughline aesthetic risk. */
+/* Small caps section label. The `.rule-label` variant draws its own
+   trailing hairline, which is how most of the app divides space now. */
+.label-caps {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.rule-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rule-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+/* ── Surfaces ────────────────────────────────────────────────────────── */
+
+.sheet {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+.sheet-lift {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-top-color: var(--gold-dim);
+  border-radius: 10px;
+  box-shadow: var(--lift-1);
+}
+
+/* ── Signature: guilloché engraving ──────────────────────────────────────
+   The engine-turned line pattern used on banknotes and share certificates
+   as anti-counterfeit engraving. Corner accents only, low opacity — the
+   one throughline aesthetic risk. Opacity drops from .07 to .05 because
+   the gold above is materially brighter than the one this was tuned to. */
 .guilloche-corner {
   position: relative;
   overflow: hidden;
@@ -67,7 +165,7 @@ body {
   position: absolute;
   top: -20px; right: -20px;
   width: 140px; height: 140px;
-  opacity: 0.07;
+  opacity: 0.05;
   pointer-events: none;
   background-image: repeating-radial-gradient(
     circle at 100% 0%,
@@ -77,22 +175,64 @@ body {
   );
 }
 
-/* Scrollbars */
-::-webkit-scrollbar       { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: var(--panel); }
-::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 2px; }
+/* ── The tape ────────────────────────────────────────────────────────────
+   The scrolling price strip that runs above every dashboard page. Track
+   is rendered twice at 2× width so translating -50% loops seamlessly. */
+@keyframes tape-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.tape-track {
+  animation: tape-scroll 48s linear infinite;
+  width: max-content;
+}
+.tape:hover .tape-track { animation-play-state: paused; }
 
-/* Recharts dark overrides */
-.recharts-cartesian-axis-tick-value { fill: var(--text-muted) !important; font-family: 'JetBrains Mono', monospace !important; }
-.recharts-tooltip-wrapper .recharts-default-tooltip {
-  background: var(--ink) !important;
-  border: 1px solid var(--rule) !important;
-  border-radius: 8px !important;
+/* ── Ledger rows ─────────────────────────────────────────────────────────
+   A gold edge tick appears on the row under the cursor instead of a wash
+   of background colour — it marks position without repainting the row. */
+.ledger-row {
+  box-shadow: inset 2px 0 0 transparent;
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+.ledger-row:hover {
+  background: var(--panel-lift);
+  box-shadow: inset 2px 0 0 var(--gold);
 }
 
-/* Animations */
-@keyframes pulse-gold { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-.pulse-gold { animation: pulse-gold 2.2s ease-in-out infinite; }
+/* ── Focus ───────────────────────────────────────────────────────────────
+   Visible, gold, and never removed. Keyboard users are the ones who most
+   need to know where they are. */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* ── Scrollbars ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--rule-strong); }
+* { scrollbar-color: var(--rule) transparent; scrollbar-width: thin; }
+
+/* ── Recharts ────────────────────────────────────────────────────────── */
+.recharts-cartesian-axis-tick-value {
+  fill: var(--text-muted) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 10px !important;
+}
+.recharts-cartesian-grid line { stroke: var(--grid-line) !important; }
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--panel-lift) !important;
+  border: 1px solid var(--rule) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--lift-2) !important;
+}
+
+/* ── Animation ───────────────────────────────────────────────────────── */
+@keyframes pulse-gold { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.pulse-gold { animation: pulse-gold 2.4s ease-in-out infinite; }
 
 @keyframes voice-bar { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
 .voice-bar { animation: voice-bar 0.8s ease-in-out infinite; transform-origin: bottom; }
@@ -104,6 +244,10 @@ body {
 @keyframes slide-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 .slide-in { animation: slide-in 0.3s ease-out; }
 
+@keyframes rise-in { from { transform: translateY(6px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.rise-in { animation: rise-in 0.24s ease-out both; }
+
 @media (prefers-reduced-motion: reduce) {
-  .pulse-gold, .voice-bar, .slide-in { animation: none; }
+  .pulse-gold, .voice-bar, .slide-in, .rise-in, .tape-track { animation: none; }
+  * { transition-duration: 1ms !important; }
 }

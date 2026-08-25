@@ -28,11 +28,11 @@ function verdict(a: FullAnalysis): { label: string; cls: string } {
   if (a.signal === "BUY")
     return strong
       ? { label: "STRONG BUY", cls: "bg-aureus-verdigris text-aureus-ink" }
-      : { label: "BUY", cls: "bg-green-950/60 text-aureus-green border border-aureus-green/40" };
+      : { label: "BUY", cls: "bg-aureus-verdigris/10 text-aureus-verdigris border border-aureus-verdigrisdim/40" };
   if (a.signal === "SELL")
     return strong
-      ? { label: "STRONG SELL", cls: "bg-aureus-oxblood text-white" }
-      : { label: "SELL", cls: "bg-red-950/60 text-aureus-red border border-aureus-red/40" };
+      ? { label: "STRONG SELL", cls: "bg-aureus-oxblood text-aureus-text" }
+      : { label: "SELL", cls: "bg-aureus-oxblood/10 text-aureus-oxblood border border-aureus-oxblooddim/40" };
   return { label: "HOLD", cls: "bg-aureus-rule/40 text-aureus-gold border border-aureus-gold/40" };
 }
 
@@ -45,7 +45,7 @@ function MetricTile({ label, value, hint }: { label: string; value: string; hint
   return (
     <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
       <div className="text-[10px] uppercase tracking-wider text-aureus-muted">{label}</div>
-      <div className="text-base font-semibold text-white mt-0.5 font-mono">{value}</div>
+      <div className="text-base font-semibold text-aureus-text mt-0.5 font-mono">{value}</div>
       {hint && <div className="text-[10px] text-aureus-muted mt-0.5">{hint}</div>}
     </div>
   );
@@ -95,7 +95,7 @@ export default function TickerAnalysisPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold text-white tracking-tight">{ticker}</h1>
+                <h1 className="text-3xl font-bold text-aureus-text tracking-tight">{ticker}</h1>
                 {v && <span className={`rounded px-2.5 py-1 text-xs font-bold tracking-wider ${v.cls}`}>{v.label}</span>}
               </div>
               {data && (
@@ -117,7 +117,7 @@ export default function TickerAnalysisPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Another ticker"
-                  className="w-40 rounded-md border border-aureus-border pl-8 pr-3 py-1.5 text-sm text-white
+                  className="w-40 rounded-md border border-aureus-rule pl-8 pr-3 py-1.5 text-sm text-aureus-text
                              placeholder:text-aureus-muted/50 focus:outline-none focus:border-aureus-gold"
                   style={{ background: "var(--bg)" }}
                 />
@@ -131,15 +131,15 @@ export default function TickerAnalysisPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-aureus-muted uppercase tracking-wider">Confidence Index</span>
-                <span className="font-mono text-white">{data.confidence_index.toFixed(1)} / 100</span>
+                <span className="font-mono text-aureus-text">{data.confidence_index.toFixed(1)} / 100</span>
               </div>
               <div className="h-2 rounded-full bg-aureus-rule overflow-hidden relative">
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
                     width: `${Math.max(0, Math.min(100, data.confidence_index))}%`,
-                    background: data.confidence_index >= 65 ? "#22c55e"
-                              : data.confidence_index < 35 ? "#ef4444" : "#d4a843",
+                    background: data.confidence_index >= 65 ? "var(--verdigris)"
+                              : data.confidence_index < 35 ? "var(--oxblood)" : "var(--gold)",
                   }}
                 />
               </div>
@@ -160,7 +160,7 @@ export default function TickerAnalysisPage() {
                 className={`flex-1 rounded-md border px-3 py-2 text-left transition-colors ${
                   horizon === h.value
                     ? "border-aureus-gold bg-aureus-gold/10"
-                    : "border-aureus-border hover:border-aureus-muted"
+                    : "border-aureus-rule hover:border-aureus-muted"
                 }`}
               >
                 <div className={`text-xs font-medium ${horizon === h.value ? "text-aureus-gold" : "text-aureus-text"}`}>
@@ -181,7 +181,7 @@ export default function TickerAnalysisPage() {
 
       {error && !loading && (
         <Card><CardContent className="p-8 text-center space-y-3">
-          <p className="text-aureus-red text-sm">{error}</p>
+          <p className="text-aureus-oxblood text-sm">{error}</p>
           <Button variant="outline" size="sm" onClick={load}>Retry</Button>
         </CardContent></Card>
       )}

@@ -59,40 +59,40 @@ export default function LessonQuiz({
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-white font-semibold">Knowledge Check</h3>
+          <h3 className="text-aureus-text font-semibold">Knowledge Check</h3>
           <p className="text-xs text-aureus-muted mt-0.5">
             {questions.length} question{questions.length === 1 ? "" : "s"} · {passMark} correct to pass
             {bonusXp > 0 && !alreadyPassed && ` · +${bonusXp} XP bonus`}
           </p>
         </div>
         {alreadyPassed && (
-          <span className="text-xs text-aureus-green border border-aureus-green/40 bg-green-950/20 rounded px-2 py-0.5">
+          <span className="text-xs text-aureus-verdigris border border-aureus-verdigrisdim/40 bg-aureus-verdigris/10 rounded px-2 py-0.5">
             ✓ Passed
           </span>
         )}
       </div>
 
       {error && (
-        <div className="rounded-lg border border-aureus-red bg-red-950/20 p-3 text-aureus-red text-xs">{error}</div>
+        <div className="rounded-lg border border-aureus-oxblooddim bg-aureus-oxblood/10 p-3 text-aureus-oxblood text-xs">{error}</div>
       )}
 
       {questions.map((q, qi) => {
         const r = resultFor(qi);
         return (
-          <div key={qi} className="rounded-lg border border-aureus-border p-4 space-y-3"
+          <div key={qi} className="rounded-lg border border-aureus-rule p-4 space-y-3"
                style={{ background: "var(--bg)" }}>
-            <p className="text-sm text-white font-medium">
+            <p className="text-sm text-aureus-text font-medium">
               <span className="text-aureus-muted mr-2">{qi + 1}.</span>{q.question}
             </p>
 
             <div className="space-y-1.5">
               {q.options.map((opt, oi) => {
                 const selected = answers[qi] === oi;
-                let tone = "border-aureus-border text-aureus-text hover:border-aureus-muted";
+                let tone = "border-aureus-rule text-aureus-text hover:border-aureus-muted";
                 if (r) {
-                  if (oi === r.correct_index) tone = "border-aureus-green bg-green-950/20 text-aureus-green";
-                  else if (selected) tone = "border-aureus-red bg-red-950/20 text-aureus-red";
-                  else tone = "border-aureus-border/50 text-aureus-muted";
+                  if (oi === r.correct_index) tone = "border-aureus-verdigrisdim bg-aureus-verdigris/10 text-aureus-verdigris";
+                  else if (selected) tone = "border-aureus-oxblooddim bg-aureus-oxblood/10 text-aureus-oxblood";
+                  else tone = "border-aureus-rule/50 text-aureus-muted";
                 } else if (selected) {
                   tone = "border-aureus-gold bg-aureus-gold/10 text-aureus-gold";
                 }
@@ -132,9 +132,9 @@ export default function LessonQuiz({
         </Button>
       ) : (
         <div className={`rounded-lg border p-4 text-center space-y-2 ${
-          result.passed ? "border-aureus-green bg-green-950/20" : "border-aureus-gold bg-amber-950/20"
+          result.passed ? "border-aureus-verdigrisdim bg-aureus-verdigris/10" : "border-aureus-gold bg-aureus-amber/10"
         }`}>
-          <p className={`text-lg font-semibold ${result.passed ? "text-aureus-green" : "text-aureus-gold"}`}>
+          <p className={`text-lg font-semibold ${result.passed ? "text-aureus-verdigris" : "text-aureus-gold"}`}>
             {result.score} / {result.total} correct
           </p>
           <p className="text-xs text-aureus-muted">

@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
+import { FlaskConical } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { EmptyState, ErrorNote, Note, PageHeader } from "@/components/ui/primitives";
 import StrategyBuilder from "@/components/backtest/StrategyBuilder";
 import ResultsOverviewCards from "@/components/backtest/ResultsOverviewCards";
 import EquityCurveChart from "@/components/backtest/EquityCurveChart";
@@ -32,18 +34,17 @@ export default function BacktestPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Strategy Backtesting</h1>
-        <p className="text-aureus-muted text-sm mt-0.5">
-          Define a rule-based trading strategy and simulate it against historical price data —
-          full trade log, equity curve vs. S&amp;P 500, and institutional performance metrics.
-        </p>
-      </div>
+      <PageHeader
+        title="Backtesting"
+        lead="Define a rule-based strategy and simulate it trade by trade against historical prices —
+              full execution log, equity curve against the S&amp;P 500, and the performance statistics
+              an allocator would actually ask for."
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 items-start">
         <Card>
           <CardHeader>
-            <CardTitle>Strategy Builder</CardTitle>
+            <CardTitle>Strategy builder</CardTitle>
           </CardHeader>
           <CardContent>
             <StrategyBuilder onRun={handleRun} running={running} />
@@ -52,27 +53,22 @@ export default function BacktestPage() {
 
         <div className="space-y-6">
           {error && (
-            <div className="rounded-lg border border-aureus-red bg-red-950/20 p-4 text-aureus-red text-sm">
-              {error}
-            </div>
+            <ErrorNote>{error}</ErrorNote>
           )}
 
           {!result && !error && !running && (
-            <Card>
-              <CardContent className="p-16 text-center">
-                <div className="text-4xl mb-3">📊</div>
-                <p className="text-aureus-muted text-sm">
-                  Configure a strategy on the left and click Run Backtest to see performance
-                  metrics, an equity curve vs. the S&amp;P 500, and a full trade log here.
-                </p>
-              </CardContent>
+            <Card flat>
+              <EmptyState icon={FlaskConical} title="No backtest run yet">
+                Configure a strategy on the left and run it. Performance statistics, an equity
+                curve against the S&amp;P 500, and every simulated trade will appear here.
+              </EmptyState>
             </Card>
           )}
 
           {running && (
-            <Card>
-              <CardContent className="p-16 text-center">
-                <p className="text-aureus-muted text-sm">Running backtest — simulating trade-by-trade execution…</p>
+            <Card flat>
+              <CardContent className="py-16 text-center">
+                <p className="text-aureus-muted text-sm">Simulating trade-by-trade execution…</p>
               </CardContent>
             </Card>
           )}
@@ -83,7 +79,7 @@ export default function BacktestPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Equity Curve — Strategy vs. S&amp;P 500</CardTitle>
+                  <CardTitle>Equity curve — strategy vs. S&amp;P 500</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <EquityCurveChart points={result.equity_curve} />
@@ -92,7 +88,7 @@ export default function BacktestPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Trade Log</CardTitle>
+                  <CardTitle>Trade log</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <TradesTable trades={result.trades} />
@@ -100,11 +96,12 @@ export default function BacktestPage() {
               </Card>
 
               {(result.config.tickers as string[])?.length > 0 && (
-                <p className="text-xs text-aureus-muted px-1">
+                <Note>
                   Backtest of {(result.config.tickers as string[]).join(", ")} from{" "}
                   {result.config.start_date as string} to {result.config.end_date as string}.
-                  Past performance does not indicate future results. This is not financial advice.
-                </p>
+                  Simulated results carry no execution slippage beyond what the model applies, and
+                  past performance does not indicate future results. Not financial advice.
+                </Note>
               )}
             </>
           )}

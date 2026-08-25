@@ -72,38 +72,38 @@ export default function AddPositionModal({ portfolioId, userId, onClose, onAdded
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <form onSubmit={handleSubmit}
-            className="w-full max-w-sm rounded-xl border border-aureus-border p-5 space-y-4"
-            style={{ background: "var(--surface)" }}
+            className="w-full max-w-sm rounded-xl border border-aureus-rule p-5 space-y-4"
+            style={{ background: "var(--panel)" }}
             onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-white text-lg" style={{ fontWeight: 600 }}>
+          <h3 className="font-display text-aureus-text text-lg" style={{ fontWeight: 600 }}>
             {isEditing ? `Edit ${editingHolding?.ticker}` : "Add Position"}
           </h3>
           {isEditing && (
             <button type="button" onClick={() => setConfirmDelete(true)}
-                    className="text-aureus-red hover:text-red-400 transition-colors" aria-label="Delete position">
+                    className="text-aureus-oxblood hover:text-aureus-oxblood transition-colors" aria-label="Delete position">
               <Trash2 className="w-4 h-4" />
             </button>
           )}
         </div>
 
         {error && (
-          <div className="rounded p-2 bg-red-950/40 border border-aureus-red text-aureus-red text-xs">{error}</div>
+          <div className="rounded p-2 bg-aureus-oxblood/10 border border-aureus-oxblooddim text-aureus-oxblood text-xs">{error}</div>
         )}
 
         {confirmDelete ? (
           <div className="space-y-3 py-2">
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-aureus-soft">
               Remove your entire {editingHolding?.ticker} position ({editingHolding?.quantity} shares)?
               This can&apos;t be undone.
             </p>
             <div className="flex gap-2">
               <button type="button" onClick={handleDelete} disabled={deleting}
-                      className="flex-1 py-2 rounded-lg border border-aureus-red text-aureus-red text-sm font-semibold hover:bg-red-950/30 disabled:opacity-50">
+                      className="flex-1 py-2 rounded-lg border border-aureus-oxblooddim text-aureus-oxblood text-sm font-semibold hover:bg-aureus-oxblood/10 disabled:opacity-50">
                 {deleting ? "Removing..." : "Yes, remove it"}
               </button>
               <button type="button" onClick={() => setConfirmDelete(false)}
-                      className="px-4 py-2 rounded-lg border border-aureus-border text-aureus-muted text-sm hover:text-white">
+                      className="px-4 py-2 rounded-lg border border-aureus-rule text-aureus-muted text-sm hover:text-aureus-text">
                 Cancel
               </button>
             </div>
@@ -118,7 +118,7 @@ export default function AddPositionModal({ portfolioId, userId, onClose, onAdded
                   onChange={(e) => setTicker(e.target.value.toUpperCase())}
                   placeholder="AAPL"
                   maxLength={10}
-                  className="w-full bg-transparent border border-aureus-border rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-aureus-gold"
+                  className="w-full bg-transparent border border-aureus-rule rounded px-3 py-2 text-aureus-text text-sm focus:outline-none focus:border-aureus-gold"
                 />
               </div>
             )}
@@ -130,7 +130,7 @@ export default function AddPositionModal({ portfolioId, userId, onClose, onAdded
                   type="number" step="any" value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
                   placeholder="10"
-                  className="w-full bg-transparent border border-aureus-border rounded px-3 py-2 text-white text-sm font-mono-num focus:outline-none focus:border-aureus-gold"
+                  className="w-full bg-transparent border border-aureus-rule rounded px-3 py-2 text-aureus-text text-sm font-mono-num focus:outline-none focus:border-aureus-gold"
                 />
               </div>
               <div className="space-y-1">
@@ -139,7 +139,7 @@ export default function AddPositionModal({ portfolioId, userId, onClose, onAdded
                   type="number" step="any" value={costBasis}
                   onChange={(e) => setCostBasis(e.target.value)}
                   placeholder="175.00"
-                  className="w-full bg-transparent border border-aureus-border rounded px-3 py-2 text-white text-sm font-mono-num focus:outline-none focus:border-aureus-gold"
+                  className="w-full bg-transparent border border-aureus-rule rounded px-3 py-2 text-aureus-text text-sm font-mono-num focus:outline-none focus:border-aureus-gold"
                 />
               </div>
             </div>
@@ -152,11 +152,11 @@ export default function AddPositionModal({ portfolioId, userId, onClose, onAdded
 
             <div className="flex gap-2 pt-1">
               <button type="submit" disabled={loading}
-                      className="flex-1 py-2 rounded-lg bg-aureus-gold text-black font-semibold text-sm hover:opacity-90 disabled:opacity-50">
+                      className="flex-1 py-2 rounded-lg bg-aureus-gold text-aureus-ink font-semibold text-sm hover:opacity-90 disabled:opacity-50">
                 {loading ? "Saving..." : isEditing ? "Save Changes" : "Add Position"}
               </button>
               <button type="button" onClick={onClose}
-                      className="px-4 py-2 rounded-lg border border-aureus-border text-aureus-muted text-sm hover:text-white">
+                      className="px-4 py-2 rounded-lg border border-aureus-rule text-aureus-muted text-sm hover:text-aureus-text">
                 Cancel
               </button>
             </div>

@@ -1,181 +1,251 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
-import { Bell, Plus } from "lucide-react";
-import { MetricCard, PositionTable } from "@/components/dashboard/DashboardWidgets";
+/**
+ * Portfolio dashboard.
+ *
+ * Built on the Tape idiom: one dominant figure with its own sparkline,
+ * supporting numbers in hairline-divided columns rather than a row of
+ * identical stat cards, allocation as a single segmented bar rather than
+ * a donut with a legend, and the wire as hanging timestamps rather than
+ * one bordered card per headline.
+ */
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Newspaper, Plus, Wallet } from "lucide-react";
+import { usePortfolio } from "@/components/dashboard/PortfolioProvider";
 import AddPositionModal from "@/components/dashboard/AddPositionModal";
 import DailyLesson from "@/components/dashboard/DailyLesson";
 import PriceChart from "@/components/charts/PriceChart";
-import PortfolioDonut from "@/components/charts/PortfolioDonut";
 import AlertFeed from "@/components/AlertFeed";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { PositionTable } from "@/components/dashboard/DashboardWidgets";
 import { Button } from "@/components/ui/button";
-import { ensureDefaultPortfolio, listHoldings } from "@/lib/api";
-import type { Holding as ApiHolding } from "@/lib/api";
+import {
+  CapsLabel, EmptyState, Figure, RuledLabel, Segmented, SegmentedBar,
+  Sheet, Sparkline, StatColumns,
+} from "@/components/ui/primitives";
+import { getBars } from "@/lib/api";
+import type { PriceBar, Holding as ApiHolding } from "@/lib/api";
+import { money, signed, signedMoney } from "@/lib/format";
 import type { Holding } from "@/types";
 
-const DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN"];
-
-function toDisplayHolding(h: ApiHolding): Holding {
-  return {
-    id: h.id, ticker: h.ticker, quantity: h.quantity, average_cost_basis: h.average_cost_basis,
-    current_price: h.current_price, current_weight: h.current_weight, beta: h.beta,
-  };
-}
+const FALLBACK_TICKERS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN"];
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
-  const userId = session?.user?.id ?? "";
+  const { userId, portfolioId, holdings, apiHoldings, totals, loading, error, reload } = usePortfolio();
 
-  const [portfolioId, setPortfolioId] = useState<string | null>(null);
-  const [holdings, setHoldings] = useState<Holding[]>([]);
-  const [totals, setTotals] = useState({ totalValue: 0, pnl: 0, pnlPct: 0 });
-  const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingHolding, setEditingHolding] = useState<Holding | null>(null);
-  const [activeTicker, setActiveTicker] = useState("AAPL");
+  const [showAdd, setShowAdd] = useState(false);
+  const [editing, setEditing] = useState<ApiHolding | null>(null);
+  const [activeTicker, setActiveTicker] = useState<string | null>(null);
+  const [spark, setSpark] = useState<PriceBar[]>([]);
 
-  const loadPortfolio = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    try {
-      const { portfolio_id } = await ensureDefaultPortfolio(userId);
-      setPortfolioId(portfolio_id);
-      const data = await listHoldings(portfolio_id);
-      setHoldings(data.holdings.map(toDisplayHolding));
-      setTotals({ totalValue: data.total_value, pnl: data.total_pnl, pnlPct: data.total_pnl_pct });
-    } catch (e) {
-      console.error("Failed to load portfolio:", e);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+  const tickers = holdings.length ? holdings.map((h) => h.ticker).slice(0, 6) : FALLBACK_TICKERS;
 
-  useEffect(() => { loadPortfolio(); }, [loadPortfolio]);
+  // Open on the largest position rather than a hardcoded AAPL the user may
+  // not even hold. Only seeds once — after that the choice is the user's.
+  useEffect(() => {
+    if (activeTicker || !holdings.length) return;
+    const largest = [...holdings].sort((a, b) => (b.current_weight ?? 0) - (a.current_weight ?? 0))[0];
+    setActiveTicker(largest.ticker);
+  }, [holdings, activeTicker]);
 
-  const chartTickers = holdings.length > 0 ? holdings.map((h) => h.ticker).slice(0, 6) : DEFAULT_TICKERS;
+  const charted = activeTicker ?? tickers[0];
+
+  // Sparkline for the hero figure. Separate from the main chart's own
+  // fetch because it should not blank out while the user flips tickers.
+  useEffect(() => {
+    if (!charted) return;
+    let cancelled = false;
+    getBars(charted, 90, "1d")
+      .then((r) => { if (!cancelled) setSpark(r.bars); })
+      .catch(() => { /* the sparkline is ornamental — never block on it */ });
+    return () => { cancelled = true; };
+  }, [charted]);
+
+  const sparkStats = useMemo(() => {
+    if (spark.length < 2) return null;
+    const closes = spark.map((b) => b.close);
+    const changePct = ((closes[closes.length - 1] - closes[0]) / closes[0]) * 100;
+    return { closes, changePct };
+  }, [spark]);
+
+  const allocation = useMemo(
+    () =>
+      holdings
+        .filter((h) => (h.current_weight ?? 0) > 0)
+        .sort((a, b) => (b.current_weight ?? 0) - (a.current_weight ?? 0))
+        .slice(0, 8)
+        .map((h) => ({ label: h.ticker, value: h.current_weight ?? 0 })),
+    [holdings]
+  );
+
+  const up = totals.pnl >= 0;
+  const priced = holdings.filter((h) => h.current_price != null).length;
+
+  const onEdit = (h: Holding) => setEditing(apiHoldings.find((a) => a.id === h.id) ?? null);
 
   return (
-    <div className="space-y-6">
-      {showAddModal && portfolioId && (
-        <AddPositionModal
-          portfolioId={portfolioId}
-          userId={userId}
-          onClose={() => setShowAddModal(false)}
-          onAdded={loadPortfolio}
-        />
+    <div className="space-y-7">
+      {showAdd && portfolioId && (
+        <AddPositionModal portfolioId={portfolioId} userId={userId}
+                          onClose={() => setShowAdd(false)} onAdded={reload} />
+      )}
+      {editing && portfolioId && (
+        <AddPositionModal portfolioId={portfolioId} userId={userId} editingHolding={editing}
+                          onClose={() => setEditing(null)} onAdded={reload} />
       )}
 
-      {editingHolding && portfolioId && (
-        <AddPositionModal
-          portfolioId={portfolioId}
-          userId={userId}
-          editingHolding={editingHolding}
-          onClose={() => setEditingHolding(null)}
-          onAdded={loadPortfolio}
-        />
-      )}
-
-      {/* Page header */}
-      <div className="flex items-center justify-between">
+      {/* ── Header ─────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl text-aureus-text" style={{ fontWeight: 600 }}>Portfolio Intelligence</h1>
-          <p className="text-aureus-muted text-sm mt-0.5">
-            {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+          <h1 className="font-display text-[28px] leading-none">Portfolio</h1>
+          <p className="text-[13px] text-aureus-muted mt-2">
+            {loading
+              ? "Loading your positions…"
+              : holdings.length === 0
+                ? "No positions on file yet."
+                : `${holdings.length} position${holdings.length === 1 ? "" : "s"} · ${priced} priced`}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button size="sm" onClick={() => setShowAddModal(true)} disabled={!portfolioId}>
-            <Plus className="w-4 h-4 mr-1" /> Add Position
-          </Button>
-          <div className="flex items-center gap-2 text-xs border border-aureus-border rounded px-3 py-1.5"
-               style={{ background: "var(--surface)" }}>
-            <div className="w-2 h-2 rounded-full bg-aureus-green pulse-gold" />
-            <span className="text-aureus-muted">Live</span>
+        <Button onClick={() => setShowAdd(true)} disabled={!portfolioId}>
+          <Plus className="w-4 h-4" strokeWidth={2.25} /> Add position
+        </Button>
+      </div>
+
+      {error && (
+        <Sheet className="px-5 py-3.5 border-aureus-oxblooddim">
+          <p className="text-[13px] text-aureus-oxblood">{error}</p>
+        </Sheet>
+      )}
+
+      {/* ── Hero figure + composition ──────────────────────────────── */}
+      <Sheet lift className="overflow-hidden">
+        <div className="grid lg:grid-cols-[1.35fr_2fr]">
+          <div className="p-6 flex flex-col min-w-0 border-b lg:border-b-0 lg:border-r border-aureus-rule">
+            <CapsLabel>Portfolio value</CapsLabel>
+            <Figure className="mt-2.5 leading-none" style={{ fontSize: "clamp(2.25rem,4.5vw,3.25rem)", letterSpacing: "-0.03em" }}>
+              {loading ? "—" : money(totals.totalValue)}
+            </Figure>
+            <div className="flex items-center gap-3 mt-3">
+              <Figure tone={up ? "up" : "down"} className="text-lg">
+                {loading ? "—" : signedMoney(totals.pnl)}
+              </Figure>
+              {!loading && (
+                <span className={`font-mono-num text-[12px] px-1.5 py-0.5 rounded ${
+                  up ? "bg-aureus-verdigris/15 text-aureus-verdigris" : "bg-aureus-oxblood/15 text-aureus-oxblood"
+                }`}>
+                  {signed(totals.pnlPct)}%
+                </span>
+              )}
+            </div>
+
+            {sparkStats && charted && (
+              <div className="mt-auto pt-5 border-t border-aureus-rulesoft">
+                {/* The sparkline tracks the CHARTED TICKER, not the
+                    portfolio — there is no portfolio-level time series in
+                    the API yet, and drawing one from nothing would put a
+                    fabricated curve next to real money. Hence the label. */}
+                <CapsLabel>{charted} · 90 sessions</CapsLabel>
+                <div className="flex items-end gap-3 mt-2">
+                  <Sparkline values={sparkStats.closes} tone={sparkStats.changePct >= 0 ? "up" : "down"} width={150} height={36} />
+                  <Figure tone={sparkStats.changePct >= 0 ? "up" : "down"} className="text-xs pb-0.5">
+                    {signed(sparkStats.changePct)}%
+                  </Figure>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      </div>
 
-      {/* Daily lesson */}
-      <DailyLesson userId={userId} />
-
-      {/* Metric cards */}
-      <div className="grid grid-cols-4 gap-4">
-        <MetricCard
-          label="Portfolio Value"
-          value={loading ? "…" : `$${totals.totalValue.toLocaleString("en-US", { maximumFractionDigits: 0 })}`}
-          sub={holdings.length === 0 ? "No positions yet" : "Live pricing"}
-        />
-        <MetricCard
-          label="Total P&L"
-          value={loading ? "…" : `${totals.pnl >= 0 ? "+" : ""}$${Math.abs(totals.pnl).toLocaleString("en-US", { maximumFractionDigits: 0 })}`}
-          sub={holdings.length === 0 ? "—" : `${totals.pnlPct >= 0 ? "+" : ""}${totals.pnlPct.toFixed(2)}% all-time`}
-          trend={totals.pnl >= 0 ? "up" : "down"}
-        />
-        <MetricCard label="Positions" value={loading ? "…" : String(holdings.length)} sub={holdings.length === 0 ? "Add your first position" : "Tracked"} />
-        <MetricCard label="Data Source" value="Polygon" sub="Real-time via fallback chain" />
-      </div>
-
-      {/* Main content: chart + alerts */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="col-span-2">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle>Price Chart & Signals</CardTitle>
-              <div className="flex gap-1 flex-wrap justify-end">
-                {chartTickers.map((t) => (
-                  <button key={t} onClick={() => setActiveTicker(t)}
-                          className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
-                            activeTicker === t ? "bg-aureus-gold text-black" : "text-aureus-muted hover:text-white"
-                          }`}>
-                    {t}
-                  </button>
-                ))}
+          <div>
+            <StatColumns
+              className="border-b border-aureus-rule"
+              items={[
+                { label: "Invested", value: loading ? "—" : money(totals.cost), sub: "cost basis" },
+                { label: "Positions", value: loading ? "—" : String(holdings.length), sub: `${priced} priced` },
+                {
+                  label: "Return on cost",
+                  value: loading ? "—" : `${signed(totals.pnlPct)}%`,
+                  sub: "all-time",
+                  tone: up ? "up" : "down",
+                },
+              ]}
+            />
+            <div className="p-5">
+              <CapsLabel>Allocation</CapsLabel>
+              <div className="mt-3">
+                {allocation.length > 0 ? (
+                  <SegmentedBar segments={allocation} />
+                ) : (
+                  <p className="text-[13px] text-aureus-muted py-2">
+                    Add a position to see how your capital is distributed.
+                  </p>
+                )}
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <PriceChart ticker={activeTicker} horizon="medium_term" />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+      </Sheet>
 
-        <Card className="overflow-hidden">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Bell className="w-3 h-3" /> Alerts & News</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="h-[420px] overflow-y-auto px-4 pb-4">
-              <AlertFeed userId={userId} />
-            </div>
-          </CardContent>
-        </Card>
+      {/* ── Chart + wire ───────────────────────────────────────────── */}
+      <div className="grid lg:grid-cols-[1.55fr_1fr] gap-5">
+        <Sheet className="min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-aureus-rule">
+            <CapsLabel>Price &amp; signals</CapsLabel>
+            <Segmented
+              value={charted ?? ""}
+              onChange={setActiveTicker}
+              options={tickers.map((t) => ({ value: t, label: t }))}
+            />
+          </div>
+          <div className="p-4">
+            {charted && <PriceChart ticker={charted} horizon="medium_term" />}
+          </div>
+        </Sheet>
+
+        <Sheet className="min-w-0 flex flex-col">
+          <div className="px-5 py-3 border-b border-aureus-rule">
+            <CapsLabel>The wire</CapsLabel>
+          </div>
+          <div className="flex-1 overflow-y-auto px-5" style={{ maxHeight: 420 }}>
+            <AlertFeed userId={userId} />
+          </div>
+        </Sheet>
       </div>
 
-      {/* Portfolio allocation + positions */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardHeader><CardTitle>Allocation</CardTitle></CardHeader>
-          <CardContent>
-            {holdings.length > 0
-              ? <PortfolioDonut holdings={holdings} />
-              : <p className="text-aureus-muted text-sm text-center py-8">Add a position to see allocation</p>}
-          </CardContent>
-        </Card>
+      {/* ── Positions ──────────────────────────────────────────────── */}
+      <Sheet className="overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-aureus-rule">
+          <CapsLabel>Positions</CapsLabel>
+          {holdings.length > 0 && (
+            <span className="text-[10px] text-aureus-muted">Click a row to edit or remove</span>
+          )}
+        </div>
+        {loading ? (
+          <p className="px-5 py-8 text-sm text-aureus-muted">Loading positions…</p>
+        ) : holdings.length === 0 ? (
+          <EmptyState
+            icon={Wallet}
+            title="No holdings yet"
+            action={<Button size="sm" onClick={() => setShowAdd(true)} disabled={!portfolioId}>Add your first position</Button>}
+          >
+            Add what you own and the platform starts pricing it, watching the wire for
+            news that touches it, and scoring it across all three pillars.
+          </EmptyState>
+        ) : (
+          <PositionTable holdings={holdings} onEditHolding={onEdit} />
+        )}
+      </Sheet>
 
-        <Card className="col-span-2">
-          <CardHeader className="flex-row items-center justify-between">
-            <CardTitle>Positions</CardTitle>
-            {holdings.length > 0 && <span className="text-[10px] text-aureus-muted normal-case">Click a row to edit or remove</span>}
-          </CardHeader>
-          <CardContent className="p-0 pb-2">
-            {loading ? (
-              <p className="text-center py-10 text-aureus-muted text-sm">Loading positions...</p>
-            ) : (
-              <PositionTable holdings={holdings} onEditHolding={setEditingHolding} />
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* ── Lesson ─────────────────────────────────────────────────── */}
+      <DailyLesson userId={userId} />
+
+      <RuledLabel
+        right={
+          <Link href="/analysis" className="flex items-center gap-1.5 text-[11px] text-aureus-muted hover:text-aureus-gold transition-colors">
+            <Newspaper className="w-3 h-3" /> Run a full analysis
+          </Link>
+        }
+      >
+        Informational only · not financial advice
+      </RuledLabel>
     </div>
   );
 }

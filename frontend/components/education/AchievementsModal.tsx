@@ -9,9 +9,9 @@ interface Props {
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-lg border border-aureus-border p-3" style={{ background: "var(--bg)" }}>
+    <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
       <div className="text-[10px] uppercase tracking-wider text-aureus-muted mb-1">{label}</div>
-      <div className="text-lg font-semibold text-white">{value}</div>
+      <div className="text-lg font-semibold text-aureus-text">{value}</div>
       {sub && <div className="text-xs text-aureus-muted mt-0.5">{sub}</div>}
     </div>
   );
@@ -24,17 +24,17 @@ export default function AchievementsModal({ progress, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
          onClick={onClose}>
-      <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-aureus-border p-6 space-y-5"
-           style={{ background: "var(--surface)" }}
+      <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-aureus-rule p-6 space-y-5"
+           style={{ background: "var(--panel)" }}
            onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="font-display text-white text-xl" style={{ fontWeight: 600 }}>Progress &amp; Achievements</h2>
+            <h2 className="font-display text-aureus-text text-xl" style={{ fontWeight: 600 }}>Progress &amp; Achievements</h2>
             <p className="text-xs text-aureus-muted mt-0.5">
               {earned.length} of {progress.badges.length} badges unlocked
             </p>
           </div>
-          <button onClick={onClose} className="text-aureus-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-aureus-muted hover:text-aureus-text transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -94,7 +94,7 @@ export default function AchievementsModal({ progress, onClose }: Props) {
               {locked.map((b) => {
                 const pct = b.progress_target ? Math.round((b.progress_current / b.progress_target) * 100) : 0;
                 return (
-                  <div key={b.id} className="flex items-start gap-3 rounded-lg border border-aureus-border p-3 opacity-60">
+                  <div key={b.id} className="flex items-start gap-3 rounded-lg border border-aureus-rule p-3 opacity-60">
                     <span className="text-2xl leading-none grayscale">{b.icon}</span>
                     <div className="flex-1">
                       <p className="text-sm text-aureus-text font-medium">{b.name}</p>

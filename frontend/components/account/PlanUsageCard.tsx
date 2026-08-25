@@ -20,7 +20,7 @@ import type { AccountEntitlements, CreditBalance, UsageBlock } from "@/lib/api";
 
 function UsageBar({ label, u }: { label: string; u: UsageBlock }) {
   const pct = u.unlimited || !u.limit ? 0 : Math.min(100, (u.used / u.limit) * 100);
-  const tone = u.exceeded ? "#ef4444" : pct >= 80 ? "#d4a843" : "#22c55e";
+  const tone = u.exceeded ? "var(--oxblood)" : pct >= 80 ? "var(--gold)" : "var(--verdigris)";
 
   return (
     <div className="space-y-1.5">
@@ -28,12 +28,12 @@ function UsageBar({ label, u }: { label: string; u: UsageBlock }) {
         <span className="text-xs text-aureus-text">{label}</span>
         <span className="text-[11px] font-mono text-aureus-muted">
           {u.unlimited ? (
-            <span className="flex items-center gap-1 text-aureus-green">
+            <span className="flex items-center gap-1 text-aureus-verdigris">
               <InfinityIcon className="w-3 h-3" /> unlimited
             </span>
           ) : (
             <>
-              <span className={u.exceeded ? "text-aureus-red" : "text-white"}>
+              <span className={u.exceeded ? "text-aureus-oxblood" : "text-aureus-text"}>
                 {u.used % 1 === 0 ? u.used.toFixed(0) : u.used.toFixed(1)}
               </span>
               {" / "}{u.limit} {u.unit}
@@ -58,7 +58,7 @@ function Limit({ label, value, suffix = "" }: { label: string; value: number | n
   return (
     <div className="flex items-baseline justify-between gap-2 text-[11px] py-1">
       <span className="text-aureus-muted">{label}</span>
-      <span className="font-mono text-white">
+      <span className="font-mono text-aureus-text">
         {value === null ? "Unlimited" : `${value.toLocaleString()}${suffix}`}
       </span>
     </div>
@@ -82,7 +82,7 @@ export default function PlanUsageCard() {
 
   if (error) {
     return (
-      <Card><CardContent className="p-4 text-xs text-aureus-red">{error}</CardContent></Card>
+      <Card><CardContent className="p-4 text-xs text-aureus-oxblood">{error}</CardContent></Card>
     );
   }
   if (!data) {
@@ -114,7 +114,7 @@ export default function PlanUsageCard() {
                style={{ background: "var(--bg)" }}>
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xs text-aureus-gold font-medium">AI Credits</span>
-              <span className="text-[11px] font-mono text-white">
+              <span className="text-[11px] font-mono text-aureus-text">
                 {credits.remaining.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 <span className="text-aureus-muted"> / {l.monthly_credits.toLocaleString()}</span>
               </span>
@@ -123,7 +123,7 @@ export default function PlanUsageCard() {
               <div className="h-full rounded-full"
                    style={{
                      width: `${Math.max(0, Math.min(100, (credits.remaining / l.monthly_credits) * 100))}%`,
-                     background: credits.remaining / l.monthly_credits < 0.15 ? "#ef4444" : "#d4a843",
+                     background: credits.remaining / l.monthly_credits < 0.15 ? "var(--oxblood)" : "var(--gold)",
                    }} />
             </div>
             <div className="text-[10px] text-aureus-muted">
@@ -161,7 +161,7 @@ export default function PlanUsageCard() {
                  value={l.news_feed_delay_seconds === 0 ? null : l.news_feed_delay_seconds / 60}
                  suffix=" min" />
           {l.news_feed_delay_seconds === 0 && (
-            <p className="text-[10px] text-aureus-green -mt-1">Real-time — no delay</p>
+            <p className="text-[10px] text-aureus-verdigris -mt-1">Real-time — no delay</p>
           )}
           {f.quant_lab && (
             <>
@@ -186,7 +186,7 @@ export default function PlanUsageCard() {
           ].map(([label, on]) => (
             <div key={String(label)} className="flex items-center gap-2 text-[11px]">
               {on
-                ? <Check className="w-3 h-3 text-aureus-green flex-shrink-0" />
+                ? <Check className="w-3 h-3 text-aureus-verdigris flex-shrink-0" />
                 : <Lock className="w-3 h-3 text-aureus-muted flex-shrink-0" />}
               <span className={on ? "text-aureus-text" : "text-aureus-muted/60"}>{label}</span>
             </div>

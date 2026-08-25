@@ -11,9 +11,9 @@ const HORIZONS = [
 ] as const;
 
 const SIGNAL_STYLE = {
-  BUY:  { bg: "bg-green-950/40",  border: "border-aureus-green", text: "text-aureus-green"  },
-  HOLD: { bg: "bg-amber-950/30",  border: "border-aureus-gold",  text: "text-aureus-gold"   },
-  SELL: { bg: "bg-red-950/30",    border: "border-aureus-red",   text: "text-aureus-red"    },
+  BUY:  { bg: "bg-aureus-verdigris/10",  border: "border-aureus-verdigrisdim", text: "text-aureus-verdigris"  },
+  HOLD: { bg: "bg-aureus-amber/10",  border: "border-aureus-gold",  text: "text-aureus-gold"   },
+  SELL: { bg: "bg-aureus-oxblood/10",    border: "border-aureus-oxblooddim",   text: "text-aureus-oxblood"    },
 };
 
 export default function AnalysisPanel() {
@@ -51,8 +51,8 @@ export default function AnalysisPanel() {
   return (
     <div className="space-y-4">
       {/* Input form */}
-      <div className="rounded-lg border border-aureus-border p-4 flex flex-wrap gap-3 items-end"
-           style={{ background: "var(--surface)" }}>
+      <div className="rounded-lg border border-aureus-rule p-4 flex flex-wrap gap-3 items-end"
+           style={{ background: "var(--panel)" }}>
         <div className="flex-1 min-w-32">
           <label className="text-xs text-aureus-muted mb-1 block">Ticker</label>
           <input
@@ -61,8 +61,8 @@ export default function AnalysisPanel() {
             onKeyDown={(e) => e.key === "Enter" && handleAnalyse()}
             placeholder="AAPL"
             maxLength={10}
-            className="w-full bg-transparent border border-aureus-border rounded px-3 py-2
-                       text-white text-sm focus:outline-none focus:border-aureus-gold transition-colors"
+            className="w-full bg-transparent border border-aureus-rule rounded px-3 py-2
+                       text-aureus-text text-sm focus:outline-none focus:border-aureus-gold transition-colors"
           />
         </div>
         <div>
@@ -70,8 +70,8 @@ export default function AnalysisPanel() {
           <select
             value={horizon}
             onChange={(e) => setHorizon(e.target.value as typeof horizon)}
-            className="bg-transparent border border-aureus-border rounded px-3 py-2
-                       text-white text-sm focus:outline-none focus:border-aureus-gold"
+            className="bg-transparent border border-aureus-rule rounded px-3 py-2
+                       text-aureus-text text-sm focus:outline-none focus:border-aureus-gold"
             style={{ background: "var(--bg)" }}
           >
             {HORIZONS.map((h) => (
@@ -82,7 +82,7 @@ export default function AnalysisPanel() {
         <button
           onClick={handleAnalyse}
           disabled={loading}
-          className="px-5 py-2 bg-aureus-gold text-black font-semibold text-sm rounded
+          className="px-5 py-2 bg-aureus-gold text-aureus-ink font-semibold text-sm rounded
                      hover:opacity-90 disabled:opacity-50 transition-opacity"
         >
           {loading ? "Analysing..." : "Analyse"}
@@ -91,7 +91,7 @@ export default function AnalysisPanel() {
 
       {/* Error */}
       {error && (
-        <div className="rounded-lg border border-aureus-red bg-red-950/20 p-3 text-aureus-red text-sm">
+        <div className="rounded-lg border border-aureus-oxblooddim bg-aureus-oxblood/10 p-3 text-aureus-oxblood text-sm">
           {error}
         </div>
       )}
@@ -119,11 +119,11 @@ export default function AnalysisPanel() {
 
           {/* Confidence bar */}
           <div>
-            <div className="w-full bg-aureus-border rounded-full h-2">
+            <div className="w-full bg-aureus-rule rounded-full h-2">
               <div
                 className={`h-2 rounded-full transition-all duration-500 ${
-                  signal === "BUY" ? "bg-aureus-green" :
-                  signal === "SELL" ? "bg-aureus-red" : "bg-aureus-gold"
+                  signal === "BUY" ? "bg-aureus-verdigris" :
+                  signal === "SELL" ? "bg-aureus-oxblood" : "bg-aureus-gold"
                 }`}
                 style={{ width: `${r.confidence_index}%` }}
               />
@@ -137,7 +137,7 @@ export default function AnalysisPanel() {
 
           {/* Reasoning — the direct fix for "scores need explanations" */}
           {r.reasoning && (
-            <div className="rounded-lg border border-aureus-border p-4" style={{ background: "var(--bg)" }}>
+            <div className="rounded-lg border border-aureus-rule p-4" style={{ background: "var(--bg)" }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-semibold text-aureus-gold uppercase tracking-wide">
                   Why this score
@@ -146,7 +146,7 @@ export default function AnalysisPanel() {
                   {r.reasoning_source === "llm_polished" ? "AI-composed" : "Rule-based"}
                 </span>
               </div>
-              <p className="text-sm text-gray-300 leading-relaxed">{r.reasoning}</p>
+              <p className="text-sm text-aureus-soft leading-relaxed">{r.reasoning}</p>
             </div>
           )}
 
@@ -164,10 +164,10 @@ export default function AnalysisPanel() {
                 { label: "Technical",    score: r.technical_score,    weight: weights.technical },
                 { label: "Sentiment",    score: r.sentiment_score,    weight: weights.sentiment },
               ].map(({ label, score, weight }) => (
-                <div key={label} className="rounded border border-aureus-border p-3 text-center"
+                <div key={label} className="rounded border border-aureus-rule p-3 text-center"
                      style={{ background: "var(--bg)" }}>
                   <div className="text-xs text-aureus-muted mb-1">{label}</div>
-                  <div className="text-xl font-bold text-white">{score.toFixed(1)}</div>
+                  <div className="text-xl font-bold text-aureus-text">{score.toFixed(1)}</div>
                   {weight !== undefined && (
                     <div className="text-xs text-aureus-muted mt-1">{(weight * 100).toFixed(0)}% weight</div>
                   )}
@@ -177,7 +177,7 @@ export default function AnalysisPanel() {
           </div>
 
           {/* Disclaimer */}
-          <p className="text-xs text-aureus-muted border-t border-aureus-border pt-3 leading-relaxed">
+          <p className="text-xs text-aureus-muted border-t border-aureus-rule pt-3 leading-relaxed">
             {r.disclaimer}
           </p>
         </div>

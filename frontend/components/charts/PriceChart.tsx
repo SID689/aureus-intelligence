@@ -1,13 +1,15 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useId } from "react";
 import {
-  ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid,
+  Area, ComposedChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Scatter, Cell,
-  type TooltipProps,
 } from "recharts";
-import type { PriceBar } from "@/lib/api";
 import { useSession } from "next-auth/react";
+import { RefreshCw } from "lucide-react";
 import { runQuickAnalysis, getBars } from "@/lib/api";
+import type { PriceBar } from "@/lib/api";
+import { Figure } from "@/components/ui/primitives";
+import { signed } from "@/lib/format";
 
 interface Props {
   ticker:   string;
@@ -15,45 +17,69 @@ interface Props {
   days?:    number;
 }
 
-// ── Custom tooltip ──────────────────────────────────────────────────────────
+/**
+ * Every colour here is a brand token. This chart used to hardcode a
+ * blue-grey grid and flat traffic-light green/red signal dots — leftovers
+ * from a theme the rest of the app stopped using, which is why the chart
+ * never quite looked like it belonged on the page it sat on.
+ */
+const C = {
+  gold:      "var(--gold)",
+  up:        "var(--verdigris)",
+  down:      "var(--oxblood)",
+  grid:      "var(--grid-line)",
+  muted:     "var(--text-muted)",
+  panel:     "var(--panel-lift)",
+  rule:      "var(--rule)",
+  ink:       "var(--ink)",
+};
 
-function PriceTooltip({ active, payload }: TooltipProps<number, string>) {
+function signalColor(signal?: string): string {
+  return signal === "BUY" ? C.up : signal === "SELL" ? C.down : C.gold;
+}
+
+// ── Tooltip ─────────────────────────────────────────────────────────────────
+
+function PriceTooltip({ active, payload }: { active?: boolean; payload?: { payload: PriceBar }[] }) {
   if (!active || !payload?.length) return null;
-  const d = payload[0]?.payload as PriceBar;
+  const d = payload[0]?.payload;
   if (!d) return null;
+  const up = d.close >= d.open;
 
   return (
-    <div className="rounded-lg border border-aureus-border p-3 text-xs space-y-1 shadow-xl"
-         style={{ background: "var(--bg)" }}>
-      <div className="text-aureus-muted font-medium">{d.timestamp}</div>
-      <div className="text-white">Close: <span className="text-aureus-gold font-bold">${d.close?.toFixed(2)}</span></div>
-      <div className="text-aureus-muted">O: {d.open?.toFixed(2)} · H: {d.high?.toFixed(2)} · L: {d.low?.toFixed(2)}</div>
-      <div className="text-aureus-muted">Vol: {((d.volume || 0) / 1_000_000).toFixed(1)}M</div>
+    <div className="rounded-md border border-aureus-rule bg-aureus-panellift px-3 py-2 text-xs space-y-1 shadow-lift2">
+      <div className="text-aureus-muted">{d.timestamp}</div>
+      <div className="text-aureus-soft">
+        Close <Figure tone={up ? "up" : "down"} className="font-semibold">${d.close?.toFixed(2)}</Figure>
+      </div>
+      <Figure tone="muted" className="block text-[11px]">
+        O {d.open?.toFixed(2)} · H {d.high?.toFixed(2)} · L {d.low?.toFixed(2)}
+      </Figure>
+      <Figure tone="muted" className="block text-[11px]">
+        Vol {((d.volume || 0) / 1_000_000).toFixed(1)}M
+      </Figure>
       {d.signal && (
-        <div className={
-          d.signal === "BUY"  ? "text-aureus-green font-bold" :
-          d.signal === "SELL" ? "text-aureus-red font-bold"   : "text-aureus-gold font-bold"
-        }>
-          ● {d.signal} {d.confidence != null ? `(${d.confidence.toFixed(0)}%)` : ""}
+        <div className="pt-1 border-t border-aureus-rule font-mono text-[11px] font-semibold uppercase tracking-wide"
+             style={{ color: signalColor(d.signal) }}>
+          {d.signal}{d.confidence != null ? ` · ${d.confidence.toFixed(0)}% confidence` : ""}
         </div>
       )}
     </div>
   );
 }
 
-// ── Signal dot ─────────────────────────────────────────────────────────────
+// ── Signal marker ───────────────────────────────────────────────────────────
 
 function SignalDot(props: { cx?: number; cy?: number; payload?: PriceBar }) {
   const { cx, cy, payload } = props;
   if (!payload?.signal || cx == null || cy == null) return null;
-  const color =
-    payload.signal === "BUY"  ? "#22c55e" :
-    payload.signal === "SELL" ? "#ef4444" : "#d4a843";
+  const color = signalColor(payload.signal);
 
   return (
     <g>
-      <circle cx={cx} cy={cy} r={6} fill={color} fillOpacity={0.2} stroke={color} strokeWidth={1.5} />
-      <text x={cx} y={cy - 12} textAnchor="middle" fill={color} fontSize={9} fontWeight="bold">
+      <circle cx={cx} cy={cy} r={6} fill={color} fillOpacity={0.18} stroke={color} strokeWidth={1.5} />
+      <text x={cx} y={cy - 12} textAnchor="middle" fill={color} fontSize={9} fontWeight="700"
+            style={{ letterSpacing: "0.08em" }}>
         {payload.signal}
       </text>
     </g>
@@ -75,6 +101,7 @@ function injectSignal(bars: PriceBar[], signal: string, confidence: number): Pri
 export default function PriceChart({ ticker, horizon = "medium_term", days = 180 }: Props) {
   const { data: session } = useSession();
   const userId = (session?.user as { id?: string } | undefined)?.id ?? "";
+  const gradientId = useId();
   const [bars,     setBars]     = useState<PriceBar[]>([]);
   const [provider, setProvider] = useState<string>("");
   const [loading,  setLoading]  = useState(true);
@@ -84,29 +111,25 @@ export default function PriceChart({ ticker, horizon = "medium_term", days = 180
     setLoading(true);
     setError(null);
     try {
-      // Real OHLCV data from the Polygon-first backend fallback chain —
-      // this replaces the old random-walk mock generator entirely.
       const barsResponse = await getBars(ticker, days, "1d");
-      let bars = barsResponse.bars;
+      let next = barsResponse.bars;
       setProvider(barsResponse.provider);
 
-      // Overlay the latest ensemble signal on the most recent bar
+      // Overlay the latest ensemble signal on the most recent bar.
       try {
         const result = await runQuickAnalysis(ticker, userId, horizon);
-        if (result.result) {
-          bars = injectSignal(bars, result.result.signal, result.result.confidence_index);
-        }
+        if (result.result) next = injectSignal(next, result.result.signal, result.result.confidence_index);
       } catch {
-        // Chart still renders with real prices even if analysis fails
+        // Chart still renders with real prices even if analysis fails.
       }
 
-      setBars(bars);
+      setBars(next);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Chart failed to load");
     } finally {
       setLoading(false);
     }
-  }, [ticker, horizon, days]);
+  }, [ticker, horizon, days, userId]);
 
   useEffect(() => { loadChart(); }, [loadChart]);
 
@@ -115,114 +138,93 @@ export default function PriceChart({ ticker, horizon = "medium_term", days = 180
   const volMax   = bars.length ? Math.max(...bars.map((b) => b.volume)) : 0;
   const lastBar  = bars[bars.length - 1];
   const firstBar = bars[0];
-  const overallUp = lastBar && firstBar && lastBar.close >= firstBar.close;
+  const changePct = lastBar && firstBar ? ((lastBar.close - firstBar.close) / firstBar.close) * 100 : null;
 
   if (loading) {
     return (
-      <div className="h-80 flex items-center justify-center text-aureus-muted text-sm">
-        Loading {ticker} chart from live market data...
+      <div className="h-[364px] flex items-center justify-center text-sm text-aureus-muted">
+        Loading {ticker} from live market data…
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="h-80 flex flex-col items-center justify-center gap-2 text-center px-4">
-        <span className="text-aureus-red text-sm">{error}</span>
-        <button onClick={loadChart} className="text-xs text-aureus-gold hover:underline">Retry</button>
+      <div className="h-[364px] flex flex-col items-center justify-center gap-2 text-center px-4">
+        <span className="text-aureus-oxblood text-sm">{error}</span>
+        <button onClick={loadChart} className="text-xs text-aureus-gold hover:text-aureus-goldbright">Retry</button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-1">
-      {/* Chart header */}
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-3">
-          <span className="text-white font-bold text-lg">{ticker}</span>
-          {lastBar && (
-            <>
-              <span className="text-white text-lg">${lastBar.close.toFixed(2)}</span>
-              <span className={overallUp ? "text-aureus-green text-sm" : "text-aureus-red text-sm"}>
-                {overallUp ? "▲" : "▼"}{" "}
-                {firstBar
-                  ? `${Math.abs(((lastBar.close - firstBar.close) / firstBar.close) * 100).toFixed(2)}%`
-                  : ""}
-              </span>
-            </>
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-1">
+        <div className="flex items-baseline gap-3">
+          <span className="text-base font-medium text-aureus-text">{ticker}</span>
+          {lastBar && <Figure className="text-lg">${lastBar.close.toFixed(2)}</Figure>}
+          {changePct != null && (
+            <Figure tone={changePct >= 0 ? "up" : "down"} className="text-[13px]">
+              {signed(changePct)}% · {days}d
+            </Figure>
           )}
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-aureus-muted">
-            {provider && `via ${provider}`}
-          </span>
-          <button onClick={loadChart}
-                  className="text-xs text-aureus-muted hover:text-white transition-colors">
-            ↻ Refresh
+          {provider && <span className="text-[11px] text-aureus-muted">via {provider}</span>}
+          <button onClick={loadChart} className="text-aureus-muted hover:text-aureus-text transition-colors" aria-label="Refresh chart">
+            <RefreshCw className="w-3 h-3" />
           </button>
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-4 px-1 text-xs text-aureus-muted">
-        <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-aureus-gold inline-block" />Price</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-aureus-green inline-block" />BUY signal</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-aureus-red inline-block" />SELL signal</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-aureus-gold inline-block" />HOLD signal</span>
-      </div>
-
-      {/* Main price chart */}
       <ResponsiveContainer width="100%" height={300}>
-        <ComposedChart data={bars} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" vertical={false} />
+        {/* left:28 is load-bearing: recharts centres the first x-tick on
+            x=0 and the SVG clips whatever hangs left of the plot area, so
+            "Apr 27" renders as "27". The Y axis is on the right, so this
+            margin costs nothing but the room the label needs. */}
+        <ComposedChart data={bars} margin={{ top: 8, right: 4, left: 28, bottom: 0 }}>
+          <defs>
+            <linearGradient id={`px-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor={C.gold} stopOpacity={0.28} />
+              <stop offset="100%" stopColor={C.gold} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+
+          <CartesianGrid strokeDasharray="2 4" stroke={C.grid} vertical={false} />
           <XAxis
-            dataKey="timestamp"
-            tick={{ fill: "#6b7280", fontSize: 11 }}
-            tickLine={false}
-            axisLine={false}
+            dataKey="timestamp" tickLine={false} axisLine={false}
+            tick={{ fill: C.muted, fontSize: 10 }}
             interval={Math.max(1, Math.floor(bars.length / 6))}
           />
           <YAxis
-            yAxisId="price"
-            orientation="right"
-            domain={[priceMin, priceMax]}
-            tick={{ fill: "#6b7280", fontSize: 11 }}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={(v) => `$${v.toFixed(0)}`}
-            width={60}
+            yAxisId="price" orientation="right" domain={[priceMin, priceMax]}
+            tickLine={false} axisLine={false} width={56}
+            tick={{ fill: C.muted, fontSize: 10 }}
+            tickFormatter={(v: number) => `$${v.toFixed(0)}`}
           />
           <YAxis yAxisId="vol" orientation="left" domain={[0, volMax * 4]} tick={false} axisLine={false} tickLine={false} width={0} />
-          <Tooltip content={<PriceTooltip />} />
+          <Tooltip content={<PriceTooltip />} cursor={{ stroke: C.rule, strokeWidth: 1 }} />
 
-          <Bar yAxisId="vol" dataKey="volume" fill="#1e1e2e" opacity={0.7} radius={[1, 1, 0, 0]}>
-            {bars.map((b, i) => <Cell key={i} fill={b.close >= b.open ? "#22c55e22" : "#ef444422"} />)}
+          <Bar yAxisId="vol" dataKey="volume" radius={[1, 1, 0, 0]}>
+            {bars.map((b, i) => (
+              <Cell key={i} fill={b.close >= b.open ? C.up : C.down} fillOpacity={0.14} />
+            ))}
           </Bar>
 
-          <Line yAxisId="price" type="monotone" dataKey="close" stroke="#d4a843" strokeWidth={1.5}
-                dot={false} activeDot={{ r: 4, fill: "#d4a843" }} />
+          <Area
+            yAxisId="price" type="monotone" dataKey="close"
+            stroke={C.gold} strokeWidth={1.6} fill={`url(#px-${gradientId})`}
+            dot={false} activeDot={{ r: 3.5, fill: C.gold, stroke: C.ink, strokeWidth: 1.5 }}
+          />
 
-          {/* Deliberately pass the SAME bars array the rest of the chart uses,
+          {/* Deliberately the SAME bars array the rest of the chart uses,
               not a filtered subset — Scatter positions each point by its
-              INDEX within whatever array it's given, matched against the
-              shared category axis. A filtered array (e.g. just the one bar
-              with a signal) gets positioned by ITS index in the filtered
-              array, not the bar's real position, so the dot lands on some
-              arbitrary/earlier x-tick instead of the bar it belongs to.
-              SignalDot already returns null for bars without a signal, so
-              passing the full array is both correct and sufficient. */}
+              INDEX within whatever array it is given, matched against the
+              shared category axis. A filtered array gets positioned by its
+              index in the filtered array, so the dot lands on an arbitrary
+              earlier tick. SignalDot returns null for bars with no signal,
+              so passing everything is both correct and sufficient. */}
           <Scatter yAxisId="price" dataKey="close" data={bars} shape={<SignalDot />} />
-        </ComposedChart>
-      </ResponsiveContainer>
-
-      {/* Volume chart */}
-      <ResponsiveContainer width="100%" height={60}>
-        <ComposedChart data={bars} margin={{ top: 0, right: 68, left: 0, bottom: 0 }}>
-          <Bar dataKey="volume" radius={[1, 1, 0, 0]}>
-            {bars.map((b, i) => <Cell key={i} fill={b.close >= b.open ? "#22c55e55" : "#ef444455"} />)}
-          </Bar>
-          <XAxis dataKey="timestamp" hide />
-          <YAxis hide />
         </ComposedChart>
       </ResponsiveContainer>
     </div>

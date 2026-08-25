@@ -52,7 +52,7 @@ export const metadata: Metadata = {
  * chrome to match the dark UI instead of leaving a white bar above it.
  */
 export const viewport: Viewport = {
-  themeColor: "#0b0d09",
+  themeColor: "#101309",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

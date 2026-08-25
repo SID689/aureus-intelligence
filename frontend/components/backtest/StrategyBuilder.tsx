@@ -12,7 +12,7 @@ interface Props {
 
 const FIELD_LABEL = "text-xs text-aureus-muted mb-1 block";
 const FIELD_INPUT =
-  "w-full rounded-md border border-aureus-border px-3 py-2 text-sm text-white placeholder:text-aureus-muted/50 " +
+  "w-full rounded-md border border-aureus-rule px-3 py-2 text-sm text-aureus-text placeholder:text-aureus-muted/50 " +
   "focus:outline-none focus:border-aureus-gold transition-colors";
 const FIELD_STYLE = { background: "var(--bg)" };
 
@@ -79,7 +79,7 @@ export default function StrategyBuilder({ onRun, running }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="rounded-lg border border-aureus-red bg-red-950/20 p-3 text-aureus-red text-xs">{error}</div>
+        <div className="rounded-lg border border-aureus-oxblooddim bg-aureus-oxblood/10 p-3 text-aureus-oxblood text-xs">{error}</div>
       )}
 
       {/* Assets & timeframe */}
@@ -114,7 +114,7 @@ export default function StrategyBuilder({ onRun, running }: Props) {
       </div>
 
       {/* Strategy rule */}
-      <div className="space-y-3 pt-1 border-t border-aureus-border/50">
+      <div className="space-y-3 pt-1 border-t border-aureus-rule/50">
         <h4 className="text-xs font-semibold text-aureus-gold uppercase tracking-wider pt-3">Entry / Exit Rule</h4>
         <div className="flex gap-2">
           {(["rsi", "ma_crossover"] as const).map((rt) => (
@@ -122,7 +122,7 @@ export default function StrategyBuilder({ onRun, running }: Props) {
                     className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
                       ruleType === rt
                         ? "border-aureus-gold text-aureus-gold bg-aureus-gold/10"
-                        : "border-aureus-border text-aureus-muted hover:text-white"
+                        : "border-aureus-rule text-aureus-muted hover:text-aureus-text"
                     }`}>
               {rt === "rsi" ? "RSI Threshold" : "MA Crossover"}
             </button>
@@ -178,7 +178,7 @@ export default function StrategyBuilder({ onRun, running }: Props) {
       </div>
 
       {/* Risk management */}
-      <div className="space-y-3 pt-1 border-t border-aureus-border/50">
+      <div className="space-y-3 pt-1 border-t border-aureus-rule/50">
         <h4 className="text-xs font-semibold text-aureus-gold uppercase tracking-wider pt-3">Risk Management</h4>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -205,7 +205,7 @@ export default function StrategyBuilder({ onRun, running }: Props) {
       </div>
 
       {/* Capital & sizing */}
-      <div className="space-y-3 pt-1 border-t border-aureus-border/50">
+      <div className="space-y-3 pt-1 border-t border-aureus-rule/50">
         <h4 className="text-xs font-semibold text-aureus-gold uppercase tracking-wider pt-3">Capital &amp; Sizing</h4>
         <div className="grid grid-cols-2 gap-3">
           <div>

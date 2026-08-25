@@ -45,7 +45,7 @@ export default function SectorComparisonCard({ data }: { data: SectorComparison 
           {data.relative_score != null && (
             <span className="text-[10px] text-aureus-muted">
               Relative valuation{" "}
-              <span className={data.relative_score >= 50 ? "text-aureus-green" : "text-aureus-red"}>
+              <span className={data.relative_score >= 50 ? "text-aureus-verdigris" : "text-aureus-oxblood"}>
                 {data.relative_score.toFixed(0)}/100
               </span>
             </span>
@@ -67,9 +67,9 @@ export default function SectorComparisonCard({ data }: { data: SectorComparison 
               {rows.map(([k, c]) => (
                 <tr key={k} className="border-t border-aureus-rule/50">
                   <td className="py-1.5 text-aureus-text">{LABELS[k] ?? k}</td>
-                  <td className="py-1.5 text-right font-mono text-white">{fmt(k, c.value)}</td>
+                  <td className="py-1.5 text-right font-mono text-aureus-text">{fmt(k, c.value)}</td>
                   <td className="py-1.5 text-right font-mono text-aureus-muted">{fmt(k, c.median)}</td>
-                  <td className={`py-1.5 text-right font-mono ${c.favourable ? "text-aureus-green" : "text-aureus-red"}`}>
+                  <td className={`py-1.5 text-right font-mono ${c.favourable ? "text-aureus-verdigris" : "text-aureus-oxblood"}`}>
                     {c.premium_pct >= 0 ? "+" : ""}{c.premium_pct.toFixed(0)}%
                   </td>
                 </tr>

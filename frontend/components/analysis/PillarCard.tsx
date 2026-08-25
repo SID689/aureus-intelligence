@@ -20,9 +20,9 @@ interface Props {
 }
 
 function toneFor(score: number): { stroke: string; text: string } {
-  if (score >= 65) return { stroke: "#22c55e", text: "text-aureus-green" };
-  if (score < 35) return { stroke: "#ef4444", text: "text-aureus-red" };
-  return { stroke: "#d4a843", text: "text-aureus-gold" };
+  if (score >= 65) return { stroke: "var(--verdigris)", text: "text-aureus-verdigris" };
+  if (score < 35) return { stroke: "var(--oxblood)", text: "text-aureus-oxblood" };
+  return { stroke: "var(--gold)", text: "text-aureus-gold" };
 }
 
 function Gauge({ score }: { score: number }) {
@@ -33,7 +33,7 @@ function Gauge({ score }: { score: number }) {
   return (
     <div className="relative w-[86px] h-[86px] flex-shrink-0">
       <svg width="86" height="86" viewBox="0 0 86 86" className="-rotate-90">
-        <circle cx="43" cy="43" r={r} fill="none" stroke="#2a2a3a" strokeWidth="7" />
+        <circle cx="43" cy="43" r={r} fill="none" stroke="var(--rule)" strokeWidth="7" />
         <circle
           cx="43" cy="43" r={r} fill="none" stroke={tone.stroke} strokeWidth="7"
           strokeLinecap="round"
@@ -66,11 +66,11 @@ export default function PillarCard({ title, score, weight, completeness, signals
             <div className="mt-2 space-y-1 text-[11px] text-aureus-muted">
               <div className="flex justify-between gap-2">
                 <span>Weight this horizon</span>
-                <span className="text-white font-mono">{(weight * 100).toFixed(0)}%</span>
+                <span className="text-aureus-text font-mono">{(weight * 100).toFixed(0)}%</span>
               </div>
               <div className="flex justify-between gap-2">
                 <span>Data completeness</span>
-                <span className={completeness < 0.5 ? "text-aureus-red font-mono" : "text-white font-mono"}>
+                <span className={completeness < 0.5 ? "text-aureus-oxblood font-mono" : "text-aureus-text font-mono"}>
                   {(completeness * 100).toFixed(0)}%
                 </span>
               </div>

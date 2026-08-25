@@ -36,7 +36,7 @@ export default function SettingsPage() {
       {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
 
       <div>
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
+        <h1 className="text-2xl font-bold text-aureus-text">Settings</h1>
         <p className="text-aureus-muted text-sm mt-0.5">Account, billing, and preferences</p>
       </div>
 
@@ -46,11 +46,11 @@ export default function SettingsPage() {
         <CardContent className="space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-aureus-muted">Email</span>
-            <span className="text-white">{session?.user?.email}</span>
+            <span className="text-aureus-text">{session?.user?.email}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-aureus-muted">User ID</span>
-            <span className="text-white font-mono text-xs">{session?.user?.id}</span>
+            <span className="text-aureus-text font-mono text-xs">{session?.user?.id}</span>
           </div>
           <div className="flex justify-between text-sm items-center">
             <span className="text-aureus-muted">Subscription Tier</span>

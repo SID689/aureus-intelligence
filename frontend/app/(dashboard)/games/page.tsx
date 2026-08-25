@@ -44,7 +44,7 @@ export default function GamesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Games</h1>
+        <h1 className="text-2xl font-bold text-aureus-text">Games</h1>
         <p className="text-aureus-muted text-sm mt-0.5">
           Test what you actually know. Every round ends with the concept explained —
           the puzzle is the hook, the definition is the point.
@@ -64,7 +64,7 @@ export default function GamesPage() {
               <div className="text-[10px] uppercase tracking-wider text-aureus-muted flex items-center gap-1">
                 {s.icon}{s.label}
               </div>
-              <div className="text-xl font-semibold text-white mt-1">{s.value}</div>
+              <div className="text-xl font-semibold text-aureus-text mt-1">{s.value}</div>
             </CardContent>
           </Card>
         ))}
@@ -84,7 +84,7 @@ export default function GamesPage() {
                   className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                     tab === k
                       ? "bg-aureus-gold text-aureus-ink font-semibold"
-                      : "text-aureus-muted hover:text-white"
+                      : "text-aureus-muted hover:text-aureus-text"
                   }`}
                 >
                   {label}
@@ -135,7 +135,7 @@ export default function GamesPage() {
                       {e.display_name}{isMe && " (you)"}
                     </span>
                     <span className="text-aureus-muted font-mono" title="Max streak">🔥{e.max_streak}</span>
-                    <span className="text-white font-mono w-12 text-right" title="Knowledge XP">
+                    <span className="text-aureus-text font-mono w-12 text-right" title="Knowledge XP">
                       {e.total_score}
                     </span>
                   </div>

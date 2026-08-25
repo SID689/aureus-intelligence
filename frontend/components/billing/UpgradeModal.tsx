@@ -65,8 +65,8 @@ export default function UpgradeModal({ feature, requiredTier = "elite", onClose 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
          onClick={onClose}>
-      <div className="w-full max-w-2xl rounded-2xl border border-aureus-border p-6 space-y-6"
-           style={{ background: "var(--surface)" }}
+      <div className="w-full max-w-2xl rounded-2xl border border-aureus-rule p-6 space-y-6"
+           style={{ background: "var(--panel)" }}
            onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="text-center space-y-2">
@@ -74,7 +74,7 @@ export default function UpgradeModal({ feature, requiredTier = "elite", onClose 
                           flex items-center justify-center mx-auto">
             <Zap className="w-6 h-6 text-aureus-gold" />
           </div>
-          <h2 className="text-white text-xl font-bold">
+          <h2 className="text-aureus-text text-xl font-bold">
             {feature ? `Unlock ${feature}` : "Upgrade your plan"}
           </h2>
           <p className="text-aureus-muted text-sm">
@@ -91,11 +91,11 @@ export default function UpgradeModal({ feature, requiredTier = "elite", onClose 
                  className={`rounded-xl border p-4 space-y-3 ${
                    tier === requiredTier
                      ? "border-aureus-gold"
-                     : "border-aureus-border"
+                     : "border-aureus-rule"
                  }`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-white font-bold capitalize">{tier}</div>
+                  <div className="text-aureus-text font-bold capitalize">{tier}</div>
                   <div className="text-aureus-gold text-lg font-bold">
                     ${TIER_PRICE[tier]}
                     <span className="text-aureus-muted text-xs font-normal">/mo</span>
@@ -112,7 +112,7 @@ export default function UpgradeModal({ feature, requiredTier = "elite", onClose 
               <ul className="space-y-1.5">
                 {TIER_BENEFITS[tier].map((benefit) => (
                   <li key={benefit} className="flex items-start gap-2 text-xs text-aureus-muted">
-                    <Check className="w-3 h-3 text-aureus-green mt-0.5 flex-shrink-0" />
+                    <Check className="w-3 h-3 text-aureus-verdigris mt-0.5 flex-shrink-0" />
                     {benefit}
                   </li>
                 ))}
@@ -132,7 +132,7 @@ export default function UpgradeModal({ feature, requiredTier = "elite", onClose 
         </div>
 
         <div className="text-center">
-          <button onClick={onClose} className="text-xs text-aureus-muted hover:text-white transition-colors">
+          <button onClick={onClose} className="text-xs text-aureus-muted hover:text-aureus-text transition-colors">
             Maybe later
           </button>
         </div>

@@ -19,7 +19,7 @@ const ROWS = [
 ];
 
 const STATE_CLASS: Record<TileState, string> = {
-  correct: "bg-aureus-verdigris text-white border-aureus-verdigris",
+  correct: "bg-aureus-verdigris text-aureus-text border-aureus-verdigris",
   present: "bg-aureus-gold text-aureus-ink border-aureus-gold",
   absent: "bg-aureus-rule/40 text-aureus-muted/60 border-transparent",
 };

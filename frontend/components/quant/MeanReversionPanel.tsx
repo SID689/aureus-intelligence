@@ -31,21 +31,21 @@ export default function MeanReversionPanel({ report }: { report: QuantLabReport 
                 <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
                   <div className="text-[10px] uppercase tracking-wider text-aureus-muted">Z-Score</div>
                   <div className={`text-lg font-semibold font-mono mt-0.5 ${
-                    Math.abs(z.z_score) >= 2 ? "text-aureus-gold" : "text-white"}`}>
+                    Math.abs(z.z_score) >= 2 ? "text-aureus-gold" : "text-aureus-text"}`}>
                     {z.z_score >= 0 ? "+" : ""}{z.z_score.toFixed(2)}
                   </div>
                   <div className="text-[10px] text-aureus-muted mt-0.5">{z.window_days}-day window</div>
                 </div>
                 <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
                   <div className="text-[10px] uppercase tracking-wider text-aureus-muted">Percentile</div>
-                  <div className="text-lg font-semibold text-white font-mono mt-0.5">
+                  <div className="text-lg font-semibold text-aureus-text font-mono mt-0.5">
                     {z.percentile_in_window.toFixed(0)}
                   </div>
                   <div className="text-[10px] text-aureus-muted mt-0.5">within its window</div>
                 </div>
                 <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
                   <div className="text-[10px] uppercase tracking-wider text-aureus-muted">Rolling Mean</div>
-                  <div className="text-lg font-semibold text-white font-mono mt-0.5">
+                  <div className="text-lg font-semibold text-aureus-text font-mono mt-0.5">
                     ${z.rolling_mean.toFixed(2)}
                   </div>
                   <div className="text-[10px] text-aureus-muted mt-0.5">vs ${z.current_price.toFixed(2)} now</div>
@@ -53,7 +53,7 @@ export default function MeanReversionPanel({ report }: { report: QuantLabReport 
                 <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
                   <div className="text-[10px] uppercase tracking-wider text-aureus-muted">Half-Life</div>
                   <div className={`text-lg font-semibold font-mono mt-0.5 ${
-                    hl?.reverting ? "text-aureus-green" : "text-aureus-muted"}`}>
+                    hl?.reverting ? "text-aureus-verdigris" : "text-aureus-muted"}`}>
                     {hl?.half_life_days != null ? `${hl.half_life_days}d` : "None"}
                   </div>
                   <div className="text-[10px] text-aureus-muted mt-0.5">
@@ -67,23 +67,23 @@ export default function MeanReversionPanel({ report }: { report: QuantLabReport 
                   <AreaChart data={z.series} margin={{ top: 4, right: 8, bottom: 4, left: -18 }}>
                     <defs>
                       <linearGradient id="zfill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#d4a843" stopOpacity={0.35} />
-                        <stop offset="100%" stopColor="#d4a843" stopOpacity={0.02} />
+                        <stop offset="0%" stopColor="var(--gold)" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="var(--gold)" stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" vertical={false} />
-                    <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#8b8b9e" }} minTickGap={40} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--rule)" vertical={false} />
+                    <XAxis dataKey="date" tick={{ fontSize: 9, fill: "var(--text-muted)" }} minTickGap={40} />
                     {/* Explicit ticks: Recharts' auto-ticking on this domain
                         produces an unevenly spaced set (-3.5, -1.5, 0.5, 3.5),
                         which misreads as a broken scale and leaves the ±2
                         threshold lines sitting between labels. */}
-                    <YAxis tick={{ fontSize: 10, fill: "#8b8b9e" }} domain={[-3.5, 3.5]}
+                    <YAxis tick={{ fontSize: 10, fill: "var(--text-muted)" }} domain={[-3.5, 3.5]}
                            ticks={[-3, -2, -1, 0, 1, 2, 3]} />
-                    <Tooltip contentStyle={{ background: "#12121c", border: "1px solid #2a2a3a", borderRadius: 6, fontSize: 11 }} />
-                    <ReferenceLine y={2} stroke="#ef4444" strokeDasharray="4 4" />
-                    <ReferenceLine y={0} stroke="#8b8b9e" />
-                    <ReferenceLine y={-2} stroke="#22c55e" strokeDasharray="4 4" />
-                    <Area type="monotone" dataKey="z" stroke="#d4a843" strokeWidth={1.75} fill="url(#zfill)" />
+                    <Tooltip contentStyle={{ background: "var(--panel-lift)", border: "1px solid var(--rule)", borderRadius: 6, fontSize: 11 }} />
+                    <ReferenceLine y={2} stroke="var(--oxblood)" strokeDasharray="4 4" />
+                    <ReferenceLine y={0} stroke="var(--text-muted)" />
+                    <ReferenceLine y={-2} stroke="var(--verdigris)" strokeDasharray="4 4" />
+                    <Area type="monotone" dataKey="z" stroke="var(--gold)" strokeWidth={1.75} fill="url(#zfill)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -110,15 +110,15 @@ export default function MeanReversionPanel({ report }: { report: QuantLabReport 
                 <div key={w} className="rounded-lg border border-aureus-rule px-3 py-2 flex-1 min-w-[74px]"
                      style={{ background: "var(--bg)" }}>
                   <div className="text-[10px] uppercase text-aureus-muted">{w}</div>
-                  <div className="text-sm font-mono text-white">{(v * 100).toFixed(1)}%</div>
+                  <div className="text-sm font-mono text-aureus-text">{(v * 100).toFixed(1)}%</div>
                 </div>
               ))}
             </div>
             {vts.regime && (
               <div className="flex items-start gap-2">
                 <span className={`rounded px-2 py-0.5 text-[10px] font-bold tracking-wider flex-shrink-0 ${
-                  vts.regime === "Elevated" ? "bg-red-950/60 text-aureus-red"
-                  : vts.regime === "Compressed" ? "bg-green-950/60 text-aureus-green"
+                  vts.regime === "Elevated" ? "bg-aureus-oxblood/10 text-aureus-oxblood"
+                  : vts.regime === "Compressed" ? "bg-aureus-verdigris/10 text-aureus-verdigris"
                   : "bg-aureus-rule/40 text-aureus-gold"}`}>
                   {vts.regime.toUpperCase()}
                 </span>
@@ -152,7 +152,7 @@ export default function MeanReversionPanel({ report }: { report: QuantLabReport 
                   {report.pairs.map((p) => (
                     <tr key={p.ticker} className="border-b border-aureus-rule/50">
                       <td className="py-2 text-aureus-text font-medium">{p.ticker}</td>
-                      <td className="py-2 text-right font-mono text-white">
+                      <td className="py-2 text-right font-mono text-aureus-text">
                         {p.return_correlation.toFixed(3)}
                       </td>
                       <td className={`py-2 text-right font-mono ${

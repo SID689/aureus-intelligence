@@ -4,7 +4,7 @@ import { X, GraduationCap, ChevronRight } from "lucide-react";
 import { getTodaysLesson, dismissTodaysLesson } from "@/lib/api";
 import type { TodaysLesson } from "@/lib/api";
 
-const TIER_COLORS = ["text-aureus-gold", "text-aureus-verdigris", "text-purple-300"];
+const TIER_COLORS = ["text-aureus-gold", "text-aureus-verdigris", "text-[#c3a9e8]"];
 
 export default function DailyLesson({ userId }: { userId: string }) {
   const [data,      setData]      = useState<TodaysLesson | null>(null);
@@ -62,7 +62,7 @@ export default function DailyLesson({ userId }: { userId: string }) {
         </h3>
 
         {/* Body — collapsed to first paragraph until expanded */}
-        <div className="text-sm text-gray-300 leading-relaxed">
+        <div className="text-sm text-aureus-soft leading-relaxed">
           {expanded ? (
             data.lesson.body.split("\n\n").map((para, i) => (
               <p key={i} className={i > 0 ? "mt-2" : ""}>{para}</p>
@@ -87,7 +87,7 @@ export default function DailyLesson({ userId }: { userId: string }) {
         )}
 
         {/* Progress footer */}
-        <div className="flex items-center justify-between text-[10px] text-aureus-muted pt-1 font-mono">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[10px] text-aureus-muted pt-1 font-mono">
           <span>{data.lessons_completed_count} lessons completed</span>
           {data.lessons_to_next_tier != null && (
             <span>{data.lessons_to_next_tier} more to reach the next level</span>

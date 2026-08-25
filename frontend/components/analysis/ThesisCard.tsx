@@ -30,8 +30,8 @@ export default function ThesisCard({ thesis }: Props) {
   }, [thesis.points]);
 
   const accent = bull ? "border-l-aureus-green" : "border-l-aureus-red";
-  const tone = bull ? "text-aureus-green" : "text-aureus-red";
-  const badgeBg = bull ? "bg-green-950/40 text-aureus-green" : "bg-red-950/40 text-aureus-red";
+  const tone = bull ? "text-aureus-verdigris" : "text-aureus-oxblood";
+  const badgeBg = bull ? "bg-aureus-verdigris/10 text-aureus-verdigris" : "bg-aureus-oxblood/10 text-aureus-oxblood";
 
   return (
     <Card className={`border-l-2 ${accent}`}>
@@ -65,7 +65,7 @@ export default function ThesisCard({ thesis }: Props) {
                 {points.map((p, i) => (
                   <div key={i} className="space-y-1">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm text-white font-medium leading-snug">{p.headline}</p>
+                      <p className="text-sm text-aureus-text font-medium leading-snug">{p.headline}</p>
                       <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-mono ${badgeBg}`}>
                         {p.metric_label} {p.metric_value}
                       </span>

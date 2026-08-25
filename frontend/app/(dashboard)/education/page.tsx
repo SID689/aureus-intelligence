@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Trophy, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ErrorNote, Figure, PageHeader, Sheet } from "@/components/ui/primitives";
 import CourseBrowser from "@/components/education/CourseBrowser";
 import LessonViewer from "@/components/education/LessonViewer";
 import AchievementsModal from "@/components/education/AchievementsModal";
@@ -45,8 +46,8 @@ export default function EducationPage() {
 
   if (error || !catalog || !progress) {
     return (
-      <div className="py-20 text-center space-y-3">
-        <p className="text-aureus-red text-sm">{error ?? "Curriculum unavailable"}</p>
+      <div className="py-20 max-w-md mx-auto space-y-3 text-center">
+        <ErrorNote>{error ?? "Curriculum unavailable"}</ErrorNote>
         <Button variant="outline" size="sm" onClick={refresh}>Retry</Button>
       </div>
     );
@@ -74,41 +75,44 @@ export default function EducationPage() {
       )}
 
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Education</h1>
-          <p className="text-aureus-muted text-sm mt-0.5">
-            A structured curriculum from absolute beginner to institutional-grade. Work through it
-            at your own pace — the dashboard&apos;s daily lesson draws from the same content.
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => setShowAchievements(true)}>
-          <Trophy className="w-4 h-4 mr-2" />
-          Achievements ({earnedBadges})
-        </Button>
-      </div>
+      <PageHeader
+        title="Education"
+        lead="A structured curriculum from absolute beginner to institutional-grade. Work through it
+              at your own pace — the dashboard's daily lesson draws from the same content."
+        actions={
+          <Button variant="outline" onClick={() => setShowAchievements(true)}>
+            <Trophy className="w-4 h-4" /> Achievements ({earnedBadges})
+          </Button>
+        }
+      />
 
       {/* Overall progress */}
-      <div className="rounded-lg border border-aureus-rule p-4 space-y-3" style={{ background: "var(--panel)" }}>
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-          <span className="text-white font-medium">
-            {totals.lessons_completed} of {totals.lessons_total} lessons complete
+      <Sheet lift accent className="p-5 space-y-3.5">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <span className="text-[15px] text-aureus-text">
+            <Figure className="text-lg">{totals.lessons_completed}</Figure>
+            <span className="text-aureus-muted"> of </span>
+            <Figure tone="muted" className="text-lg">{totals.lessons_total}</Figure>
+            <span className="text-aureus-muted text-[13px]"> lessons complete</span>
           </span>
-          <span className="flex items-center gap-1.5 text-aureus-gold font-mono text-sm">
-            <Zap className="w-4 h-4" />
-            {totals.xp_earned.toLocaleString()} / {totals.xp_available.toLocaleString()} XP
+          <span className="flex items-center gap-1.5 text-aureus-gold">
+            <Zap className="w-3.5 h-3.5" strokeWidth={2} />
+            <Figure className="text-[13px] text-aureus-gold">
+              {totals.xp_earned.toLocaleString()} / {totals.xp_available.toLocaleString()} XP
+            </Figure>
           </span>
         </div>
-        <div className="h-2 rounded-full bg-aureus-rule/40 overflow-hidden">
-          <div className="h-full bg-aureus-gold transition-all" style={{ width: `${totals.percent_complete}%` }} />
+        <div className="h-1.5 rounded-sm bg-aureus-panelhigh overflow-hidden">
+          <div className="h-full bg-aureus-gold transition-all duration-500" style={{ width: `${totals.percent_complete}%` }} />
         </div>
         {progress.quiz_accuracy_pct !== null && (
-          <p className="text-xs text-aureus-muted">
-            Quiz accuracy {progress.quiz_accuracy_pct}% across {progress.quizzes_taken} knowledge
-            check{progress.quizzes_taken === 1 ? "" : "s"} · {progress.perfect_quizzes} perfect
+          <p className="text-[12px] text-aureus-muted">
+            Quiz accuracy <Figure tone="muted" className="text-[12px]">{progress.quiz_accuracy_pct}%</Figure> across{" "}
+            {progress.quizzes_taken} knowledge check{progress.quizzes_taken === 1 ? "" : "s"} ·{" "}
+            {progress.perfect_quizzes} perfect
           </p>
         )}
-      </div>
+      </Sheet>
 
       <CourseBrowser catalog={catalog} onOpenLesson={setActiveLessonId} />
     </div>

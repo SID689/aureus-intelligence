@@ -12,9 +12,9 @@ import type { LessonCallout, LessonDetail, QuizResult } from "@/lib/api";
 
 const CALLOUT_STYLE: Record<LessonCallout["kind"], { label: string; border: string; text: string; bg: string }> = {
   key_idea:       { label: "Key Idea",       border: "border-aureus-gold",      text: "text-aureus-gold",      bg: "bg-aureus-gold/[0.05]" },
-  why_it_matters: { label: "Why It Matters", border: "border-aureus-verdigris", text: "text-aureus-verdigris", bg: "bg-emerald-950/20" },
-  common_mistake: { label: "Common Mistake", border: "border-aureus-oxblood",   text: "text-aureus-oxblood",   bg: "bg-red-950/20" },
-  example:        { label: "Worked Example", border: "border-blue-400",         text: "text-blue-300",         bg: "bg-blue-950/20" },
+  why_it_matters: { label: "Why It Matters", border: "border-aureus-verdigris", text: "text-aureus-verdigris", bg: "bg-aureus-verdigris/10" },
+  common_mistake: { label: "Common Mistake", border: "border-aureus-oxblood",   text: "text-aureus-oxblood",   bg: "bg-aureus-oxblood/10" },
+  example:        { label: "Worked Example", border: "border-aureus-amber",     text: "text-aureus-amber",     bg: "bg-aureus-amber/10" },
 };
 
 interface Props {
@@ -75,7 +75,7 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
   if (error || !data) {
     return (
       <div className="py-20 text-center space-y-3">
-        <p className="text-aureus-red text-sm">{error ?? "Lesson not found"}</p>
+        <p className="text-aureus-oxblood text-sm">{error ?? "Lesson not found"}</p>
         <Button variant="outline" size="sm" onClick={onBack}>Back to all modules</Button>
       </div>
     );
@@ -87,7 +87,7 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
   return (
     <article className="max-w-3xl space-y-6">
       <button onClick={onBack}
-              className="flex items-center gap-1.5 text-xs text-aureus-muted hover:text-white transition-colors">
+              className="flex items-center gap-1.5 text-xs text-aureus-muted hover:text-aureus-text transition-colors">
         <ArrowLeft className="w-3.5 h-3.5" /> Back to all modules
       </button>
 
@@ -98,7 +98,7 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
           <span className="text-xs text-aureus-muted">{lesson.category}</span>
           {isComplete && <Badge variant="green">✓ Completed</Badge>}
         </div>
-        <h1 className="text-2xl font-bold text-white leading-tight">{lesson.title}</h1>
+        <h1 className="text-2xl font-bold text-aureus-text leading-tight">{lesson.title}</h1>
         <div className="flex flex-wrap items-center gap-4 text-xs text-aureus-muted">
           <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{lesson.estimated_read_time_minutes} min read</span>
           <span className="flex items-center gap-1"><Zap className="w-3.5 h-3.5" />{lesson.max_xp} XP available</span>
@@ -120,7 +120,7 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
             return (
               <div key={i} className={`rounded-lg border-l-2 ${s.border} ${s.bg} px-4 py-3 space-y-1`}>
                 <p className={`text-[10px] uppercase tracking-wider font-semibold ${s.text}`}>{s.label}</p>
-                <p className="text-sm text-white font-medium">{c.title}</p>
+                <p className="text-sm text-aureus-text font-medium">{c.title}</p>
                 <p className="text-sm text-aureus-muted leading-relaxed">{c.body}</p>
               </div>
             );
@@ -131,13 +131,13 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
       {/* Key takeaway */}
       <div className="rounded-lg border border-aureus-gold/40 bg-aureus-gold/[0.06] p-4">
         <p className="text-[10px] uppercase tracking-wider font-semibold text-aureus-gold mb-1.5">Key Takeaway</p>
-        <p className="text-sm text-white leading-relaxed">{lesson.key_takeaway}</p>
+        <p className="text-sm text-aureus-text leading-relaxed">{lesson.key_takeaway}</p>
       </div>
 
       {/* Glossary */}
       {lesson.glossary.length > 0 && (
-        <details className="rounded-lg border border-aureus-border p-4" style={{ background: "var(--surface)" }}>
-          <summary className="text-xs uppercase tracking-wider text-aureus-muted cursor-pointer select-none hover:text-white">
+        <details className="rounded-lg border border-aureus-rule p-4" style={{ background: "var(--panel)" }}>
+          <summary className="text-xs uppercase tracking-wider text-aureus-muted cursor-pointer select-none hover:text-aureus-text">
             Glossary ({lesson.glossary.length} terms)
           </summary>
           <dl className="mt-3 space-y-2">
@@ -154,7 +154,7 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
       {/* Completion */}
       <div className="pt-2 border-t border-aureus-rule">
         {isComplete ? (
-          <p className="text-sm text-aureus-green py-2">
+          <p className="text-sm text-aureus-verdigris py-2">
             ✓ Lesson complete{justCompleted && ` — +${lesson.xp_points} XP`}
             {lesson.quiz_question_count > 0 && !progress.quiz_passed &&
               " · pass the knowledge check below for bonus XP"}

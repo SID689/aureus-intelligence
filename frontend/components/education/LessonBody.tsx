@@ -117,7 +117,7 @@ export default function LessonBody({ body, glossary }: Props) {
               seg.text
             );
             return seg.bold ? (
-              <strong key={key} className="text-white font-semibold">{inner}</strong>
+              <strong key={key} className="text-aureus-text font-semibold">{inner}</strong>
             ) : (
               <span key={key}>{inner}</span>
             );

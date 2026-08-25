@@ -161,7 +161,7 @@ export default function WelcomePage() {
               Fundamental · Technical · Sentiment — unified
             </div>
 
-            <h1 className="font-display text-white tracking-tight leading-[1.05] mb-6 text-5xl lg:text-6xl"
+            <h1 className="font-display text-aureus-text tracking-tight leading-[1.05] mb-6 text-5xl lg:text-6xl"
                 style={{ fontWeight: 600 }}>
               Analysis that shows<span className="hidden sm:inline"><br /></span>{" "}
               its work,{" "}
@@ -203,19 +203,25 @@ export default function WelcomePage() {
           </div>
         </section>
 
-        {/* ── Proof strip ──────────────────────────────────────── */}
+        {/* ── Proof strip ────────────────────────────────────────
+            Divided by hairlines rather than rendered as four separate
+            tiles, matching how the app itself presents a row of figures.
+            The landing page should look like the product, not like a
+            different template that happens to share a logo. */}
         <section className="max-w-5xl mx-auto px-8 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px rounded-xl overflow-hidden border border-aureus-rule"
-               style={{ background: "var(--rule)" }}>
+          <div className="grid grid-cols-2 md:grid-cols-4 border-y border-aureus-rule">
             {[
               ["3", "analytical pillars"],
               ["14", "chart patterns detected"],
               ["44", "lessons built in"],
               ["5", "factor exposures"],
-            ].map(([n, label]) => (
-              <div key={label} className="px-5 py-6 text-center" style={{ background: "var(--panel)" }}>
-                <div className="font-display text-3xl text-aureus-gold" style={{ fontWeight: 600 }}>{n}</div>
-                <div className="text-[11px] text-aureus-muted mt-1 tracking-wide">{label}</div>
+            ].map(([n, label], i) => (
+              <div
+                key={label}
+                className={`px-5 py-7 ${i % 2 === 1 ? "border-l border-aureus-rule" : ""} ${i >= 2 ? "border-t md:border-t-0 border-aureus-rule" : ""} ${i === 2 ? "md:border-l md:border-aureus-rule" : ""}`}
+              >
+                <div className="font-display text-[2rem] leading-none text-aureus-gold" style={{ fontWeight: 600 }}>{n}</div>
+                <div className="text-[11px] text-aureus-muted mt-2 tracking-wide">{label}</div>
               </div>
             ))}
           </div>
@@ -237,7 +243,7 @@ export default function WelcomePage() {
                      style={{ background: "radial-gradient(circle, rgb(var(--gold-rgb) / 0.14), transparent)" }} />
                 <div className="relative">
                   <p.icon className="w-6 h-6 text-aureus-gold mb-4" strokeWidth={1.5} />
-                  <h3 className="font-display text-xl text-white mb-1" style={{ fontWeight: 600 }}>{p.name}</h3>
+                  <h3 className="font-display text-xl text-aureus-text mb-1" style={{ fontWeight: 600 }}>{p.name}</h3>
                   <p className="text-aureus-gold text-[13px] mb-4 leading-snug">{p.question}</p>
                   <p className="text-sm text-aureus-muted leading-relaxed mb-5">{p.detail}</p>
                   <div className="pt-4 border-t border-aureus-rule flex items-baseline justify-between">
@@ -287,7 +293,7 @@ export default function WelcomePage() {
               <Mic className="w-6 h-6 text-aureus-gold" strokeWidth={1.5} />
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h3 className="font-display text-xl text-white mb-1.5" style={{ fontWeight: 600 }}>
+              <h3 className="font-display text-xl text-aureus-text mb-1.5" style={{ fontWeight: 600 }}>
                 Talk through a position out loud
               </h3>
               <p className="text-sm text-aureus-muted leading-relaxed">
@@ -318,7 +324,7 @@ export default function WelcomePage() {
                 {p.featured && (
                   <div className="text-[10px] uppercase tracking-widest text-aureus-gold mb-3">Most popular</div>
                 )}
-                <div className="font-display text-lg text-white" style={{ fontWeight: 600 }}>{p.name}</div>
+                <div className="font-display text-lg text-aureus-text" style={{ fontWeight: 600 }}>{p.name}</div>
                 <div className="flex items-baseline gap-1.5 mt-2 mb-1">
                   <span className="font-display text-4xl text-aureus-gold" style={{ fontWeight: 600 }}>${p.price}</span>
                   <span className="text-[11px] text-aureus-muted">{p.note}</span>
@@ -326,7 +332,7 @@ export default function WelcomePage() {
                 <ul className="space-y-2 mt-5 mb-6 flex-1">
                   {p.points.map((pt) => (
                     <li key={pt} className="flex items-start gap-2 text-[13px] text-aureus-muted">
-                      <Check className="w-3.5 h-3.5 text-aureus-green mt-0.5 flex-shrink-0" />
+                      <Check className="w-3.5 h-3.5 text-aureus-verdigris mt-0.5 flex-shrink-0" />
                       {pt}
                     </li>
                   ))}
@@ -346,7 +352,7 @@ export default function WelcomePage() {
 
         {/* ── Closing CTA ──────────────────────────────────────── */}
         <section className="max-w-3xl mx-auto px-8 py-16 text-center">
-          <h2 className="font-display text-4xl text-white leading-tight mb-5" style={{ fontWeight: 600 }}>
+          <h2 className="font-display text-4xl text-aureus-text leading-tight mb-5" style={{ fontWeight: 600 }}>
             See the reasoning behind your next position
           </h2>
           <p className="text-aureus-muted leading-relaxed mb-8 max-w-xl mx-auto">
@@ -384,7 +390,7 @@ function SectionHeading({ eyebrow, title, sub }: { eyebrow: string; title: strin
   return (
     <div className="max-w-2xl">
       <div className="text-[11px] uppercase tracking-widest text-aureus-gold mb-3">{eyebrow}</div>
-      <h2 className="font-display text-3xl md:text-4xl text-white leading-tight mb-4" style={{ fontWeight: 600 }}>
+      <h2 className="font-display text-3xl md:text-4xl text-aureus-text leading-tight mb-4" style={{ fontWeight: 600 }}>
         {title}
       </h2>
       <p className="text-sm text-aureus-muted leading-relaxed">{sub}</p>
@@ -422,7 +428,7 @@ function MockAnalysisCard() {
       <div className="px-6 py-5 border-b border-aureus-rule flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="font-display text-2xl text-white" style={{ fontWeight: 600 }}>AAPL</span>
+            <span className="font-display text-2xl text-aureus-text" style={{ fontWeight: 600 }}>AAPL</span>
             <span className="rounded px-2 py-0.5 text-[10px] font-bold tracking-wider border border-aureus-gold/40 text-aureus-gold"
                   style={{ background: "rgb(var(--gold-rgb) / 0.08)" }}>
               HOLD
@@ -433,7 +439,7 @@ function MockAnalysisCard() {
           </div>
         </div>
         <div className="text-right">
-          <div className="font-mono-num text-xl text-white">62.8</div>
+          <div className="font-mono-num text-xl text-aureus-text">62.8</div>
           <div className="text-[10px] text-aureus-muted">confidence</div>
         </div>
       </div>

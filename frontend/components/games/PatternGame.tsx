@@ -29,10 +29,10 @@ interface Props {
 }
 
 const BIAS_TONE: Record<string, string> = {
-  bullish_reversal: "text-aureus-green",
-  bullish_continuation: "text-aureus-green",
-  bearish_reversal: "text-aureus-red",
-  bearish_continuation: "text-aureus-red",
+  bullish_reversal: "text-aureus-verdigris",
+  bullish_continuation: "text-aureus-verdigris",
+  bearish_reversal: "text-aureus-oxblood",
+  bearish_continuation: "text-aureus-oxblood",
   bilateral: "text-aureus-gold",
 };
 
@@ -81,7 +81,7 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
   if (error && !scenario) {
     return (
       <div className="py-16 text-center space-y-3">
-        <p className="text-aureus-red text-sm">{error}</p>
+        <p className="text-aureus-oxblood text-sm">{error}</p>
         <Button variant="outline" size="sm" onClick={load}>Try Again</Button>
       </div>
     );
@@ -107,7 +107,7 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex-1 min-w-[240px]">
-          <h3 className="text-white font-semibold">{scenario.question}</h3>
+          <h3 className="text-aureus-text font-semibold">{scenario.question}</h3>
           <p className="text-xs text-aureus-muted mt-0.5">
             Real historical price action, ticker hidden · one chart per day
           </p>
@@ -128,35 +128,38 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
 
       <div className="flex flex-wrap gap-2">
         {scenario.setup_notes.map((n, i) => (
-          <span key={i} className="text-xs text-aureus-muted rounded-md border border-aureus-border px-2 py-1">
+          <span key={i} className="text-xs text-aureus-muted rounded-md border border-aureus-rule px-2 py-1">
             {n}
           </span>
         ))}
       </div>
 
-      <div className="rounded-lg border border-aureus-border p-3" style={{ background: "var(--surface)" }}>
+      <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--panel)" }}>
         <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" vertical={false} />
-            <XAxis dataKey="date" tick={{ fill: "#6b7280", fontSize: 10 }} tickLine={false} axisLine={false}
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" vertical={false} />
+            <XAxis dataKey="date" tick={{ fill: "var(--text-muted)", fontSize: 10 }} tickLine={false} axisLine={false}
                    interval={Math.max(1, Math.floor(data.length / 6))} />
-            <YAxis orientation="right" domain={["auto", "auto"]} tick={{ fill: "#6b7280", fontSize: 10 }}
+            <YAxis orientation="right" domain={["auto", "auto"]} tick={{ fill: "var(--text-muted)", fontSize: 10 }}
                    tickLine={false} axisLine={false} width={52}
                    tickFormatter={(v) => `$${Number(v).toFixed(0)}`} />
             <Tooltip
-              contentStyle={{ background: "var(--bg)", border: "1px solid #2a2a3a", borderRadius: 8, fontSize: 12 }}
-              labelStyle={{ color: "#6b7280" }}
-              formatter={(v: number | undefined) => (v == null ? "—" : `$${Number(v).toFixed(2)}`)}
+              contentStyle={{ background: "var(--bg)", border: "1px solid var(--rule)", borderRadius: 8, fontSize: 12 }}
+              labelStyle={{ color: "var(--text-muted)" }}
+              // Left unannotated on purpose: recharts types a formatter's
+              // value as ValueType (string | number | array), so declaring
+              // the parameter as `number` makes the overload unassignable.
+              formatter={(v) => (v == null ? "—" : `$${Number(v).toFixed(2)}`)}
             />
-            <Line type="monotone" dataKey="setup" stroke="#d4a843" strokeWidth={1.8} dot={false} connectNulls={false} />
+            <Line type="monotone" dataKey="setup" stroke="var(--gold)" strokeWidth={1.8} dot={false} connectNulls={false} />
             {result && (
               <Line type="monotone" dataKey="outcome" strokeWidth={2} dot={false} connectNulls={false}
-                    stroke={result.correct_direction === "bullish_breakout" ? "#22c55e"
-                          : result.correct_direction === "bearish_breakdown" ? "#ef4444" : "#6b7280"} />
+                    stroke={result.correct_direction === "bullish_breakout" ? "var(--verdigris)"
+                          : result.correct_direction === "bearish_breakdown" ? "var(--oxblood)" : "var(--text-muted)"} />
             )}
             {result && (
-              <ReferenceLine x={data[setupLen - 1]?.date} stroke="#6b7280" strokeDasharray="4 3"
-                             label={{ value: "decision", fill: "#6b7280", fontSize: 10, position: "top" }} />
+              <ReferenceLine x={data[setupLen - 1]?.date} stroke="var(--text-muted)" strokeDasharray="4 3"
+                             label={{ value: "decision", fill: "var(--text-muted)", fontSize: 10, position: "top" }} />
             )}
           </ComposedChart>
         </ResponsiveContainer>
@@ -172,7 +175,7 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
                 className={`rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${
                   choice === c.value
                     ? "border-aureus-gold bg-aureus-gold/10 text-aureus-gold"
-                    : "border-aureus-border text-aureus-text hover:border-aureus-muted"
+                    : "border-aureus-rule text-aureus-text hover:border-aureus-muted"
                 }`}
               >
                 {c.label}
@@ -186,9 +189,9 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
       ) : (
         <div className="space-y-3">
           <div className={`rounded-lg border p-4 space-y-2 ${
-            result.correct ? "border-aureus-green bg-green-950/20" : "border-aureus-red bg-red-950/20"
+            result.correct ? "border-aureus-verdigrisdim bg-aureus-verdigris/10" : "border-aureus-oxblooddim bg-aureus-oxblood/10"
           }`}>
-            <p className={`font-semibold ${result.correct ? "text-aureus-green" : "text-aureus-red"}`}>
+            <p className={`font-semibold ${result.correct ? "text-aureus-verdigris" : "text-aureus-oxblood"}`}>
               {result.correct ? "Correct" : "Not this time"}
               {!result.correct && (
                 <span className="text-aureus-muted font-normal">
@@ -205,10 +208,10 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
 
           {/* Pattern deep-dive — the teaching payload */}
           {pattern && (
-            <div className="rounded-lg border border-aureus-border p-4 space-y-3" style={{ background: "var(--surface)" }}>
+            <div className="rounded-lg border border-aureus-rule p-4 space-y-3" style={{ background: "var(--panel)" }}>
               <div className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-aureus-gold" />
-                <h4 className="text-white font-semibold text-sm">{pattern.name}</h4>
+                <h4 className="text-aureus-text font-semibold text-sm">{pattern.name}</h4>
                 <Badge variant="muted" className={BIAS_TONE[pattern.bias] ?? ""}>
                   {pattern.bias.replace(/_/g, " ")}
                 </Badge>
@@ -231,14 +234,14 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
                 </section>
               ))}
 
-              <section className="rounded-md border-l-2 border-aureus-red bg-red-950/15 px-3 py-2">
-                <h5 className="text-[10px] uppercase tracking-wider text-aureus-red mb-0.5">Why it isn&apos;t a guarantee</h5>
+              <section className="rounded-md border-l-2 border-aureus-oxblooddim bg-aureus-oxblood/10 px-3 py-2">
+                <h5 className="text-[10px] uppercase tracking-wider text-aureus-oxblood mb-0.5">Why it isn&apos;t a guarantee</h5>
                 <p className="text-sm text-aureus-text leading-relaxed">{pattern.caveat}</p>
               </section>
             </div>
           )}
 
-          <div className="rounded-lg border border-aureus-border px-4 py-3 text-center"
+          <div className="rounded-lg border border-aureus-rule px-4 py-3 text-center"
                style={{ background: "var(--bg)" }}>
             <p className="text-sm text-aureus-muted">
               That&apos;s today&apos;s chart. A new one unlocks tomorrow.

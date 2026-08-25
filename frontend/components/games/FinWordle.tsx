@@ -106,7 +106,7 @@ export default function FinWordle({ userId, currentStreak, onRoundComplete }: Pr
   if (!session) {
     return (
       <div className="py-16 text-center space-y-3">
-        <p className="text-aureus-red text-sm">{message ?? "Game unavailable"}</p>
+        <p className="text-aureus-oxblood text-sm">{message ?? "Game unavailable"}</p>
         <Button variant="outline" size="sm" onClick={() => load(mode)}>Retry</Button>
       </div>
     );
@@ -135,7 +135,7 @@ export default function FinWordle({ userId, currentStreak, onRoundComplete }: Pr
               className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
                 mode === m
                   ? "border-aureus-gold text-aureus-gold bg-aureus-gold/10"
-                  : "border-aureus-border text-aureus-muted hover:text-white"
+                  : "border-aureus-rule text-aureus-muted hover:text-aureus-text"
               }`}
             >
               {m === "daily" ? "Daily Word" : "Unlimited Practice"}

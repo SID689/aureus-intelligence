@@ -137,17 +137,17 @@ function ProgressRail({ step }: { step: OnboardingStep }) {
               {/* Rail: dot plus the connector to the next step */}
               <div className="flex flex-col items-center">
                 <div className={`w-6 h-6 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${
-                  done ? "border-aureus-green bg-aureus-green/15"
+                  done ? "border-aureus-verdigrisdim bg-aureus-verdigris/15"
                     : active ? "border-aureus-gold bg-aureus-gold/15"
                     : "border-aureus-rule"
                 }`}>
                   {done
-                    ? <Check className="w-3 h-3 text-aureus-green" />
+                    ? <Check className="w-3 h-3 text-aureus-verdigris" />
                     : <span className={`text-[10px] font-mono-num ${active ? "text-aureus-gold" : "text-aureus-muted"}`}>{i + 1}</span>}
                 </div>
                 {i < steps.length - 1 && (
                   <div className={`w-px flex-1 min-h-[34px] my-1 transition-colors ${
-                    done ? "bg-aureus-green/40" : "bg-aureus-rule"}`} />
+                    done ? "bg-aureus-verdigris/40" : "bg-aureus-rule"}`} />
                 )}
               </div>
               <div className="pb-2">
@@ -234,7 +234,7 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
         <Sparkles className="w-3 h-3" /> Before your first analysis
       </div>
 
-      <h1 className="font-display text-4xl md:text-5xl text-white leading-[1.1] mb-6" style={{ fontWeight: 600 }}>
+      <h1 className="font-display text-4xl md:text-5xl text-aureus-text leading-[1.1] mb-6" style={{ fontWeight: 600 }}>
         Every number here comes<br />with its reasoning
       </h1>
       <p className="text-aureus-muted leading-relaxed max-w-xl mb-4">
@@ -288,7 +288,7 @@ function PillarsStep({ state, dispatch }: {
       {/* Assembly meter */}
       <div className="mb-7">
         <div className="flex items-baseline justify-between mb-2.5">
-          <h2 className="font-display text-2xl text-white" style={{ fontWeight: 600 }}>The three pillars</h2>
+          <h2 className="font-display text-2xl text-aureus-text" style={{ fontWeight: 600 }}>The three pillars</h2>
           <span className="text-[11px] text-aureus-muted">
             {state.seenPillars.length} of 3 explored
           </span>
@@ -320,7 +320,7 @@ function PillarsStep({ state, dispatch }: {
                     style={{ background: active ? "rgb(var(--gold-rgb) / 0.07)" : "var(--panel)" }}>
               <div className="flex items-center justify-between mb-1.5">
                 <PIcon className={`w-4 h-4 ${active ? "text-aureus-gold" : "text-aureus-muted"}`} strokeWidth={1.5} />
-                {seen && <Check className="w-3 h-3 text-aureus-green" />}
+                {seen && <Check className="w-3 h-3 text-aureus-verdigris" />}
               </div>
               <div className={`text-[13px] font-medium ${active ? "text-aureus-gold" : "text-aureus-text"}`}>
                 {pm.title}
@@ -340,7 +340,7 @@ function PillarsStep({ state, dispatch }: {
               <Icon className="w-5 h-5 text-aureus-gold" strokeWidth={1.5} />
             </div>
             <div className="min-w-0">
-              <h3 className="font-display text-2xl text-white leading-tight" style={{ fontWeight: 600 }}>
+              <h3 className="font-display text-2xl text-aureus-text leading-tight" style={{ fontWeight: 600 }}>
                 {m.title}
               </h3>
               <p className="text-aureus-gold text-[13px] mt-1">{m.tagline}</p>
@@ -415,12 +415,12 @@ function PillarsStep({ state, dispatch }: {
               <div className="space-y-3">
                 {m.risks.map((r) => (
                   <div key={r.label} className="text-[13px]">
-                    <span className="text-aureus-red font-medium">{r.label}</span>
+                    <span className="text-aureus-oxblood font-medium">{r.label}</span>
                     <span className="text-aureus-muted"> — {r.detail}</span>
                   </div>
                 ))}
                 <div className="flex gap-2.5 pt-3 border-t border-aureus-rule">
-                  <AlertTriangle className="w-4 h-4 text-aureus-red flex-shrink-0 mt-0.5" strokeWidth={1.75} />
+                  <AlertTriangle className="w-4 h-4 text-aureus-oxblood flex-shrink-0 mt-0.5" strokeWidth={1.75} />
                   <p className="text-[13px] text-aureus-muted leading-relaxed">
                     <span className="text-aureus-text font-medium">Blind spot: </span>{m.blindSpot}
                   </p>
@@ -435,8 +435,8 @@ function PillarsStep({ state, dispatch }: {
         {ready && (
           <div className="pop-in border-t border-aureus-rule p-6 md:p-7" style={{ background: "var(--bg)" }}>
             <div className="flex items-center gap-2 mb-3">
-              <Layers className="w-4 h-4 text-aureus-green" strokeWidth={1.75} />
-              <span className="text-[11px] uppercase tracking-widest text-aureus-green">
+              <Layers className="w-4 h-4 text-aureus-verdigris" strokeWidth={1.75} />
+              <span className="text-[11px] uppercase tracking-widest text-aureus-verdigris">
                 All three explored — here's why they're combined
               </span>
             </div>
@@ -470,7 +470,7 @@ function DiagnosticStep({ state, dispatch }: {
   return (
     <div className="panel-in">
       <div className="flex items-baseline justify-between mb-2.5">
-        <h2 className="font-display text-2xl text-white" style={{ fontWeight: 600 }}>Calibration</h2>
+        <h2 className="font-display text-2xl text-aureus-text" style={{ fontWeight: 600 }}>Calibration</h2>
         <span className="text-[11px] text-aureus-muted font-mono-num">
           {state.questionIndex + 1} / {total}
         </span>
@@ -490,7 +490,7 @@ function DiagnosticStep({ state, dispatch }: {
       </div>
 
       <div key={q.id} className="panel-in">
-        <h3 className="font-display text-3xl text-white leading-tight mb-2.5" style={{ fontWeight: 600 }}>
+        <h3 className="font-display text-3xl text-aureus-text leading-tight mb-2.5" style={{ fontWeight: 600 }}>
           {q.question}
         </h3>
         <p className="text-[13px] text-aureus-muted mb-7">{q.helper}</p>
@@ -569,7 +569,7 @@ function SignatureStep({ onSign, onBack }: {
       <div className="flex items-center gap-2 text-[11px] text-aureus-gold mb-4">
         <PenLine className="w-3.5 h-3.5" /> Last step
       </div>
-      <h2 className="font-display text-3xl text-white leading-tight mb-2" style={{ fontWeight: 600 }}>
+      <h2 className="font-display text-3xl text-aureus-text leading-tight mb-2" style={{ fontWeight: 600 }}>
         Risk acknowledgment
       </h2>
       <p className="text-[13px] text-aureus-muted mb-7 max-w-lg">
@@ -638,12 +638,12 @@ function CompleteStep({ tier, onFinish, submitting }: {
   const result = TIER_RESULT[tier ?? "novice"] ?? TIER_RESULT.novice;
   return (
     <div className="panel-in text-center">
-      <div className="pop-in w-16 h-16 rounded-2xl border border-aureus-green/40 flex items-center justify-center mx-auto mb-7"
+      <div className="pop-in w-16 h-16 rounded-2xl border border-aureus-verdigrisdim/40 flex items-center justify-center mx-auto mb-7"
            style={{ background: "rgb(var(--verdigris-rgb) / 0.1)" }}>
-        <Check className="w-8 h-8 text-aureus-green" strokeWidth={2} />
+        <Check className="w-8 h-8 text-aureus-verdigris" strokeWidth={2} />
       </div>
 
-      <h2 className="font-display text-4xl text-white leading-tight mb-3" style={{ fontWeight: 600 }}>
+      <h2 className="font-display text-4xl text-aureus-text leading-tight mb-3" style={{ fontWeight: 600 }}>
         You're set up
       </h2>
       <p className="text-[13px] text-aureus-muted mb-8">

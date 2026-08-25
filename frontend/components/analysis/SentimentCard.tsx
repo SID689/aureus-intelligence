@@ -23,9 +23,9 @@ interface Props {
 const BANDS = { bullish: 66, bearish: 35 };
 
 function toneOf(score: number) {
-  if (score >= BANDS.bullish) return { color: "#22c55e", text: "text-aureus-green", label: "Bullish" };
-  if (score <= BANDS.bearish) return { color: "#ef4444", text: "text-aureus-red", label: "Bearish" };
-  return { color: "#d4a843", text: "text-aureus-gold", label: "Neutral" };
+  if (score >= BANDS.bullish) return { color: "var(--verdigris)", text: "text-aureus-verdigris", label: "Bullish" };
+  if (score <= BANDS.bearish) return { color: "var(--oxblood)", text: "text-aureus-oxblood", label: "Bearish" };
+  return { color: "var(--gold)", text: "text-aureus-gold", label: "Neutral" };
 }
 
 /** Semicircular gauge with the 0-35 / 36-65 / 66-100 bands drawn in. */
@@ -57,9 +57,9 @@ function SentimentGauge({ score, label }: { score: number; label: string }) {
   return (
     <div className="relative">
       <svg width="200" height="112" viewBox="0 0 200 112">
-        {arc(0, BANDS.bearish, "#7f1d1d")}
-        {arc(BANDS.bearish, BANDS.bullish, "#5c4a1a")}
-        {arc(BANDS.bullish, 100, "#14532d")}
+        {arc(0, BANDS.bearish, "var(--oxblood-dim)")}
+        {arc(BANDS.bearish, BANDS.bullish, "var(--gold-dim)")}
+        {arc(BANDS.bullish, 100, "var(--verdigris-dim)")}
         <line x1={cx} y1={cy} x2={nx} y2={ny}
               stroke={tone.color} strokeWidth="3" strokeLinecap="round" />
         <circle cx={cx} cy={cy} r="5" fill={tone.color} />
@@ -104,7 +104,7 @@ function SubScore({
 function VelocityMeter({ s }: { s: SentimentPillar }) {
   const v = s.polarity_velocity;
   const Icon = v >= 0.15 ? TrendingUp : v <= -0.15 ? TrendingDown : Minus;
-  const tone = v >= 0.15 ? "text-aureus-green" : v <= -0.15 ? "text-aureus-red" : "text-aureus-muted";
+  const tone = v >= 0.15 ? "text-aureus-verdigris" : v <= -0.15 ? "text-aureus-oxblood" : "text-aureus-muted";
   // Map -0.5..+0.5 onto 0..100% for the centre-anchored bar.
   const pct = Math.max(0, Math.min(100, 50 + v * 100));
   return (
@@ -123,7 +123,7 @@ function VelocityMeter({ s }: { s: SentimentPillar }) {
           style={{
             left: v >= 0 ? "50%" : `${pct}%`,
             width: `${Math.abs(pct - 50)}%`,
-            background: v >= 0 ? "#22c55e" : "#ef4444",
+            background: v >= 0 ? "var(--verdigris)" : "var(--oxblood)",
           }}
         />
       </div>
@@ -212,7 +212,7 @@ export default function SentimentCard({ sentiment: s }: Props) {
                       style={{ background: "var(--bg)" }}>
                     <span
                       className={`mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold font-mono flex-shrink-0 ${
-                        pos ? "bg-green-950/60 text-aureus-green" : "bg-red-950/60 text-aureus-red"
+                        pos ? "bg-aureus-verdigris/10 text-aureus-verdigris" : "bg-aureus-oxblood/10 text-aureus-oxblood"
                       }`}
                       title={c.evidence.length ? `Driven by: ${c.evidence.join(", ")}` : undefined}
                     >

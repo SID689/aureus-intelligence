@@ -1,43 +1,54 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-// A card carries a hairline bronze-grey border rather than a heavy stroke,
-// and a barely-lifted panel tone rather than a flat surface color — the
-// idea is a page of a ledger sitting slightly above the desk, not a
-// generic "dashboard tile."
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { accent?: boolean }>(
-  ({ className, accent, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        "rounded-lg border border-aureus-rule",
-        accent && "guilloche-corner",
-        className
-      )}
-      style={{ background: "var(--panel)" }}
-      {...props}
-    />
-  )
-);
+/**
+ * A card is a raised sheet: warm panel surface, hairline border, a gold
+ * top edge and a soft cast shadow, so the page reads as physical layers
+ * rather than outlined rectangles on a flat plane.
+ *
+ * Prefer `RuledLabel` from ui/primitives when the content isn't really a
+ * discrete object — a heading with a hairline to the edge divides space
+ * without adding another border to the page. Reserve Card for things that
+ * genuinely are objects: a table, a chart, a panel of controls.
+ */
+const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { accent?: boolean; flat?: boolean }
+>(({ className, accent, flat, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-[10px] border border-aureus-rule bg-aureus-panel",
+      !flat && "border-t-aureus-golddim shadow-lift",
+      accent && "guilloche-corner",
+      className
+    )}
+    {...props}
+  />
+));
 Card.displayName = "Card";
 
 const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("flex flex-col space-y-1 p-4 border-b border-aureus-rule/60", className)} {...props} />
+    <div
+      ref={ref}
+      className={cn("flex flex-col space-y-1 px-5 py-3.5 border-b border-aureus-rule", className)}
+      {...props}
+    />
   )
 );
 CardHeader.displayName = "CardHeader";
 
-const CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
+const CardTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
-    <h3 ref={ref} className={cn("text-xs font-medium text-aureus-muted uppercase tracking-wider", className)} {...props} />
+    <h3 ref={ref} className={cn("label-caps", className)} {...props} />
   )
 );
 CardTitle.displayName = "CardTitle";
 
 const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("p-4", className)} {...props} />
+    <div ref={ref} className={cn("p-5", className)} {...props} />
   )
 );
 CardContent.displayName = "CardContent";

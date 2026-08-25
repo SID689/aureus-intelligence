@@ -24,7 +24,7 @@ interface Props {
 }
 
 const STATE_CLASS: Record<TileState, string> = {
-  correct: "bg-aureus-verdigris border-aureus-verdigris text-white",
+  correct: "bg-aureus-verdigris border-aureus-verdigris text-aureus-text",
   present: "bg-aureus-gold border-aureus-gold text-aureus-ink",
   absent: "bg-aureus-rule/60 border-aureus-rule text-aureus-muted",
 };
@@ -82,8 +82,8 @@ export default function WordGrid({ guesses, tiles, current, maxGuesses, wordLeng
                       state
                         ? STATE_CLASS[state]
                         : filled
-                          ? "border-aureus-muted text-white"
-                          : "border-aureus-rule text-white",
+                          ? "border-aureus-muted text-aureus-text"
+                          : "border-aureus-rule text-aureus-text",
                       submitted ? "tile-flip" : "",
                     ].join(" ")}
                     style={submitted ? { animationDelay: `${c * 110}ms` } : undefined}

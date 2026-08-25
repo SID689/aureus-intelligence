@@ -48,10 +48,10 @@ export default function SignUpPage() {
           <p className="text-aureus-muted text-sm">Create your account</p>
         </div>
 
-        <div className="rounded-xl border border-aureus-border p-6 space-y-4" style={{ background: "var(--surface)" }}>
+        <div className="rounded-xl border border-aureus-rule p-6 space-y-4" style={{ background: "var(--panel)" }}>
           <button
             onClick={() => signIn("google", { callbackUrl: "/" })}
-            className="w-full py-2 rounded-lg border border-aureus-border text-white text-sm
+            className="w-full py-2 rounded-lg border border-aureus-rule text-aureus-text text-sm
                        hover:border-aureus-gold transition-colors flex items-center justify-center gap-2"
           >
             <svg width="16" height="16" viewBox="0 0 48 48">
@@ -64,35 +64,35 @@ export default function SignUpPage() {
           </button>
 
           <div className="flex items-center gap-2 text-xs text-aureus-muted">
-            <div className="flex-1 h-px bg-aureus-border" />
+            <div className="flex-1 h-px bg-aureus-rule" />
             or
-            <div className="flex-1 h-px bg-aureus-border" />
+            <div className="flex-1 h-px bg-aureus-rule" />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="rounded p-2 bg-red-950/40 border border-aureus-red text-aureus-red text-sm">{error}</div>
+              <div className="rounded p-2 bg-aureus-oxblood/10 border border-aureus-oxblooddim text-aureus-oxblood text-sm">{error}</div>
             )}
             <div className="space-y-1">
               <label className="text-xs text-aureus-muted">Name</label>
               <input value={name} onChange={(e) => setName(e.target.value)}
-                     className="w-full bg-transparent border border-aureus-border rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-aureus-gold"
+                     className="w-full bg-transparent border border-aureus-rule rounded px-3 py-2 text-aureus-text text-sm focus:outline-none focus:border-aureus-gold"
                      placeholder="Jane Trader" />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-aureus-muted">Email</label>
               <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                     className="w-full bg-transparent border border-aureus-border rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-aureus-gold"
+                     className="w-full bg-transparent border border-aureus-rule rounded px-3 py-2 text-aureus-text text-sm focus:outline-none focus:border-aureus-gold"
                      placeholder="you@example.com" />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-aureus-muted">Password</label>
               <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-                     className="w-full bg-transparent border border-aureus-border rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-aureus-gold"
+                     className="w-full bg-transparent border border-aureus-rule rounded px-3 py-2 text-aureus-text text-sm focus:outline-none focus:border-aureus-gold"
                      placeholder="At least 8 characters" />
             </div>
             <button type="submit" disabled={loading}
-                    className="w-full py-2 bg-aureus-gold text-black font-semibold text-sm rounded hover:opacity-90 disabled:opacity-50 transition-opacity">
+                    className="w-full py-2 bg-aureus-gold text-aureus-ink font-semibold text-sm rounded hover:opacity-90 disabled:opacity-50 transition-opacity">
               {loading ? "Creating account..." : "Create account"}
             </button>
           </form>

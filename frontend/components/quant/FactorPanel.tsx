@@ -38,7 +38,7 @@ export default function FactorPanel({ model }: { model: FactorModel | null }) {
           <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
             <div className="text-[10px] uppercase tracking-wider text-aureus-muted">Annualised Alpha</div>
             <div className={`text-lg font-semibold font-mono mt-0.5 ${
-              model.alpha_annualised >= 0 ? "text-aureus-green" : "text-aureus-red"}`}>
+              model.alpha_annualised >= 0 ? "text-aureus-verdigris" : "text-aureus-oxblood"}`}>
               {(model.alpha_annualised * 100).toFixed(2)}%
             </div>
             <div className="text-[10px] text-aureus-muted mt-0.5">
@@ -50,14 +50,14 @@ export default function FactorPanel({ model }: { model: FactorModel | null }) {
           </div>
           <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
             <div className="text-[10px] uppercase tracking-wider text-aureus-muted">R²</div>
-            <div className="text-lg font-semibold text-white font-mono mt-0.5">
+            <div className="text-lg font-semibold text-aureus-text font-mono mt-0.5">
               {(model.r_squared * 100).toFixed(1)}%
             </div>
             <div className="text-[10px] text-aureus-muted mt-0.5">of variance explained</div>
           </div>
           <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
             <div className="text-[10px] uppercase tracking-wider text-aureus-muted">Sample</div>
-            <div className="text-lg font-semibold text-white font-mono mt-0.5">{model.observations}</div>
+            <div className="text-lg font-semibold text-aureus-text font-mono mt-0.5">{model.observations}</div>
             <div className="text-[10px] text-aureus-muted mt-0.5">{model.start} → {model.end}</div>
           </div>
         </div>
@@ -73,7 +73,7 @@ export default function FactorPanel({ model }: { model: FactorModel | null }) {
                     {l.label}
                   </span>
                   <span className={`text-xs font-mono ${
-                    l.significant ? (pos ? "text-aureus-green" : "text-aureus-red") : "text-aureus-muted/60"}`}>
+                    l.significant ? (pos ? "text-aureus-verdigris" : "text-aureus-oxblood") : "text-aureus-muted/60"}`}>
                     {pos ? "+" : ""}{l.loading.toFixed(3)}
                     <span className="text-aureus-muted ml-1.5">t={l.t_stat.toFixed(1)}</span>
                   </span>
@@ -86,7 +86,7 @@ export default function FactorPanel({ model }: { model: FactorModel | null }) {
                     style={{
                       left: pos ? "50%" : `${50 - pct}%`,
                       width: `${pct}%`,
-                      background: pos ? "#22c55e" : "#ef4444",
+                      background: pos ? "var(--verdigris)" : "var(--oxblood)",
                       opacity: l.significant ? 1 : 0.3,
                     }}
                   />
