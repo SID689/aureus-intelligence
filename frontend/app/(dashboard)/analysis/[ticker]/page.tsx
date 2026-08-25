@@ -1,6 +1,6 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,14 +51,28 @@ function MetricTile({ label, value, hint }: { label: string; value: string; hint
   );
 }
 
-export default function TickerAnalysisPage() {
+function TickerAnalysisView() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const userId = (session?.user as { id?: string } | undefined)?.id ?? "";
   const ticker = String(params?.ticker ?? "").toUpperCase();
 
-  const [horizon, setHorizon] = useState<Horizon>("medium_term");
+  // The horizon lives in the URL, not in component state.
+  //
+  // As component state it was silently discarded on every navigation:
+  // moving from /analysis/AAPL to /analysis/NVDA remounts this component,
+  // useState re-runs its initialiser, and the horizon you picked reverted
+  // to medium_term. In the URL it survives navigation, survives a reload,
+  // and makes "NVDA on a short-term view" a link you can send someone.
+  const urlHorizon = searchParams.get("horizon");
+  const horizon: Horizon = HORIZONS.some((h) => h.value === urlHorizon)
+    ? (urlHorizon as Horizon)
+    : "medium_term";
+
+  const setHorizon = (h: Horizon) =>
+    router.replace(`/analysis/${ticker}?horizon=${h}`, { scroll: false });
   const [data, setData] = useState<FullAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +122,7 @@ export default function TickerAnalysisPage() {
 
             {/* Ticker switcher */}
             <form
-              onSubmit={(e) => { e.preventDefault(); if (search.trim()) router.push(`/analysis/${search.trim().toUpperCase()}`); }}
+              onSubmit={(e) => { e.preventDefault(); if (search.trim()) router.push(`/analysis/${search.trim().toUpperCase()}?horizon=${horizon}`); }}
               className="flex gap-2"
             >
               <div className="relative">
@@ -126,27 +140,84 @@ export default function TickerAnalysisPage() {
             </form>
           </div>
 
-          {/* Confidence meter */}
+          {/* Direction and conviction, reported separately.
+              A single number cannot distinguish "all three pillars agree
+              this is fairly valued" from "the three are at war" — both
+              land near 50, and they mean opposite things to someone
+              deciding what to do. */}
           {data && (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-aureus-muted uppercase tracking-wider">Confidence Index</span>
-                <span className="font-mono text-aureus-text">{data.confidence_index.toFixed(1)} / 100</span>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-aureus-muted uppercase tracking-wider">Confidence index</span>
+                  <span className="font-mono-num text-aureus-text">{data.confidence_index.toFixed(1)} / 100</span>
+                </div>
+                <div className="h-2 rounded-full bg-aureus-panelhigh overflow-hidden relative">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.max(0, Math.min(100, data.confidence_index))}%`,
+                      background: data.confidence_index >= 65 ? "var(--verdigris)"
+                                : data.confidence_index < 35 ? "var(--oxblood)" : "var(--gold)",
+                    }}
+                  />
+                </div>
               </div>
-              <div className="h-2 rounded-full bg-aureus-rule overflow-hidden relative">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    width: `${Math.max(0, Math.min(100, data.confidence_index))}%`,
-                    background: data.confidence_index >= 65 ? "var(--verdigris)"
-                              : data.confidence_index < 35 ? "var(--oxblood)" : "var(--gold)",
-                  }}
-                />
-              </div>
-              <p className="text-[11px] text-aureus-muted">
-                Overall data completeness {(data.overall_data_completeness * 100).toFixed(0)}% — pillars
-                with missing inputs have their weight redistributed, so a low figure here means the
-                score rests on fewer signals than usual.
+
+              {data.conviction != null && (
+                <div className="grid sm:grid-cols-3 gap-x-6 gap-y-3 pt-1">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-aureus-muted">Conviction</div>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="font-mono-num text-lg text-aureus-text">{data.conviction.toFixed(0)}</span>
+                      <span className="text-[11px] text-aureus-muted">
+                        {data.conviction >= 60 ? "high" : data.conviction >= 30 ? "moderate" : "low"}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-aureus-muted">Pillar agreement</div>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="font-mono-num text-lg text-aureus-text">
+                        {((data.agreement ?? 0) * 100).toFixed(0)}%
+                      </span>
+                      <span className="text-[11px] text-aureus-muted">
+                        {(data.agreement ?? 0) >= 0.8 ? "aligned"
+                          : (data.agreement ?? 0) >= 0.4 ? "partly split" : "conflicting"}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-aureus-muted">Data completeness</div>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="font-mono-num text-lg text-aureus-text">
+                        {(data.overall_data_completeness * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Name the actual cause. "The pillars disagree" printed
+                  next to an agreement reading of 100% is worse than no
+                  explanation — the three inputs to conviction fail
+                  independently and the reader needs to know which one did. */}
+              <p className="text-[11px] text-aureus-muted leading-relaxed">
+                {(() => {
+                  const conv = data.conviction ?? 0;
+                  const agree = data.agreement ?? 0;
+                  const complete = data.overall_data_completeness;
+                  if (conv >= 30) {
+                    return "Conviction combines how far the evidence leans, whether the three pillars agree, and how much data backed the run.";
+                  }
+                  if (agree < 0.4) {
+                    return "Low conviction: the three pillars point in different directions, so the composite is near neutral by cancellation rather than by consensus.";
+                  }
+                  if (complete < 0.6) {
+                    return "Low conviction: too little data backed this run. Pillars with missing inputs had their weight redistributed to the ones that computed.";
+                  }
+                  return "Low conviction: the pillars agree on direction, but the lean is mild. Consistent weak evidence is still weak evidence — treat the direction as loosely held.";
+                })()}
               </p>
             </div>
           )}
@@ -296,5 +367,18 @@ export default function TickerAnalysisPage() {
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * useSearchParams() opts this subtree into client-side rendering, and
+ * Next fails the production build unless it sits under a Suspense
+ * boundary.
+ */
+export default function TickerAnalysisPage() {
+  return (
+    <Suspense fallback={<div className="py-20 text-center text-sm text-aureus-muted">Loading analysis…</div>}>
+      <TickerAnalysisView />
+    </Suspense>
   );
 }

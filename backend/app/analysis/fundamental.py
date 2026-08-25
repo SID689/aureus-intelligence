@@ -26,7 +26,7 @@ import math
 
 from app.ingestion.base import FundamentalDataResult
 from app.analysis.models import DCFResult, FundamentalScore
-from app.analysis.reweighting import WeightedSignal, reweight
+from app.analysis.aggregation import EvidenceSignal, combine_evidence
 
 logger = logging.getLogger("aureus.analysis.fundamental")
 
@@ -36,6 +36,48 @@ _W_DCF, _W_SAFETY, _W_GROWTH, _W_MOAT = 0.30, 0.20, 0.20, 0.12
 # ordinary for software. Dropped by the dynamic reweighting when the sector
 # medians aren't available (unknown/uncovered sector, or still computing).
 _W_RELATIVE = 0.18
+
+# ── Metric weights ───────────────────────────────────────────────────────
+# Each group weight, divided among the metrics that used to be averaged
+# inside it, so the balance between valuation / safety / growth / moat is
+# preserved while the metrics themselves are pooled as separate evidence.
+_METRIC_WEIGHTS: dict[str, float] = {
+    "DCF Margin of Safety": _W_DCF,          # 0.30 — one metric, whole group
+    "Valuation vs Sector":  _W_RELATIVE,     # 0.18 — likewise
+
+    "Debt-to-Equity":       _W_SAFETY / 3,   # safety, three ways
+    "Current Ratio":        _W_SAFETY / 3,
+    "Operating Margin":     _W_SAFETY / 3,
+
+    "Revenue Growth (YoY)": _W_GROWTH / 3,   # growth, three ways
+    "Revenue CAGR":         _W_GROWTH / 3,   # the N-year label normalises to this
+    "Earnings Consistency": _W_GROWTH / 3,
+
+    "Gross Margin":         _W_MOAT / 2,     # moat: margin and returns
+    "Return on Equity":     _W_MOAT / 2,
+}
+
+# The CAGR label carries a variable year count ("4-Year Revenue CAGR"),
+# so it is normalised before lookup in both the weight table and the
+# calibration table.
+def _normalise_label(label: str) -> str:
+    if "Revenue CAGR" in label:
+        return "Revenue CAGR"
+    return label
+
+
+def _metric_weight(label: str) -> float:
+    """Weight for a metric; an unrecognised one gets a small default
+    rather than being dropped, so adding a metric degrades gracefully."""
+    return _METRIC_WEIGHTS.get(_normalise_label(label), 0.05)
+
+
+def _calibration_key(label: str) -> str:
+    """Calibration was measured under the displayed label, except for
+    CAGR where the year count varies by company."""
+    return "4-Year Revenue CAGR" if "Revenue CAGR" in label else label
+
+
 
 
 def _two_stage_dcf(fcf, near_growth, terminal_growth, discount_rate, projection_years, shares) -> float:
@@ -275,13 +317,36 @@ def run_fundamental_analysis(
         notes.append(f"Sector medians for {sector_comparison.sector} are still computing — "
                      f"relative valuation excluded from this run")
 
-    result = reweight([
-        WeightedSignal("dcf_signal",    dcf_signal,    _W_DCF,    dcf_computed),
-        WeightedSignal("safety_score",  safety_score,  _W_SAFETY, safety_computed),
-        WeightedSignal("growth_score",  growth_score,  _W_GROWTH, growth_computed),
-        WeightedSignal("moat_score",    moat_score,    _W_MOAT,   moat_computed),
-        WeightedSignal("relative_valuation", relative_score, _W_RELATIVE, relative_computed),
-    ])
+    # ── Aggregate the METRICS, not the group averages ────────────────
+    #
+    # This used to pool five group scores, each of which was itself the
+    # plain mean of its own metrics — so a company's fundamentals went
+    # through three separate averaging steps (metric -> group -> pillar ->
+    # ensemble) before reaching a signal. Each step divides dispersion by
+    # roughly sqrt(n), which is how metrics with sd 19-32 produced a
+    # pillar with sd 11.
+    #
+    # `signals` already holds every metric that genuinely computed, each
+    # under the label its calibration was measured against. Pooling that
+    # flat list removes one whole layer of collapse and lets each metric
+    # be standardised against its own measured behaviour — which matters
+    # most here, because the fundamental scorers are the badly centred
+    # ones (gross margin averages 89.7 out of 100 across large caps).
+    evidence = [
+        EvidenceSignal(
+            name=sig["label"],
+            score=float(sig["score"]),
+            weight=_metric_weight(sig["label"]),
+            computed=True,
+            calibration_label=_calibration_key(sig["label"]),
+        )
+        for sig in signals
+    ]
+    if not evidence:
+        # Nothing computed at all — combine_evidence says so honestly.
+        evidence = [EvidenceSignal("no_fundamental_data", 50.0, 1.0, False)]
+
+    result = combine_evidence(evidence, group="fundamental")
 
     if result.dropped_signals:
         notes.append(
@@ -325,6 +390,7 @@ def run_fundamental_analysis(
         free_cash_flow=data.free_cash_flow_ttm,
         data_completeness=result.data_completeness,
         effective_weights=result.effective_weights,
+        evidence_z=result.z, conviction=result.conviction, agreement=result.agreement,
         signal_breakdown=signals,
         analysis_notes=notes,
     )

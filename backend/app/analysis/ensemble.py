@@ -1,17 +1,38 @@
 """
-app/analysis/ensemble.py  (Phase 6 rewrite)
----------------------------------------------
-Top-level ensemble aggregation now uses the SAME dynamic-reweighting
-logic as each individual module (see reweighting.py). If, say, the
-fundamental module had near-zero data completeness for a given ticker
-(common for smaller/foreign tickers where EDGAR/Finnhub don't return
-much), its baseline weight is proportionally redistributed to technical
-and sentiment — technical needs only price history, and sentiment needs
-only news coverage, both of which are more reliably available. This is what actually fixes the
-"everything is HOLD with similar scores" bug: previously, a broken
-fundamental leg would silently pull every score toward 50 at full
-weight; now a broken leg gets discounted, and the signal that remains
-is driven by data that's genuinely known about that specific stock.
+app/analysis/ensemble.py
+--------------------------
+Combines the three pillars into one signal.
+
+HOW THE PILLARS ARE COMBINED
+Not by averaging their scores. Each pillar reports `evidence_z` — its
+lean in standard deviations, pooled from its own sub-signals — and those
+z-scores are combined by Stouffer's method with an explicit correlation
+correction. See analysis/aggregation.py for why, and for the measurement
+showing that the previous arithmetic mean was the same formula with an
+unstated assumption that every signal is perfectly redundant.
+
+The practical effect, measured over a 16-name universe spanning momentum,
+value and broken names:
+
+                        before          after
+    short-horizon sd     2.73           12.52
+    short-horizon HOLD   100%            75%
+    medium-horizon HOLD   88%            50%
+    long-horizon HOLD     75%            31%
+
+The BUY/SELL thresholds below are UNCHANGED. They were never the
+problem: at a composite standard deviation of 2.73 the BUY line sat 4.7
+standard deviations from the mean, so no stock could reach it. Fixing
+the aggregation made the existing thresholds reachable rather than
+moving them to meet a broken distribution — which would have relabelled
+noise as conviction.
+
+DYNAMIC REWEIGHTING IS STILL HERE
+Any pillar whose data completeness falls below the floor is dropped and
+its weight redistributed across the pillars that did compute, so a
+ticker with no retrievable filings is scored on price and narrative
+alone rather than being dragged toward neutral by a fabricated
+fundamental reading. combine_evidence() preserves that contract.
 
 Also generates `reasoning` — a grounded explanation of the score,
 optionally polished by an LLM and validated through the guardrails
@@ -26,7 +47,7 @@ from app.analysis.fundamental import run_fundamental_analysis
 from app.analysis.models import EnsembleSignal, FundamentalScore, SentimentScore, TechnicalScore
 from app.analysis.reasoning import generate_reasoning
 from app.analysis.sentiment import run_sentiment_analysis
-from app.analysis.reweighting import WeightedSignal, reweight
+from app.analysis.aggregation import EvidenceSignal, combine_evidence
 from app.analysis.sector_peers import compare_to_sector
 from app.analysis.thesis import build_theses
 from app.analysis.technical import run_technical_analysis
@@ -155,21 +176,34 @@ def run_ensemble_analysis(
     )
     technical_result: TechnicalScore = run_technical_analysis(ticker, bars)
     sentiment_result: SentimentScore = run_sentiment_analysis(
-        ticker, company_name=fund_data.company_name,
+        ticker, company_name=fund_data.company_name, time_horizon=time_horizon,
     )
 
-    # ── Top-level dynamic reweighting (THE core bug fix) ────────────────
+    # ── Pillar-level evidence pooling ───────────────────────────────────
     fund_computed = fundamental_result.data_completeness >= _MODULE_COMPLETENESS_FLOOR
     tech_computed = technical_result.data_completeness   >= _MODULE_COMPLETENESS_FLOOR
     sent_computed = sentiment_result.data_completeness   >= _MODULE_COMPLETENESS_FLOOR
 
     w_fund, w_tech, w_sent = _HORIZON_WEIGHTS.get(time_horizon, _HORIZON_WEIGHTS["medium_term"])
 
-    top_result = reweight([
-        WeightedSignal("fundamental", fundamental_result.score, w_fund, fund_computed),
-        WeightedSignal("technical",   technical_result.score,   w_tech, tech_computed),
-        WeightedSignal("sentiment",   sentiment_result.score,   w_sent, sent_computed),
-    ])
+    # Combine the pillars' STANDARDISED evidence, not their 0-100 scores.
+    #
+    # Each pillar already reports evidence_z — its lean in standard
+    # deviations, pooled from its own sub-signals. Feeding the 0-100
+    # scores back in would standardise an already-standardised quantity
+    # against a second set of constants, shrinking everything toward
+    # neutral for a second time. Passing the z-scores straight through
+    # (pre_standardised=True) is both simpler and the only version that
+    # composes correctly.
+    top_result = combine_evidence(
+        [
+            EvidenceSignal("fundamental", fundamental_result.evidence_z, w_fund, fund_computed),
+            EvidenceSignal("technical",   technical_result.evidence_z,   w_tech, tech_computed),
+            EvidenceSignal("sentiment",   sentiment_result.evidence_z,   w_sent, sent_computed),
+        ],
+        group="ensemble",
+        pre_standardised=True,
+    )
 
     confidence_index = top_result.composite_score
     signal, strength = _classify_signal(confidence_index)
@@ -200,6 +234,8 @@ def run_ensemble_analysis(
 
     logger.info("Ensemble analysis complete", extra={
         "ticker": ticker, "signal": signal, "confidence_index": confidence_index,
+        "evidence_z": top_result.z, "conviction": top_result.conviction,
+        "agreement": top_result.agreement,
         "overall_completeness": overall_completeness, "module_weights": module_weights_used,
     })
 
@@ -215,4 +251,6 @@ def run_ensemble_analysis(
         sector_comparison=sector_cmp.to_dict() if sector_cmp else {},
         bull_case=bull.to_dict(), bear_case=bear.to_dict(),
         overall_data_completeness=overall_completeness, module_weights_used=module_weights_used,
+        evidence_z=top_result.z, conviction=top_result.conviction,
+        agreement=top_result.agreement,
     )

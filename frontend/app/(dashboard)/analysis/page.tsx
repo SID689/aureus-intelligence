@@ -11,6 +11,21 @@ import { price, signed } from "@/lib/format";
 
 const POPULAR = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "JPM", "XOM"];
 
+type Horizon = "short_term" | "medium_term" | "long_term";
+
+// The horizon is chosen HERE, before the analysis runs, and travels in the
+// URL. Previously it was component state on the results page, so it reset
+// to medium_term on every navigation and there was no way to ask for a
+// short-term read up front.
+const HORIZONS: { value: Horizon; label: string; sub: string; note: string }[] = [
+  { value: "short_term",  label: "Short",  sub: "1d – 1m",
+    note: "Price action and news lead; a DCF cannot explain a move this fast." },
+  { value: "medium_term", label: "Medium", sub: "1m – 6m",
+    note: "The three pillars weighted near evenly." },
+  { value: "long_term",   label: "Long",   sub: "1y+",
+    note: "Business quality leads; this quarter's mood is noise at this range." },
+];
+
 /**
  * Ticker picker. The analysis itself lives at /analysis/[ticker] so a given
  * stock's dashboard is a shareable, bookmarkable URL rather than transient
@@ -24,10 +39,11 @@ export default function AnalysisIndexPage() {
   const router = useRouter();
   const { holdings } = usePortfolio();
   const [ticker, setTicker] = useState("");
+  const [horizon, setHorizon] = useState<Horizon>("medium_term");
 
   const go = (t: string) => {
     const clean = t.trim().toUpperCase();
-    if (clean) router.push(`/analysis/${clean}`);
+    if (clean) router.push(`/analysis/${clean}?horizon=${horizon}`);
   };
 
   return (
@@ -38,9 +54,9 @@ export default function AnalysisIndexPage() {
               your time horizon, with a metric-backed bull and bear case for each side of the trade."
       />
 
-      <Sheet lift accent className="p-5">
-        <form onSubmit={(e) => { e.preventDefault(); go(ticker); }} className="flex gap-2">
-          <div className="relative flex-1">
+      <Sheet lift accent className="p-5 space-y-4">
+        <form onSubmit={(e) => { e.preventDefault(); go(ticker); }} className="space-y-4">
+          <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-aureus-muted pointer-events-none" />
             <Input
               value={ticker}
@@ -51,8 +67,36 @@ export default function AnalysisIndexPage() {
               spellCheck={false}
             />
           </div>
-          <Button type="submit" disabled={!ticker.trim()}>
-            Analyse <ArrowRight className="w-4 h-4" />
+
+          <div>
+            <CapsLabel>Holding period</CapsLabel>
+            <div className="grid sm:grid-cols-3 gap-2 mt-2">
+              {HORIZONS.map((h) => (
+                <button
+                  key={h.value}
+                  type="button"
+                  onClick={() => setHorizon(h.value)}
+                  aria-pressed={horizon === h.value}
+                  className={`rounded-md border px-3 py-2.5 text-left transition-colors ${
+                    horizon === h.value
+                      ? "border-aureus-gold bg-aureus-gold/[0.08]"
+                      : "border-aureus-rule hover:border-aureus-rulestrong hover:bg-aureus-panellift"
+                  }`}
+                >
+                  <div className={`text-[13px] font-medium ${horizon === h.value ? "text-aureus-gold" : "text-aureus-text"}`}>
+                    {h.label}
+                  </div>
+                  <Figure tone="muted" className="text-[11px]">{h.sub}</Figure>
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-aureus-muted mt-2 leading-relaxed">
+              {HORIZONS.find((h) => h.value === horizon)?.note}
+            </p>
+          </div>
+
+          <Button type="submit" disabled={!ticker.trim()} className="w-full sm:w-auto">
+            Analyse {ticker.trim().toUpperCase() || ""} <ArrowRight className="w-4 h-4" />
           </Button>
         </form>
       </Sheet>

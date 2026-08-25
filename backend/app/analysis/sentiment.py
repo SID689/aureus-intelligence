@@ -20,7 +20,7 @@ pillar swap is safe to make at all.
 import logging
 
 from app.analysis.models import SentimentScore
-from app.analysis.reweighting import WeightedSignal, reweight
+from app.analysis.aggregation import EvidenceSignal, combine_evidence
 from app.sentiment.engine import analyse_sentiment
 
 logger = logging.getLogger("aureus.analysis.sentiment")
@@ -33,8 +33,25 @@ logger = logging.getLogger("aureus.analysis.sentiment")
 # it gets the smallest baseline share.
 _W_NEWS, _W_SEC, _W_SOCIAL = 0.55, 0.25, 0.20
 
+# Read as (news, sec, social); each row sums to 1.0.
+#
+# Short horizon: the catalyst and the crowd are what move a stock over
+# days, and a quarterly filing's tone is largely already priced.
+# Long horizon: the reverse. Management's own words under legal
+# liability say something about the next several quarters; this week's
+# headlines and this week's retail chatter say nothing about them.
+_HORIZON_STREAM_WEIGHTS: dict[str, tuple[float, float, float]] = {
+    "short_term":  (0.60, 0.10, 0.30),
+    "medium_term": (0.55, 0.25, 0.20),
+    "long_term":   (0.40, 0.50, 0.10),
+}
 
-def run_sentiment_analysis(ticker: str, company_name: str | None = None) -> SentimentScore:
+
+def run_sentiment_analysis(
+    ticker: str,
+    company_name: str | None = None,
+    time_horizon: str = "medium_term",
+) -> SentimentScore:
     """
     Score the Sentiment pillar for one ticker.
 
@@ -88,11 +105,22 @@ def run_sentiment_analysis(ticker: str, company_name: str | None = None) -> Sent
             ),
         })
 
-    result = reweight([
-        WeightedSignal("news_score", b.news_score, _W_NEWS, b.news_computed),
-        WeightedSignal("sec_tone_score", b.sec_tone_score, _W_SEC, b.sec_tone_computed),
-        WeightedSignal("social_score", b.social_score, _W_SOCIAL, b.social_computed),
-    ])
+    # Sentiment weights shift with the holding period. The pillar's whole
+    # rationale is that sentiment has the shortest half-life of the three,
+    # and that logic applies WITHIN it too: a news catalyst and retail
+    # positioning both decay in days, while the tone management adopts in
+    # a filing describes conditions that persist for quarters. Weighting
+    # the three streams identically at every horizon contradicted the
+    # reason sentiment is horizon-weighted at the ensemble level at all.
+    w_news, w_sec, w_social = _HORIZON_STREAM_WEIGHTS.get(
+        time_horizon, (_W_NEWS, _W_SEC, _W_SOCIAL)
+    )
+
+    result = combine_evidence([
+        EvidenceSignal("news_score",     b.news_score,     w_news,   b.news_computed,     calibration_label="News Sentiment"),
+        EvidenceSignal("sec_tone_score", b.sec_tone_score, w_sec,    b.sec_tone_computed, calibration_label="SEC Filing Tone"),
+        EvidenceSignal("social_score",   b.social_score,   w_social, b.social_computed,   calibration_label="Social Sentiment"),
+    ], group="sentiment")
     if result.dropped_signals:
         notes.append(f"Excluded from scoring (no real data): {', '.join(result.dropped_signals)}")
 
@@ -130,6 +158,7 @@ def run_sentiment_analysis(ticker: str, company_name: str | None = None) -> Sent
         volume_velocity=b.volume_velocity,
         sentiment_confidence=b.confidence,
         model_used=b.model_used,
+        evidence_z=result.z, conviction=result.conviction, agreement=result.agreement,
         catalysts=b.catalysts,
         source_mix=b.source_mix,
         unavailable_sources=b.unavailable_sources,

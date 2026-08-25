@@ -13,7 +13,7 @@ except ImportError:
     _PANDAS_TA_AVAILABLE = False
 
 from app.analysis.models import SupportResistanceLevel, TechnicalScore
-from app.analysis.reweighting import WeightedSignal, reweight
+from app.analysis.aggregation import EvidenceSignal, combine_evidence
 
 logger = logging.getLogger("aureus.analysis.technical")
 
@@ -22,6 +22,9 @@ logger = logging.getLogger("aureus.analysis.technical")
 # reweighting.py redistributes any that can't be computed.
 _W_RSI, _W_MACD, _W_SR, _W_VOLUME = 0.18, 0.22, 0.15, 0.10
 _W_MA_ALIGN, _W_BBANDS = 0.23, 0.12
+# OBV and VWAP are binary up/down reads rather than graded scores, so
+# they carry less information per signal and are weighted accordingly.
+_W_OBV, _W_VWAP = 0.06, 0.05
 _MIN_BARS = 60
 
 
@@ -93,6 +96,62 @@ def _macd_to_score(macd_line: float, signal_line: float, histogram: float, close
         strength_bonus = min(10.0, (abs(histogram) / price_range * 100) * 2)
         components.append(50.0 + (strength_bonus if histogram > 0 else -strength_bonus))
     return sum(components) / len(components)
+
+
+def _trend_strength(close: pd.Series, lookback: int = 60) -> float | None:
+    """
+    How cleanly is this price trending, 0 (chop) to 1 (straight line)?
+
+    r-squared of a least-squares fit to LOG price against time. Log
+    because a constant percentage drift is a straight line in log space,
+    which is what a trend actually is; and r-squared rather than the
+    slope because the question here is not "which way" but "how orderly"
+    — a violent 40% move that round-trips twice is not a trend.
+    """
+    if len(close) < 20:
+        return None
+    seg = close.tail(min(lookback, len(close))).to_numpy(float)
+    seg = seg[seg > 0]
+    if len(seg) < 20:
+        return None
+    y = np.log(seg)
+    x = np.arange(len(y), dtype=float)
+    if y.std() == 0:
+        return 0.0
+    r = float(np.corrcoef(x, y)[0, 1])
+    return max(0.0, min(1.0, r * r))
+
+
+def _regime_weights(trend_strength: float | None) -> tuple[float, float]:
+    """
+    Multipliers for the trend-following block and the mean-reversion
+    block, given how orderly the trend is.
+
+    WHY THIS EXISTS
+    The technical pillar holds two families that disagree BY DESIGN.
+    RSI and Bollinger %B are mean-reversion reads: they score an
+    oversold stock as bullish. MA alignment and MACD are trend reads:
+    they score a stock making new highs as bullish. A stock in a clean
+    uptrend is therefore scored bullish by one family and bearish by the
+    other, and averaging them returns ~50 no matter how strong the move
+    is. That is not caution, it is two correct answers to two different
+    questions being cancelled against each other.
+
+    Which family is right is an empirical property of the tape, and it
+    has a name: trending markets punish mean-reversion, range-bound
+    markets punish trend-following. So let the measured regime decide
+    which family to lean on, rather than blending them blind.
+
+    Neutral (trend_strength unavailable) returns 1.0/1.0 — exactly the
+    old behaviour, so an unmeasurable series is never worse off.
+    """
+    if trend_strength is None:
+        return 1.0, 1.0
+    # At r2 = 0 (pure chop) mean-reversion gets 1.45x and trend 0.55x.
+    # At r2 = 1 (clean trend) the two swap. The midpoint is 1.0/1.0.
+    w_trend  = 0.55 + 0.90 * trend_strength
+    w_revert = 1.45 - 0.90 * trend_strength
+    return w_trend, w_revert
 
 
 def _find_support_resistance(df: pd.DataFrame, lookback_periods: int = 120, n_levels: int = 5) -> list[SupportResistanceLevel]:
@@ -391,14 +450,38 @@ def run_technical_analysis(ticker: str, bars: pd.DataFrame) -> TechnicalScore:
                        f"{'above' if vwap_pos > 0 else 'below'} its 20-session VWAP"),
         })
 
-    result = reweight([
-        WeightedSignal("rsi_score",    rsi_score,    _W_RSI,      rsi_computed),
-        WeightedSignal("macd_score",   macd_score,   _W_MACD,     macd_computed),
-        WeightedSignal("ma_alignment", ma_score,     _W_MA_ALIGN, ma_computed),
-        WeightedSignal("bollinger_pctb", bb_score,   _W_BBANDS,   bb_computed),
-        WeightedSignal("sr_score",     sr_score,     _W_SR,       sr_computed),
-        WeightedSignal("volume_score", volume_score, _W_VOLUME,   volume_computed),
-    ])
+    # OBV and VWAP position were computed and displayed but never scored —
+    # two pieces of independent, already-paid-for evidence thrown away at
+    # the last step. They are binary reads, so they carry modest weight,
+    # but under evidence accumulation two more independent confirmations
+    # are worth having.
+    obv_score  = (65.0 if obv_slope > 0 else 35.0) if obv_slope is not None else 50.0
+    vwap_score = (60.0 if vwap_pos > 0 else 40.0) if vwap_pos is not None else 50.0
+
+    # Let the measured regime decide which family of indicators leads.
+    ts = _trend_strength(close)
+    k_trend, k_revert = _regime_weights(ts)
+    if ts is not None:
+        notes.append(
+            f"Trend strength r²={ts:.2f} — "
+            + ("orderly trend, trend-following signals weighted up" if ts >= 0.6 else
+               "choppy, mean-reversion signals weighted up" if ts <= 0.25 else
+               "mixed regime, both families weighted near evenly")
+        )
+
+    result = combine_evidence([
+        # Mean-reversion family
+        EvidenceSignal("rsi_score",      rsi_score,    _W_RSI * k_revert,   rsi_computed,      calibration_label="RSI (14)"),
+        EvidenceSignal("bollinger_pctb", bb_score,     _W_BBANDS * k_revert, bb_computed,      calibration_label="Bollinger %B"),
+        # Trend-following family
+        EvidenceSignal("macd_score",     macd_score,   _W_MACD * k_trend,   macd_computed,     calibration_label="MACD"),
+        EvidenceSignal("ma_alignment",   ma_score,     _W_MA_ALIGN * k_trend, ma_computed,     calibration_label="MA Alignment (20/50/200)"),
+        # Structure and flow — neutral to the regime question
+        EvidenceSignal("sr_score",       sr_score,     _W_SR,       sr_computed,       calibration_label="Support/Resistance"),
+        EvidenceSignal("volume_score",   volume_score, _W_VOLUME,   volume_computed,   calibration_label="Volume Trend"),
+        EvidenceSignal("obv_score",      obv_score,    _W_OBV,      obv_slope is not None,  calibration_label="On-Balance Volume"),
+        EvidenceSignal("vwap_score",     vwap_score,   _W_VWAP,     vwap_pos is not None,   calibration_label="VWAP Position"),
+    ], group="technical")
     if result.dropped_signals:
         notes.append(f"Excluded from scoring (no real data): {', '.join(result.dropped_signals)}")
 
@@ -417,6 +500,7 @@ def run_technical_analysis(ticker: str, bars: pd.DataFrame) -> TechnicalScore:
         current_price=round(current_price, 2),
         data_completeness=result.data_completeness,
         effective_weights=result.effective_weights,
+        evidence_z=result.z, conviction=result.conviction, agreement=result.agreement,
         signal_breakdown=signals,
         support_levels=supports, resistance_levels=resistances,
         analysis_notes=notes,

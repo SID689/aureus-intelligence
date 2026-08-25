@@ -184,6 +184,14 @@ export interface FullAnalysis {
   reasoning_source: string;
   overall_data_completeness: number;
   module_weights_used: Record<string, number>;
+  // Direction and confidence are separate axes. confidence_index says
+  // WHICH WAY the evidence points; conviction says how much to trust it,
+  // and agreement says whether the three pillars actually concur. A
+  // score of 50 can mean "all three agree it is fairly valued" or "the
+  // three are at war" — opposite situations one number cannot separate.
+  evidence_z?: number;
+  conviction?: number;
+  agreement?: number;
   bull_case: ThesisCase;
   bear_case: ThesisCase;
   generated_at: string;

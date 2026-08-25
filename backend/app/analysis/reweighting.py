@@ -1,7 +1,20 @@
 """
 app/analysis/reweighting.py
 -----------------------------
-THE CORE FIX for the "everything returns HOLD with similar scores" bug.
+Weighted-mean aggregation with drop-and-redistribute for missing data.
+
+SUPERSEDED FOR THE THREE-PILLAR PATH — see analysis/aggregation.py.
+The three pillars and the ensemble now use combine_evidence(), which
+pools evidence rather than averaging it. This module is still used by
+analysis/quantitative.py and backtesting/engine.py, which are separate
+models with their own aggregation.
+
+Keep in mind when reading the history below: the "core fix" it describes
+was real but partial. Dropping uncomputed signals stopped fabricated
+neutrals from dragging scores toward 50; it did not address the fact
+that AVERAGING several genuinely-computed signals also collapses toward
+50, which is what left the composite with a standard deviation of 2.73
+at the short horizon. aggregation.py fixes that part.
 
 ROOT CAUSE: the original Phase 2 implementation used fixed weights
 (e.g., 35% DCF / 25% safety / 25% growth / 15% moat) even when a

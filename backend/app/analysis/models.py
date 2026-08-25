@@ -66,6 +66,17 @@ class FundamentalScore:
     fundamental_data_provider: str = "unavailable"
     analysis_notes: list[str] = field(default_factory=list)
 
+    # ── Standardised evidence (see analysis/aggregation.py) ──────────
+    # evidence_z is this pillar's lean in standard deviations, which is
+    # what the ensemble combines — pooling z-scores directly avoids
+    # standardising an already-standardised number and shrinking it back
+    # toward neutral. conviction and agreement are reported separately
+    # from the score because they answer a different question: the score
+    # says which way, these say how much to trust it.
+    evidence_z: float = 0.0
+    conviction: float = 0.0
+    agreement: float = 0.0
+
 
 @dataclass
 class SupportResistanceLevel:
@@ -93,6 +104,17 @@ class TechnicalScore:
     support_levels: list[SupportResistanceLevel] = field(default_factory=list)
     resistance_levels: list[SupportResistanceLevel] = field(default_factory=list)
     analysis_notes: list[str] = field(default_factory=list)
+
+    # ── Standardised evidence (see analysis/aggregation.py) ──────────
+    # evidence_z is this pillar's lean in standard deviations, which is
+    # what the ensemble combines — pooling z-scores directly avoids
+    # standardising an already-standardised number and shrinking it back
+    # toward neutral. conviction and agreement are reported separately
+    # from the score because they answer a different question: the score
+    # says which way, these say how much to trust it.
+    evidence_z: float = 0.0
+    conviction: float = 0.0
+    agreement: float = 0.0
 
 
 @dataclass
@@ -139,6 +161,17 @@ class SentimentScore:
     effective_weights: dict = field(default_factory=dict)
     signal_breakdown: list[dict] = field(default_factory=list)
     analysis_notes: list[str] = field(default_factory=list)
+
+    # ── Standardised evidence (see analysis/aggregation.py) ──────────
+    # evidence_z is this pillar's lean in standard deviations, which is
+    # what the ensemble combines — pooling z-scores directly avoids
+    # standardising an already-standardised number and shrinking it back
+    # toward neutral. conviction and agreement are reported separately
+    # from the score because they answer a different question: the score
+    # says which way, these say how much to trust it.
+    evidence_z: float = 0.0
+    conviction: float = 0.0
+    agreement: float = 0.0
 
 
 @dataclass
@@ -206,3 +239,11 @@ class EnsembleSignal:
             "Reasonable uncertainty bands are ±20 points."
         )
     )
+
+    # Direction and confidence are separate axes. A composite of 50 can
+    # mean "every signal agrees this is fairly valued" or "the signals
+    # are at war" — opposite situations that a single number cannot
+    # distinguish, and that a reader acting on the number needs to.
+    evidence_z: float = 0.0
+    conviction: float = 0.0
+    agreement: float = 0.0
