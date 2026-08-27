@@ -1,0 +1,49 @@
+# frontend/Dockerfile.prod
+#
+# The dev Dockerfile runs `npm run dev`, and docker-compose.prod.yml never
+# overrode that — so "production" served the Next.js development server:
+# no build optimisation, no minification, and a ~1GB resident set against
+# a 512MB limit it would have OOMed on. This is the image production
+# should actually run.
+#
+# Three stages so the shipped layer carries neither the toolchain nor the
+# dev dependencies:
+#   deps   — install everything needed to build
+#   build  — compile; emits .next/standalone thanks to output: "standalone"
+#   run    — copy only the standalone server, static assets and public/
+
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+# Build-time public vars must be present here: NEXT_PUBLIC_* are inlined
+# into the client bundle at build time, not read at runtime.
+ARG NEXT_PUBLIC_WS_URL
+ARG NEXT_PUBLIC_SITE_URL
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
+
+FROM node:20-alpine AS run
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+# Run as a non-root user. The base image ships `node` (uid 1000).
+COPY --from=build --chown=node:node /app/.next/standalone ./
+COPY --from=build --chown=node:node /app/.next/static ./.next/static
+COPY --from=build --chown=node:node /app/public ./public
+USER node
+
+EXPOSE 3000
+# server.js is what output:"standalone" emits — not `next start`, which
+# would need the full next package present.
+CMD ["node", "server.js"]
