@@ -48,10 +48,13 @@ from app.lessons.models import (  # re-exported for callers
     Lesson,
     QuizQuestion,
 )
+from app.lessons.enrichment import enrich
 from app.lessons.quizzes import quiz_for
 from app.lessons.tier0_beginner import TIER_0_BEGINNER
+from app.lessons.tier0_beginner_b import TIER_0_BEGINNER_B
 from app.lessons.tier1_foundational import TIER_1_FOUNDATIONAL
 from app.lessons.tier2_intermediate import TIER_2_INTERMEDIATE
+from app.lessons.tier2_intermediate_b import TIER_2_INTERMEDIATE_B
 from app.lessons.tier3_advanced import TIER_3_ADVANCED
 from app.lessons.tier4_expert import TIER_4_EXPERT
 
@@ -82,20 +85,26 @@ def _shuffle_options(lesson_id: str, index: int, q: QuizQuestion) -> QuizQuestio
     )
 
 
-def _with_banked_quiz(lesson: Lesson) -> Lesson:
-    """Attach the banked quiz (if the lesson has none inline), then shuffle options."""
+def _prepare(lesson: Lesson) -> Lesson:
+    """
+    Attach the banked quiz (if the lesson has none inline), shuffle its
+    options, then append any registered interactive content.
+
+    Enrichment runs last so a lesson authored with its own exercises keeps
+    them — see enrichment.py, which appends rather than replaces.
+    """
     quiz = lesson.quiz or quiz_for(lesson.id)
-    if not quiz:
-        return lesson
-    return replace(lesson, quiz=[_shuffle_options(lesson.id, i, q) for i, q in enumerate(quiz)])
+    if quiz:
+        lesson = replace(lesson, quiz=[_shuffle_options(lesson.id, i, q) for i, q in enumerate(quiz)])
+    return enrich(lesson)
 
 
 LESSONS_BY_TIER: dict[int, list[Lesson]] = {
-    TIER_BEGINNER:     [_with_banked_quiz(l) for l in TIER_0_BEGINNER],
-    TIER_FOUNDATIONAL: [_with_banked_quiz(l) for l in TIER_1_FOUNDATIONAL],
-    TIER_INTERMEDIATE: [_with_banked_quiz(l) for l in TIER_2_INTERMEDIATE],
-    TIER_ADVANCED:     [_with_banked_quiz(l) for l in TIER_3_ADVANCED],
-    TIER_EXPERT:       [_with_banked_quiz(l) for l in TIER_4_EXPERT],
+    TIER_BEGINNER:     [_prepare(l) for l in TIER_0_BEGINNER + TIER_0_BEGINNER_B],
+    TIER_FOUNDATIONAL: [_prepare(l) for l in TIER_1_FOUNDATIONAL],
+    TIER_INTERMEDIATE: [_prepare(l) for l in TIER_2_INTERMEDIATE + TIER_2_INTERMEDIATE_B],
+    TIER_ADVANCED:     [_prepare(l) for l in TIER_3_ADVANCED],
+    TIER_EXPERT:       [_prepare(l) for l in TIER_4_EXPERT],
 }
 
 ALL_LESSONS: list[Lesson] = [l for tier in sorted(LESSONS_BY_TIER) for l in LESSONS_BY_TIER[tier]]

@@ -1,6 +1,7 @@
 "use client";
 import { useMemo } from "react";
-import type { GlossaryEntry } from "@/lib/api";
+import Checkpoint from "./Checkpoint";
+import type { GlossaryEntry, LessonCheckpoint } from "@/lib/api";
 
 /**
  * Renders lesson prose with two enhancements:
@@ -23,6 +24,13 @@ import type { GlossaryEntry } from "@/lib/api";
 interface Props {
   body: string;
   glossary: GlossaryEntry[];
+  /**
+   * Comprehension checks interleaved INTO the prose, each rendered after
+   * the paragraph index it names. Placing them here rather than after the
+   * lesson is the entire point — the reader answers while the passage
+   * that explains it is still on screen.
+   */
+  checkpoints?: LessonCheckpoint[];
 }
 
 type Segment = { text: string; term?: GlossaryEntry; bold?: boolean };
@@ -90,7 +98,7 @@ function splitBoldRuns(paragraph: string): { text: string; bold: boolean }[] {
     );
 }
 
-export default function LessonBody({ body, glossary }: Props) {
+export default function LessonBody({ body, glossary, checkpoints = [] }: Props) {
   const paragraphs = useMemo(() => {
     const used = new Set<string>();
     return body.split("\n\n").map((p) =>
@@ -100,9 +108,22 @@ export default function LessonBody({ body, glossary }: Props) {
     );
   }, [body, glossary]);
 
+  // Grouped by paragraph so the lookup below is O(1) per paragraph rather
+  // than a scan of every checkpoint for every one.
+  const checksAfter = useMemo(() => {
+    const m = new Map<number, LessonCheckpoint[]>();
+    for (const c of checkpoints) {
+      const list = m.get(c.after_paragraph) ?? [];
+      list.push(c);
+      m.set(c.after_paragraph, list);
+    }
+    return m;
+  }, [checkpoints]);
+
   return (
     <div className="space-y-4 leading-relaxed text-[15px] text-aureus-text">
       {paragraphs.map((segments, pi) => (
+        <div key={`block-${pi}`}>
         <p key={pi} className="whitespace-pre-line">
           {segments.map((seg, si) => {
             const key = `${pi}-${si}`;
@@ -123,6 +144,10 @@ export default function LessonBody({ body, glossary }: Props) {
             );
           })}
         </p>
+        {checksAfter.get(pi)?.map((c, ci) => (
+          <Checkpoint key={`cp-${pi}-${ci}`} checkpoint={c} />
+        ))}
+        </div>
       ))}
     </div>
   );

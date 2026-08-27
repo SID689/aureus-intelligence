@@ -338,6 +338,10 @@ export interface LessonSummary {
   status: LessonStatus; xp_earned: number;
   quiz_best_score: number | null; quiz_total: number | null;
   quiz_passed: boolean; completed_at: string | null;
+  // Optional because the catalog endpoint gained these after the first
+  // clients shipped; treat absent as zero rather than as an error.
+  practice_count?: number;
+  exercise_count?: number;
 }
 
 export interface EducationModule {
@@ -359,6 +363,38 @@ export interface QuizOption { index: number; question: string; options: string[]
 export interface GlossaryEntry { term: string; definition: string }
 export interface LessonCallout { kind: "key_idea" | "why_it_matters" | "common_mistake" | "example"; title: string; body: string }
 
+/** An interactive calculator embedded in a lesson. `kind` selects the widget. */
+export interface LessonExercise {
+  kind: string;
+  title: string;
+  prompt: string;
+  params: Record<string, unknown>;
+}
+
+/**
+ * A formative question placed mid-lesson. Ships WITH its answer because
+ * it is worth no XP — there is nothing to game, and grading it inline is
+ * what makes the feedback instant.
+ */
+export interface LessonCheckpoint {
+  after_paragraph: number;
+  question: string;
+  options: string[];
+  correct_index: number;
+  explanation: string;
+}
+
+/**
+ * A numeric drill. Worth XP, so the answer and tolerance stay on the
+ * server and only arrive in the grading response.
+ */
+export interface PracticeQuestion {
+  index: number;
+  question: string;
+  unit: string;
+  hint: string;
+}
+
 export interface LessonDetail {
   lesson: {
     id: string; title: string; category: string; tier: number;
@@ -366,13 +402,32 @@ export interface LessonDetail {
     estimated_read_time_minutes: number; xp_points: number; max_xp: number;
     quiz_question_count: number; key_takeaway: string; body: string;
     glossary: GlossaryEntry[]; callouts: LessonCallout[]; quiz: QuizOption[];
+    exercises?: LessonExercise[];
+    checkpoints?: LessonCheckpoint[];
+    practice?: PracticeQuestion[];
+    practice_count?: number;
+    exercise_count?: number;
   };
   progress: {
     status: LessonStatus; xp_earned: number; quiz_attempts: number;
     quiz_best_score: number | null; quiz_total: number | null; quiz_passed: boolean;
+    practice_attempts?: number; practice_best_score?: number | null;
+    practice_total?: number | null; practice_passed?: boolean;
   };
   quiz_pass_mark: number;
   quiz_bonus_xp: number;
+  practice_pass_mark?: number;
+  practice_bonus_xp?: number;
+}
+
+export interface PracticeResult {
+  lesson_id: string; score: number; total: number; pass_mark: number;
+  passed: boolean; attempts: number; best_score: number;
+  xp_earned_total_for_lesson: number;
+  results: {
+    index: number; your_answer: number | null; correct_answer: number;
+    tolerance: number; unit: string; correct: boolean; explanation: string;
+  }[];
 }
 
 export interface QuizResult {
@@ -414,6 +469,16 @@ export const completeEducationLesson = (lessonId: string, userId: string) =>
     `/api/v1/education/lesson/${lessonId}/complete`,
     { method: "POST", body: JSON.stringify({ user_id: userId }) },
   );
+
+export const submitEducationPractice = (
+  lessonId: string,
+  userId: string,
+  answers: (number | null)[],
+): Promise<PracticeResult> =>
+  apiFetch(`/api/v1/education/lesson/${lessonId}/practice`, {
+    method: "POST",
+    body: JSON.stringify({ user_id: userId, answers }),
+  });
 
 export const submitEducationQuiz = (lessonId: string, userId: string, answers: number[]): Promise<QuizResult> =>
   apiFetch(`/api/v1/education/lesson/${lessonId}/quiz`, {

@@ -46,7 +46,9 @@ from app.lessons.content import (
     tier_summary,
     total_xp_available,
 )
-from app.lessons.models import QUIZ_BONUS_XP, TIER_DESCRIPTIONS, TIER_LABELS
+from app.lessons.models import (
+    PRACTICE_BONUS_XP, QUIZ_BONUS_XP, TIER_DESCRIPTIONS, TIER_LABELS,
+)
 
 logger = logging.getLogger("aureus.api.education")
 router = APIRouter(prefix="/api/v1/education", tags=["education"])
@@ -199,6 +201,8 @@ def get_lesson_detail(lesson_id: str, user_id: str) -> dict:
         },
         "quiz_pass_mark": lesson.quiz_pass_mark(),
         "quiz_bonus_xp": QUIZ_BONUS_XP if lesson.quiz else 0,
+        "practice_bonus_xp": PRACTICE_BONUS_XP if lesson.practice else 0,
+        "practice_pass_mark": lesson.practice_pass_mark(),
     }
 
 
@@ -365,6 +369,97 @@ def submit_quiz(lesson_id: str, body: QuizSubmission) -> dict:
         "passed": passed,
         "attempts": row.quiz_attempts if row else 1,
         "best_score": row.quiz_best_score if row else score,
+        "xp_earned_total_for_lesson": row.xp_earned if row else 0,
+        "results": results,
+    }
+
+
+class PracticeSubmission(BaseModel):
+    user_id: str
+    # answers[i] is the number entered for drill i. None = skipped, which
+    # is distinct from 0 — 0 is a legitimate answer to plenty of these.
+    answers: list[float | None] = Field(min_length=1)
+
+
+@router.post("/lesson/{lesson_id}/practice")
+def submit_practice(lesson_id: str, body: PracticeSubmission) -> dict:
+    """
+    Grade the numeric drills server-side.
+
+    Same contract as the quiz: the correct value, the tolerance and the
+    explanation are withheld until submission, so the browser cannot be
+    inspected for the answer. Tolerance is applied here rather than in the
+    client for the same reason — shipping it would let a reader binary
+    search the accepted range.
+    """
+    lesson = get_lesson(lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail=f"Lesson {lesson_id!r} not found")
+    if not lesson.practice:
+        raise HTTPException(status_code=400, detail="This lesson has no practice drills")
+    if len(body.answers) != len(lesson.practice):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Expected {len(lesson.practice)} answers, received {len(body.answers)}",
+        )
+
+    results = []
+    score = 0
+    for i, (q, given) in enumerate(zip(lesson.practice, body.answers)):
+        correct = given is not None and q.is_correct(given)
+        if correct:
+            score += 1
+        results.append({
+            "index": i,
+            "your_answer": given,
+            "correct_answer": q.answer,
+            "tolerance": q.tolerance,
+            "unit": q.unit,
+            "correct": correct,
+            "explanation": q.explanation,
+        })
+
+    total = len(lesson.practice)
+    pass_mark = lesson.practice_pass_mark()
+    passed = score >= pass_mark
+
+    engine = _get_engine()
+    try:
+        with engine.begin() as conn:
+            _upsert_started(conn, body.user_id, lesson)
+            row = conn.execute(
+                text("""
+                    UPDATE user_lesson_progress
+                    SET practice_attempts   = practice_attempts + 1,
+                        practice_best_score = GREATEST(COALESCE(practice_best_score, 0), :score),
+                        practice_total      = :total,
+                        xp_earned           = xp_earned + CASE
+                                                WHEN :passed AND NOT practice_passed THEN :bonus ELSE 0
+                                              END,
+                        practice_passed     = practice_passed OR :passed,
+                        updated_at          = NOW()
+                    WHERE user_id = :uid AND lesson_id = :lid
+                    RETURNING practice_attempts, practice_best_score, practice_passed, xp_earned
+                """),
+                {
+                    "uid": body.user_id, "lid": lesson.id, "score": score, "total": total,
+                    "passed": passed, "bonus": PRACTICE_BONUS_XP,
+                },
+            ).fetchone()
+    except Exception as exc:
+        logger.error("Practice submission failed", extra={"error": str(exc), "lesson_id": lesson_id})
+        raise HTTPException(status_code=500, detail="Could not record practice result")
+    finally:
+        engine.dispose()
+
+    return {
+        "lesson_id": lesson_id,
+        "score": score,
+        "total": total,
+        "pass_mark": pass_mark,
+        "passed": passed,
+        "attempts": row.practice_attempts if row else 1,
+        "best_score": row.practice_best_score if row else score,
         "xp_earned_total_for_lesson": row.xp_earned if row else 0,
         "results": results,
     }
