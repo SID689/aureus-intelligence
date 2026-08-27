@@ -108,6 +108,39 @@ site with ten visitors. Sensible public values:
 That alone cuts Redis traffic and provider calls by more than an order of
 magnitude.
 
+## Never run `next build` inside the dev container
+
+`docker-compose.yml` mounts `.next` as an anonymous volume:
+
+```
+volumes:
+  - ./frontend:/app
+  - /app/node_modules
+  - /app/.next
+```
+
+That volume is the dev server's working directory. Running
+`docker compose exec frontend npx next build` overwrites it with a
+PRODUCTION build — `BUILD_ID`, `prerender-manifest.json`, production
+chunk names — and the dev server then 404s on every one of its own
+chunks. Every page serves a broken shell, and because the volume is
+anonymous it survives `docker compose restart`, so the obvious fix does
+not work.
+
+To test that the app builds for production, build the image, which uses
+its own filesystem and never touches the running dev volume:
+
+```bash
+docker build -f frontend/Dockerfile.prod -t aureus-frontend-prod frontend
+```
+
+If it has already happened, clear the volume's CONTENTS — the directory
+itself is a mount point and cannot be removed:
+
+```bash
+docker compose exec -T frontend sh -c 'rm -rf /app/.next/* /app/.next/.[!.]*' && docker compose restart frontend
+```
+
 ## Why not Vercel / Render / Fly
 
 - **Vercel Hobby** is free and excellent for the Next.js half, but its
