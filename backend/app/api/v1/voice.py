@@ -208,7 +208,7 @@ async def voice_websocket(websocket: WebSocket, user_id: str) -> None:
     except Exception as exc:
         logger.error("Voice WebSocket error", extra={"user_id": user_id, "error": str(exc)}, exc_info=True)
         try:
-            await websocket.send_json({"type": "error", "message": "Internal error — session ended."})
+            await websocket.send_json({"type": "error", "message": "Internal error, session ended."})
         except Exception:
             pass
     finally:

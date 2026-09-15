@@ -34,7 +34,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
             "Two strategies returned 12% last year. One did it with quiet 4% swings, the other by "
             "falling 30% in March and recovering. Reporting both as '12%' is technically accurate "
             "and analytically useless. Risk-adjusted measures exist to make that comparison "
-            "possible — and each of them is wrong in a specific way worth knowing.\n\n"
+            "possible, and each of them is wrong in a specific way worth knowing.\n\n"
 
             "**Sharpe ratio.** Excess return over the risk-free rate, divided by standard "
             "deviation. It answers: how much return per unit of volatility? A Sharpe of 1.0 is "
@@ -43,7 +43,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
 
             "**Where Sharpe misleads.** It treats upside and downside volatility identically. A "
             "strategy that occasionally gains 20% in a month is penalised exactly as much as one "
-            "that occasionally loses 20% — which is not how anyone actually experiences those "
+            "that occasionally loses 20%, which is not how anyone actually experiences those "
             "outcomes. Worse, Sharpe rewards strategies that produce steady small gains and rare "
             "catastrophic losses, because the catastrophe has not happened yet within the sample. "
             "Selling deep out-of-the-money options produces a beautiful Sharpe ratio right up "
@@ -59,12 +59,12 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
             "drawdown is, for most humans, worse than one with a 0.7 Sharpe and a 20% drawdown, "
             "regardless of what the ratios say.\n\n"
 
-            "**Calmar ratio.** Annualised return divided by maximum drawdown — return per unit of "
+            "**Calmar ratio.** Annualised return divided by maximum drawdown: return per unit of "
             "worst-case pain. Blunt, and closer to the question people actually care about.\n\n"
 
             "**The sample-length problem underneath all of them.** Every one of these is estimated "
             "from a finite history, and the estimate is noisy. Distinguishing a genuine Sharpe of "
-            "1.0 from a lucky 0.5 takes many years of data — more than most strategies have. A "
+            "1.0 from a lucky 0.5 takes many years of data: more than most strategies have. A "
             "three-year Sharpe is close to a coin flip about the underlying quality, which is why "
             "professional allocators look at the drawdown chart before the ratio table."
         ),
@@ -78,13 +78,13 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
             GlossaryTerm("Sharpe ratio", "Excess return over the risk-free rate divided by standard deviation. Treats upside and downside volatility identically."),
             GlossaryTerm("Sortino ratio", "Like Sharpe but dividing only by downside deviation, so gains are not counted as risk."),
             GlossaryTerm("maximum drawdown", "The largest peak-to-trough decline over a period. The number that best predicts whether an investor abandoned a strategy."),
-            GlossaryTerm("Calmar ratio", "Annualised return divided by maximum drawdown — return per unit of worst-case loss."),
+            GlossaryTerm("Calmar ratio", "Annualised return divided by maximum drawdown: return per unit of worst-case loss."),
             GlossaryTerm("risk-free rate", "The return on a supposedly riskless asset, usually short-term government bills, used as the baseline for excess return."),
         ],
         callouts=[
             Callout("common_mistake", "Trusting a short-sample Sharpe",
                 "Sharpe estimated over three years carries enormous error. A strategy reporting 1.8 over "
-                "that window is frequently a 0.6 strategy that had a good run — and the difference is "
+                "that window is frequently a 0.6 strategy that had a good run, and the difference is "
                 "invisible until the sample extends."),
             Callout("why_it_matters", "The shape of a return stream is selectable",
                 "A manager can engineer a smooth-looking track record by accepting rare large losses. "
@@ -109,7 +109,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
                 hint="Measured from the peak, not from the starting value.",
                 explanation=(
                     "($240,000 - $156,000) / $240,000 = 35%. Recovering from that requires a 53.8% gain on "
-                    "the remaining balance — which is why drawdown, not volatility, is what determines "
+                    "the remaining balance, which is why drawdown, not volatility, is what determines "
                     "whether people stay invested."
                 ),
             ),
@@ -133,7 +133,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
                  "Sharpe excludes derivatives", "Option premiums are risk-free"],
                 1,
                 "Sharpe measures realised volatility over the observed period. A strategy whose risk is "
-                "concentrated in rare events looks superb until one occurs — the ratio cannot price a loss "
+                "concentrated in rare events looks superb until one occurs: the ratio cannot price a loss "
                 "that has not happened yet.",
             ),
             QuizQuestion(
@@ -170,17 +170,17 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
 
             "**Drift is the default, and it always drifts toward risk.** Whatever has performed "
             "best grows as a share of the portfolio. So an unrebalanced portfolio automatically "
-            "concentrates into whatever has recently risen — which is exactly the position you "
+            "concentrates into whatever has recently risen, which is exactly the position you "
             "least want going into a reversal. Doing nothing is not neutral; it is a decision to "
             "let recent performance set your risk.\n\n"
 
             "**Why it feels wrong every single time.** Rebalancing means selling what has done "
             "well to buy what has done badly. It always feels like a mistake, and in any given "
-            "year it frequently is — in a sustained bull market, rebalancing out of equities "
+            "year it frequently is: in a sustained bull market, rebalancing out of equities "
             "reduces returns. Its value is not in average return; it is in controlling the risk "
             "you carry into the years you cannot predict.\n\n"
 
-            "**Calendar versus threshold.** Calendar rebalancing acts on a schedule — annually, "
+            "**Calendar versus threshold.** Calendar rebalancing acts on a schedule: annually, "
             "say. Threshold rebalancing acts when an allocation drifts more than a set distance "
             "from target, such as five percentage points. Threshold responds to what actually "
             "happened rather than to the calendar, and generally trades less. Both work; what "
@@ -194,7 +194,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
 
             "**Where to do it.** Rebalance inside tax-advantaged accounts first, where selling "
             "triggers nothing. In taxable accounts, direct new contributions toward the "
-            "underweight asset instead of selling the overweight one — you reach the same "
+            "underweight asset instead of selling the overweight one: you reach the same "
             "allocation with no realized gain at all. That single habit removes most of the tax "
             "cost of maintaining a target."
         ),
@@ -212,13 +212,13 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
         ],
         callouts=[
             Callout("key_idea", "Rebalancing is risk control, not return enhancement",
-                "In a long bull market it will cost you return. That is not a failure of the technique — "
+                "In a long bull market it will cost you return. That is not a failure of the technique: "
                 "it is the premium you pay for not arriving at the next downturn holding far more equity "
                 "than you intended."),
             Callout("example", "Drift in practice",
                 "60/40 with equities compounding at 10% and bonds at 3% for five years drifts to roughly "
                 "70/30. An investor who chose 60/40 for its ~25% worst-case drawdown is now carrying "
-                "closer to 30% — without ever making a decision."),
+                "closer to 30%, without ever making a decision."),
         ],
         checkpoints=[
             Checkpoint(
@@ -294,7 +294,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
             "**Recurring versus one-off.** Revenue that repeats without being re-won is worth a "
             "multiple of revenue that must be re-sold every period. This is the main reason "
             "software companies trade at higher multiples than project-based engineering firms "
-            "with identical growth — the market is pricing the persistence, not the level.\n\n"
+            "with identical growth: the market is pricing the persistence, not the level.\n\n"
 
             "**Concentration.** A company where one customer is 40% of revenue has an entirely "
             "different risk profile from one with ten thousand customers, at the same growth rate. "
@@ -313,7 +313,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
             "two minutes to check and almost nobody does it.\n\n"
 
             "**Deferred revenue as a positive signal.** Deferred revenue is cash collected for a "
-            "service not yet delivered — a liability on the balance sheet that is genuinely good "
+            "service not yet delivered: a liability on the balance sheet that is genuinely good "
             "news. Customers paid in advance. Growing deferred revenue alongside growing revenue "
             "is among the healthiest patterns available, and it is the mirror image of the "
             "receivables warning.\n\n"
@@ -325,7 +325,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
         ),
         key_takeaway=(
             "Receivables growing materially faster than revenue means sales are being booked but "
-            "not collected — a two-minute check that precedes a large share of restatements. "
+            "not collected: a two-minute check that precedes a large share of restatements. "
             "Deferred revenue growing is the healthy mirror image: customers paying in advance."
         ),
         glossary=[
@@ -361,11 +361,11 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
         quiz=[
             QuizQuestion(
                 "Receivables grow 45% while revenue grows 15%. What does this most likely indicate?",
-                ["Unusually strong demand", "Sales are being booked faster than they are collected — possibly looser terms or struggling customers",
+                ["Unusually strong demand", "Sales are being booked faster than they are collected: possibly looser terms or struggling customers",
                  "The company is paying suppliers faster", "Deferred revenue is rising"],
                 1,
                 "Revenue is recognised at the sale; receivables are the uncollected portion. Growing much "
-                "faster than revenue means an increasing share of reported sales is not yet cash — and may "
+                "faster than revenue means an increasing share of reported sales is not yet cash, and may "
                 "never be.",
             ),
             QuizQuestion(
@@ -405,7 +405,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
             "index, that a large minority lose money outright over a decade, and that essentially "
             "all of the market's aggregate gain comes from a small percentage of enormous winners. "
             "The average is carried by the tail. Pick a stock at random and you are more likely "
-            "than not to trail the index — not because you chose badly, but because that is the "
+            "than not to trail the index, not because you chose badly, but because that is the "
             "shape of the distribution.\n\n"
 
             "**What this does to concentrated portfolios.** If most stocks underperform and a few "
@@ -416,14 +416,14 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
 
             "**Inside-view versus outside-view.** The inside view reasons from the specifics: this "
             "management, this product, this market. The outside view asks what happened to the "
-            "reference class — companies at this valuation, at this growth rate, in this industry, "
+            "reference class: companies at this valuation, at this growth rate, in this industry, "
             "historically. People overwhelmingly favour the inside view because it feels like "
             "real analysis, and the outside view is a better predictor almost every time.\n\n"
 
             "**The correction is not to stop analysing.** It is to hold the base rate alongside "
             "your conclusion. If companies with these characteristics beat the market 35% of the "
             "time historically, your excellent analysis needs to move you meaningfully above 35% "
-            "before the position is justified — and to size accordingly. Most analysis moves the "
+            "before the position is justified, and to size accordingly. Most analysis moves the "
             "number by less than the analyst believes.\n\n"
 
             "**Where this cuts hardest.** Narratives that are true and priced. 'This company "
@@ -440,7 +440,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
             GlossaryTerm("base rate", "How often an outcome occurs across the whole reference class, before considering the specifics of one case."),
             GlossaryTerm("outside view", "Forecasting by asking what happened to similar cases historically, rather than reasoning from this case's details."),
             GlossaryTerm("inside view", "Forecasting from the specifics of the case at hand. Feels more rigorous and predicts worse."),
-            GlossaryTerm("positive skew", "A distribution where the mean is pulled well above the median by a small number of extreme outcomes — the shape of single-stock returns."),
+            GlossaryTerm("positive skew", "A distribution where the mean is pulled well above the median by a small number of extreme outcomes: the shape of single-stock returns."),
         ],
         callouts=[
             Callout("key_idea", "Mean and median diverge sharply here",
@@ -512,7 +512,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
 
             "**The mechanism.** Profit stays the same; share count falls; earnings per share "
             "rises. Nothing about operations changed. This is why EPS growth and business growth "
-            "must be tracked separately — a company with flat profit buying back 5% of its shares "
+            "must be tracked separately: a company with flat profit buying back 5% of its shares "
             "reports 5% EPS growth and has grown not at all.\n\n"
 
             "**When buybacks genuinely create value.** When the shares are bought below intrinsic "
@@ -536,11 +536,11 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
             "**Buybacks that offset dilution are not returns at all.** Many companies issue "
             "substantial stock to employees and repurchase a similar amount to keep the count "
             "flat. The press release announces a buyback; the share count does not fall. That is "
-            "not capital returned to shareholders — it is payroll settled in stock and bought "
+            "not capital returned to shareholders: it is payroll settled in stock and bought "
             "back with cash. The only way to see it is to track shares outstanding over several "
             "years rather than reading the announcement.\n\n"
 
-            "**Buybacks versus dividends.** Buybacks are flexible — a company can quietly stop, "
+            "**Buybacks versus dividends.** Buybacks are flexible: a company can quietly stop, "
             "where cutting a dividend is a public admission. That flexibility is genuinely "
             "valuable for cyclical businesses. Buybacks are also more tax-efficient for holders, "
             "since no taxable event occurs until you choose to sell."
@@ -548,7 +548,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
         key_takeaway=(
             "A buyback creates value only if shares are repurchased below intrinsic value, and "
             "corporations reliably buy most at market highs. Check shares outstanding over several "
-            "years, not the announcement — many buybacks only offset stock compensation and return "
+            "years, not the announcement: many buybacks only offset stock compensation and return "
             "nothing."
         ),
         glossary=[
@@ -573,7 +573,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
                 unit="$",
                 hint="Divide unchanged profit by the reduced share count.",
                 explanation=(
-                    "$400m / 180m shares = $2.22, up from $2.00 — an 11% EPS increase with no change "
+                    "$400m / 180m shares = $2.22, up from $2.00: an 11% EPS increase with no change "
                     "whatsoever in the business. If executive compensation targets EPS growth, this is a "
                     "meaningful bonus purchased with shareholder cash."
                 ),
@@ -602,7 +602,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
                  "Shares were split", "The count excludes treasury shares"],
                 1,
                 "Buying back roughly what is issued keeps the count level. No capital was returned to "
-                "shareholders — stock compensation was settled with cash, via the market.",
+                "shareholders: stock compensation was settled with cash, via the market.",
             ),
         ],
     ),
@@ -616,7 +616,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
         estimated_read_time_minutes=8,
         body=(
             "Two companies generate identical operating profit. One is funded entirely by equity, "
-            "the other is half debt. They are not similar businesses with a financing footnote — "
+            "the other is half debt. They are not similar businesses with a financing footnote: "
             "they have different risk, different equity returns and different failure modes.\n\n"
 
             "**Leverage amplifies in both directions.** Debt is a fixed claim: interest is owed "
@@ -628,7 +628,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
 
             "**Why enterprise value exists.** Market capitalisation prices only the equity. If you "
             "want to compare two companies as businesses, you need what it would cost to buy the "
-            "whole thing: enterprise value — market cap plus debt minus cash. Comparing two "
+            "whole thing: enterprise value, market cap plus debt minus cash. Comparing two "
             "companies on P/E when one carries heavy debt compares two different questions. "
             "EV/EBITDA is the standard fix, which is why acquirers use it and headlines do not.\n\n"
 
@@ -644,8 +644,8 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
             "over at whatever rates prevail then, and the moments when refinancing is hardest are "
             "exactly the moments when business is worst. The maturity schedule is in the 10-K.\n\n"
 
-            "**Debt is not inherently bad.** It is cheaper than equity — interest is tax-deductible "
-            "and lenders accept lower returns for a senior claim — so a moderately leveraged "
+            "**Debt is not inherently bad.** It is cheaper than equity: interest is tax-deductible "
+            "and lenders accept lower returns for a senior claim, so a moderately leveraged "
             "company can genuinely produce better shareholder returns. Utilities carry heavy debt "
             "sensibly because their cash flows are stable and predictable. The question is never "
             "'is there debt', it is whether the debt is matched to the reliability of the cash "
@@ -657,14 +657,14 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
             "perfectly well under new ownership. The business survived; the equity claim did not."
         ),
         key_takeaway=(
-            "Interest coverage — operating profit over interest expense — predicts distress better "
+            "Interest coverage, operating profit over interest expense, predicts distress better "
             "than almost any other single ratio, and the maturity schedule matters more than the "
             "total. Equity is paid last, which is how a company can survive while its shares go to "
             "zero."
         ),
         glossary=[
             GlossaryTerm("leverage", "The use of borrowed money, which amplifies both gains and losses to equity holders."),
-            GlossaryTerm("enterprise value", "Market cap plus debt minus cash — what it would cost to acquire the whole business, independent of how it is financed."),
+            GlossaryTerm("enterprise value", "Market cap plus debt minus cash: what it would cost to acquire the whole business, independent of how it is financed."),
             GlossaryTerm("EBITDA", "Earnings before interest, tax, depreciation and amortisation. A rough proxy for operating cash generation, used to compare companies with different capital structures."),
             GlossaryTerm("interest coverage", "Operating profit divided by interest expense. How far profit can fall before debt service is at risk."),
             GlossaryTerm("refinancing risk", "The risk that maturing debt must be rolled over on worse terms, typically when conditions are already poor."),
@@ -698,7 +698,7 @@ TIER_2_INTERMEDIATE_B: list[Lesson] = [
                 hint="Market cap plus debt minus cash.",
                 explanation=(
                     "$2.4b + $0.9b - $0.3b = $3.0b. An acquirer assumes the debt and receives the cash, so "
-                    "this — not the $2.4b market cap — is what buying the business actually costs."
+                    "this, not the $2.4b market cap: is what buying the business actually costs."
                 ),
             ),
         ],

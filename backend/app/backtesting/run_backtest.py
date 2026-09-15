@@ -24,7 +24,7 @@ def _parse_date(s: str) -> date:
 def _print_report(report: dict) -> None:
     cfg = report["config"]
     print("=" * 72)
-    print(f"  AUREUS INTELLIGENCE — BACKTEST REPORT: {cfg['ticker']}")
+    print(f"  AUREUS INTELLIGENCE, BACKTEST REPORT: {cfg['ticker']}")
     print(f"  {cfg['start_date']} → {cfg['end_date']}  "
           f"({cfg['total_signals_generated']} signals, {cfg['forward_window_days']}d forward window)")
     print("=" * 72)

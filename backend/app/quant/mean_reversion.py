@@ -64,9 +64,9 @@ def zscore_signal(prices: pd.Series, window: int = 60) -> dict | None:
 
     current = float(z.iloc[-1])
     if current <= -2.0:
-        interp = "Statistically stretched to the downside — outside ~95% of its recent range."
+        interp = "Statistically stretched to the downside: outside ~95% of its recent range."
     elif current >= 2.0:
-        interp = "Statistically stretched to the upside — outside ~95% of its recent range."
+        interp = "Statistically stretched to the upside: outside ~95% of its recent range."
     elif abs(current) >= 1.0:
         interp = "Moderately displaced from its recent mean, but inside normal variation."
     else:
@@ -118,7 +118,7 @@ def mean_reversion_half_life(prices: pd.Series) -> dict:
     if beta >= 0 or (1 + beta) <= 0:
         return {
             "half_life_days": None, "beta": round(beta, 6), "reverting": False,
-            "note": ("No mean reversion detected — the series trends or random-walks over this "
+            "note": ("No mean reversion detected, the series trends or random-walks over this "
                      "sample, so a z-score here carries no reversion signal."),
         }
 
@@ -238,7 +238,7 @@ def volatility_term_structure(prices: pd.Series) -> dict:
         out["short_vs_long_ratio"] = round(ratio, 3)
         if ratio >= 1.3:
             out["regime"] = "Elevated"
-            out["note"] = ("Recent volatility runs well above the one-year norm — the market is "
+            out["note"] = ("Recent volatility runs well above the one-year norm: the market is "
                            "repricing something, and position sizes calibrated to the calm period "
                            "are now larger in risk terms than intended.")
         elif ratio <= 0.75:

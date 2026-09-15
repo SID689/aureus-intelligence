@@ -221,7 +221,7 @@ def risk_delta_node(state: NewsProcessingState) -> dict:
 
     # Short-circuit: no tickers identified → no users affected
     if not affected_tickers:
-        logger.info("No affected tickers — skipping risk delta", extra={"article_id": article_id})
+        logger.info("No affected tickers, skipping risk delta", extra={"article_id": article_id})
         return {
             "affected_users":     [],
             "portfolio_impacts":  [],

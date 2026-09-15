@@ -73,7 +73,7 @@ def _publish_price_update(ticker: str, price: float) -> None:
         redis_client.publish(f"price:{ticker}", f"{price:.4f}")
     except Exception as exc:
         logger.warning(
-            "Redis pub/sub publish failed — SSE clients won't get live update",
+            "Redis pub/sub publish failed: SSE clients won't get live update",
             extra={"ticker": ticker, "error": str(exc)},
         )
 
@@ -99,7 +99,7 @@ def refresh_latest_prices(self) -> dict:
 
     tickers = _get_all_tracked_tickers(engine)
     if not tickers:
-        logger.info("No tracked tickers — skipping price refresh")
+        logger.info("No tracked tickers, skipping price refresh")
         return {"tickers_refreshed": 0}
 
     success_count = 0

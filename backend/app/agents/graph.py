@@ -64,7 +64,7 @@ def _route_after_risk_delta(state: NewsProcessingState) -> str:
     if state.get("any_users_affected", False):
         return "advisory"
     logger.debug(
-        "No users affected — skipping advisory",
+        "No users affected, skipping advisory",
         extra={"article_id": state.get("article_id")},
     )
     return END
@@ -90,7 +90,7 @@ def _route_after_analyst(state: NewsProcessingState) -> str:
     score = abs(state.get("sentiment_score", 0.0))
     if score < 0.05:
         logger.debug(
-            "LLM confirmed neutral sentiment — short-circuiting",
+            "LLM confirmed neutral sentiment: short-circuiting",
             extra={"article_id": state.get("article_id"), "score": score},
         )
         return END

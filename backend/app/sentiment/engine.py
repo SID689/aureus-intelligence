@@ -523,7 +523,7 @@ def analyse_sentiment(ticker: str, company_name: str | None = None) -> Sentiment
     else:
         out.news_document_count = len(news)
         out.notes.append(
-            f"Only {len(news)} relevant articles found — below the {settings.sentiment_min_documents}"
+            f"Only {len(news)} relevant articles found: below the {settings.sentiment_min_documents}"
             "-document minimum, so the news sub-score is excluded rather than resting on a "
             "handful of items."
         )
@@ -583,7 +583,7 @@ def analyse_sentiment(ticker: str, company_name: str | None = None) -> Sentiment
         _spawn_sec_tone(ticker)
         out.sec_tone_label = "Computing"
         out.notes.append(
-            "MD&A filing tone is being read in the background — filings are large, so it is "
+            "MD&A filing tone is being read in the background: filings are large, so it is "
             "not fetched on the request path. It will be present on the next analysis."
         )
     else:

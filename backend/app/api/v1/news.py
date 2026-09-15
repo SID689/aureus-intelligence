@@ -86,7 +86,7 @@ def manual_refresh() -> dict:
     result["elapsed_seconds"] = round(time.monotonic() - start, 2)
     result["note"] = (
         "This ran ingestion + preprocessing synchronously. Articles that passed "
-        "the sentiment pre-filter are now queued in news:agent_input — the "
+        "the sentiment pre-filter are now queued in news:agent_input, the "
         "Celery agent-orchestration worker will pick them up within ~30s and "
         "generate portfolio alerts for any matching holdings."
     )

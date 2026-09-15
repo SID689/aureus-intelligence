@@ -68,7 +68,7 @@ def _call_llm(user_message: str) -> str:
                 raise
             sleep_time = base_delay * (2 ** attempt)
             logger.warning(
-                "Anthropic rate limit — backing off",
+                "Anthropic rate limit, backing off",
                 extra={"attempt": attempt + 1, "sleep_seconds": sleep_time},
             )
             time.sleep(sleep_time)

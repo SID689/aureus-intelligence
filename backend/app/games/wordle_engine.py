@@ -153,7 +153,7 @@ def validate_guess(guess: str) -> tuple[bool, str | None]:
 
 def emoji_grid(all_tiles: list[list[TileState]]) -> str:
     """The shareable result block. Reveals the pattern, never the word."""
-    symbol = {"correct": "🟩", "present": "🟨", "absent": "⬛"}
+    symbol = {"correct": "■", "present": "▣", "absent": "□"}
     return "\n".join("".join(symbol[t] for t in row) for row in all_tiles)
 
 

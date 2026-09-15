@@ -140,7 +140,7 @@ def price_units(vendor: str, operation: str, unit: str, quantity: float) -> Deci
     """
     rate = get_rate(vendor, operation, unit)
     if rate is None:
-        logger.warning("No rate configured — not charging",
+        logger.warning("No rate configured, not charging",
                        extra={"vendor": vendor, "operation": operation, "unit": unit})
         return Decimal(0)
     usd_per_unit, markup = rate
@@ -347,7 +347,7 @@ def settle(user_id: str, reservation_id: str, actual_credits: Decimal,
         # Never fail a served request because settlement bookkeeping
         # failed. The reservation already stands, so the user was charged
         # the estimate — an approximation, not free usage.
-        logger.warning("Credit settle failed — reservation stands",
+        logger.warning("Credit settle failed: reservation stands",
                        extra={"user_id": user_id, "reservation": reservation_id,
                               "error": str(exc)})
 
@@ -442,7 +442,7 @@ def issue_api_key(user_id: str, name: str = "Default key",
         "name": name,
         "environment": environment,
         "created_at": row[1].isoformat(),
-        "warning": "Store this now — it cannot be retrieved again.",
+        "warning": "Store this now, it cannot be retrieved again.",
     }
 
 

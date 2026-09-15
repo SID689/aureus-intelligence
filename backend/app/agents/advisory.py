@@ -165,7 +165,7 @@ def _write_to_database(state: NewsProcessingState, alerts: list[dict]) -> None:
                 {"url": state["source_url"]},
             ).fetchone()
             if row is None:
-                logger.warning("No news_articles row found — skipping portfolio_impacts", extra={"article_id": state["article_id"]})
+                logger.warning("No news_articles row found, skipping portfolio_impacts", extra={"article_id": state["article_id"]})
                 return
             news_article_id = str(row[0])
 

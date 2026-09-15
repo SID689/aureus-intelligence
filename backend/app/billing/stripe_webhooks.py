@@ -131,7 +131,7 @@ def handle_payment_failed(stripe_customer_id: str) -> dict:
                 """),
                 {"customer_id": stripe_customer_id},
             )
-        logger.warning("Payment failed — marked past_due", extra={"customer_id": stripe_customer_id})
+        logger.warning("Payment failed, marked past_due", extra={"customer_id": stripe_customer_id})
         return {"status": "marked_past_due"}
     except Exception as exc:
         logger.error("Payment-failed handler error", extra={"error": str(exc)})

@@ -112,7 +112,7 @@ def _bull_points(f: FundamentalScore, t: TechnicalScore, sn: SentimentScore,
             "Growth & Profitability",
             "Operating leverage is already being realised",
             f"An operating margin of {_pct(fd.operating_margin)} shows the cost base is not scaling "
-            f"with revenue — incremental sales drop through to profit rather than being consumed by "
+            f"with revenue: incremental sales drop through to profit rather than being consumed by "
             f"headcount and overhead.",
             "Operating Margin", _pct(fd.operating_margin),
         ))
@@ -130,7 +130,7 @@ def _bull_points(f: FundamentalScore, t: TechnicalScore, sn: SentimentScore,
             "Growth & Profitability",
             "Capital is being reinvested at a high return",
             f"ROE of {_pct(fd.return_on_equity)} means retained earnings compound internally at a rate "
-            f"most alternative uses of that capital cannot match — the mechanical driver of long-run "
+            f"most alternative uses of that capital cannot match: the mechanical driver of long-run "
             f"per-share value.",
             "ROE", _pct(fd.return_on_equity),
         ))
@@ -142,7 +142,7 @@ def _bull_points(f: FundamentalScore, t: TechnicalScore, sn: SentimentScore,
             "Valuation & Catalysts",
             "Trading below the model's intrinsic estimate",
             f"A two-stage DCF puts intrinsic value near ${d.intrinsic_value_per_share:.2f} against a "
-            f"${d.current_price:.2f} price — a {_pct(d.margin_of_safety)} margin of safety. Closing even "
+            f"${d.current_price:.2f} price: a {_pct(d.margin_of_safety)} margin of safety. Closing even "
             f"half that gap is a material return without requiring any operational surprise.",
             "Margin of Safety", _pct(d.margin_of_safety),
         ))
@@ -151,7 +151,7 @@ def _bull_points(f: FundamentalScore, t: TechnicalScore, sn: SentimentScore,
             "Valuation & Catalysts",
             "Earnings multiple leaves room for re-rating",
             f"At a {fd.pe_ratio:.1f}x P/E the market is pricing limited growth. If execution simply "
-            f"continues, multiple expansion contributes to return alongside earnings — the two "
+            f"continues, multiple expansion contributes to return alongside earnings: the two "
             f"compounding together.",
             "P/E", f"{fd.pe_ratio:.1f}x",
         ))
@@ -260,7 +260,7 @@ def _bear_points(f: FundamentalScore, t: TechnicalScore, sn: SentimentScore,
             "Overstretched Valuation",
             "Price sits above the model's intrinsic estimate",
             f"The DCF implies roughly ${d.intrinsic_value_per_share:.2f} against a ${d.current_price:.2f} "
-            f"price — a {_pct(abs(d.margin_of_safety))} premium. Justifying it requires growth or margins "
+            f"price: a {_pct(abs(d.margin_of_safety))} premium. Justifying it requires growth or margins "
             f"above what the model already assumes.",
             "DCF Premium", _pct(abs(d.margin_of_safety)),
         ))
@@ -325,7 +325,7 @@ def _bear_points(f: FundamentalScore, t: TechnicalScore, sn: SentimentScore,
         if s["label"] == "MACD" and s["score"] <= 40:
             pts.append(ThesisPoint(
                 "Technical Deterioration", "Trend momentum is rolling over",
-                f"{s['detail']} Momentum turning before price is the usual sequence — it indicates the "
+                f"{s['detail']} Momentum turning before price is the usual sequence: it indicates the "
                 f"marginal buyer is stepping back while the trend still looks intact.",
                 "MACD", "Negative histogram",
             ))
@@ -380,7 +380,7 @@ def _bear_points(f: FundamentalScore, t: TechnicalScore, sn: SentimentScore,
             "Market Sentiment",
             "Retail positioning is running well ahead of the news",
             f"Retail sentiment scores {sn.social_score:.0f}/100 against news at {sn.news_score:.0f}/100. A crowd "
-            f"materially more bullish than the underlying coverage is a crowded-trade risk — it is the "
+            f"materially more bullish than the underlying coverage is a crowded-trade risk: it is the "
             f"configuration that unwinds hardest on any disappointment.",
             "Social vs News", f"+{sn.social_score - sn.news_score:.0f} pts",
         ))
@@ -419,8 +419,8 @@ def _falsifiers(stance: str, f: FundamentalScore, t: TechnicalScore, sn: Sentime
                        "regardless of the fundamentals.")
     else:
         if fd.pe_ratio is not None:
-            out.append(f"Earnings growing into the {fd.pe_ratio:.1f}x multiple — rather than the multiple "
-                       f"de-rating — would defuse the valuation objection.")
+            out.append(f"Earnings growing into the {fd.pe_ratio:.1f}x multiple, rather than the multiple "
+                       f"de-rating: would defuse the valuation objection.")
         if fd.operating_margin is not None:
             out.append(f"Operating margin expanding from {_pct(fd.operating_margin)} would remove the "
                        f"cost-absorption concern.")
@@ -573,7 +573,7 @@ def _summary(stance: str, ticker: str, points: list[ThesisPoint], horizon: Horiz
     if not points:
         return (f"There is not enough computed data to construct a defensible "
                 f"{'bull' if stance == 'bull' else 'bear'} case for {ticker} over {label}. "
-                f"Rather than pad this with generic assertions, it is left empty — see the data "
+                f"Rather than pad this with generic assertions, it is left empty: see the data "
                 f"completeness figures above for which inputs are missing.")
     cats = list(dict.fromkeys(p.category for p in points))
     joined = ", ".join(cats[:-1]) + (" and " + cats[-1] if len(cats) > 1 else cats[0])
@@ -729,11 +729,12 @@ ABSOLUTE CONSTRAINTS:
 - Preserve every number exactly. Do not round differently, drop, or add any figure.
 - Do not add any claim, driver, or fact that is not already present.
 - Do not change the headline or the category of any point.
-- Do NOT restate the category or headline inside the detail text — both are
+- Do NOT restate the category or headline inside the detail text: both are
   already displayed above it, so repeating them reads as duplication.
 - Preserve the MEANING precisely. Do not re-attribute a figure to a
   different concept than the original assigned it to.
 - Keep each detail to at most three sentences.
+- Do not use em dashes. Use commas, colons or full stops.
 - Return JSON only: {{"details": ["...", "..."]}} with exactly {n} entries, in order.
 
 POINTS:
@@ -752,7 +753,7 @@ def _strip_redundant_prefix(detail: str, point: ThesisPoint) -> str:
     """
     cleaned = detail.strip()
     for prefix in (point.category, point.headline):
-        for sep in (":", " -", " —"):
+        for sep in (":", " -", ", "):
             probe = f"{prefix}{sep}"
             if cleaned.lower().startswith(probe.lower()):
                 cleaned = cleaned[len(probe):].lstrip()
@@ -777,6 +778,7 @@ def _polish(thesis: Thesis, ticker: str, horizon: Horizon,
     """
     from app.agents.guardrails import CORE_ORCHESTRATOR_SYSTEM_PROMPT, validate_llm_output
     from app.analysis.llm_provider import complete_json
+    from app.core.copy import plain_punctuation
 
     if not thesis.points:
         return None
@@ -798,9 +800,10 @@ def _polish(thesis: Thesis, ticker: str, horizon: Horizon,
         return None
     if not all(isinstance(d, str) and d.strip() for d in details):
         return None
+    details = [plain_punctuation(d) for d in details]
 
     if not validate_llm_output(" ".join(details)).is_clean:
-        logger.warning("Thesis polish failed guardrails — keeping deterministic text",
+        logger.warning("Thesis polish failed guardrails, keeping deterministic text",
                        extra={"ticker": ticker, "stance": thesis.stance})
         return None
 

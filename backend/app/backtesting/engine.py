@@ -194,7 +194,7 @@ def run_backtest(config: BacktestConfig) -> dict:
         daily_position.iloc[i:next_i] = 1.0 if signal == "BUY" else 0.0
 
     if not signal_records:
-        raise ValueError(f"No signals were generated for {ticker} in this window — try a longer date range.")
+        raise ValueError(f"No signals were generated for {ticker} in this window: try a longer date range.")
 
     # ── Build the strategy's daily return series and equity curve ──────
     asset_daily_returns = aligned["close"].pct_change().fillna(0.0)
@@ -219,7 +219,7 @@ def run_backtest(config: BacktestConfig) -> dict:
     report["methodology_note"] = (
         "This backtest excludes the fundamental analysis module (35% weight in live "
         "production scoring) because no free point-in-time fundamentals dataset is "
-        "available — using current financials to score historical decisions would be "
+        "available, using current financials to score historical decisions would be "
         "look-ahead bias. Technical (35%) and quantitative (30%) weights were "
         "renormalized to sum to 1.0. See app/backtesting/engine.py module docstring "
         "for the full bias-mitigation methodology."

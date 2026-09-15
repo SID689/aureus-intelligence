@@ -86,7 +86,7 @@ def _get_json(url: str) -> dict:
     except httpx.HTTPError as exc:
         raise SourceUnavailable(f"SEC unreachable: {type(exc).__name__}") from exc
     if r.status_code == 403:
-        raise SourceUnavailable("SEC refused the request — check SEC_EDGAR_USER_AGENT")
+        raise SourceUnavailable("SEC refused the request: check SEC_EDGAR_USER_AGENT")
     if r.status_code == 404:
         return {}
     if r.status_code >= 400:

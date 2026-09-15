@@ -67,51 +67,51 @@ def _count_badge(getter: Callable[[ProgressSnapshot], int], target: int):
 BADGE_DEFINITIONS: list[BadgeDefinition] = [
     # ── Milestone badges ──────────────────────────────────────────────
     BadgeDefinition(
-        "first_steps", "First Steps", "Complete your first lesson.", "🌱",
+        "first_steps", "First Steps", "Complete your first lesson.", "01",
         _count_badge(lambda s: s.total_completed, 1),
     ),
     BadgeDefinition(
-        "getting_serious", "Getting Serious", "Complete 10 lessons.", "📚",
+        "getting_serious", "Getting Serious", "Complete 10 lessons.", "10",
         _count_badge(lambda s: s.total_completed, 10),
     ),
     BadgeDefinition(
-        "dedicated_student", "Dedicated Student", "Complete 25 lessons.", "🎓",
+        "dedicated_student", "Dedicated Student", "Complete 25 lessons.", "25",
         _count_badge(lambda s: s.total_completed, 25),
     ),
 
     # ── Tier completion badges ────────────────────────────────────────
     BadgeDefinition(
         "market_literate", "Market Literate",
-        "Complete every lesson in New to Investing.", "🧭", _tier_badge(TIER_BEGINNER),
+        "Complete every lesson in New to Investing.", "N", _tier_badge(TIER_BEGINNER),
     ),
     BadgeDefinition(
         "foundations_built", "Foundations Built",
-        "Complete every lesson in Foundational+.", "🏛️", _tier_badge(TIER_FOUNDATIONAL),
+        "Complete every lesson in Foundational+.", "F", _tier_badge(TIER_FOUNDATIONAL),
     ),
     BadgeDefinition(
         "practitioner", "Practitioner",
-        "Complete every lesson in Intermediate.", "⚙️", _tier_badge(TIER_INTERMEDIATE),
+        "Complete every lesson in Intermediate.", "I", _tier_badge(TIER_INTERMEDIATE),
     ),
     BadgeDefinition(
         "quant_minded", "Quant-Minded",
-        "Complete every lesson in Advanced.", "📐", _tier_badge(TIER_ADVANCED),
+        "Complete every lesson in Advanced.", "A", _tier_badge(TIER_ADVANCED),
     ),
     BadgeDefinition(
         "institutional_grade", "Institutional Grade",
-        "Complete every lesson in Expert.", "🏆", _tier_badge(TIER_EXPERT),
+        "Complete every lesson in Expert.", "E", _tier_badge(TIER_EXPERT),
     ),
 
     # ── Quiz mastery badges ───────────────────────────────────────────
     BadgeDefinition(
-        "quiz_starter", "Quiz Starter", "Pass your first knowledge check.", "✅",
+        "quiz_starter", "Quiz Starter", "Pass your first knowledge check.", "Q",
         _count_badge(lambda s: s.quizzes_passed, 1),
     ),
     BadgeDefinition(
-        "sharp_shooter", "Sharp Shooter", "Score 100% on 5 knowledge checks.", "🎯",
+        "sharp_shooter", "Sharp Shooter", "Score 100% on 5 knowledge checks.", "5×",
         _count_badge(lambda s: s.perfect_quizzes, 5),
     ),
     BadgeDefinition(
-        "flawless_ten", "Flawless Ten", "Score 100% on 10 knowledge checks.", "💎",
+        "flawless_ten", "Flawless Ten", "Score 100% on 10 knowledge checks.", "10×",
         _count_badge(lambda s: s.perfect_quizzes, 10),
     ),
 
@@ -121,7 +121,7 @@ BADGE_DEFINITIONS: list[BadgeDefinition] = [
         _count_badge(lambda s: s.total_xp, 1000),
     ),
     BadgeDefinition(
-        "xp_3000", "Scholar", "Earn 3,000 XP.", "🌟",
+        "xp_3000", "Scholar", "Earn 3,000 XP.", "3K",
         _count_badge(lambda s: s.total_xp, 3000),
     ),
 ]

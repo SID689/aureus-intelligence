@@ -31,7 +31,7 @@ try:
     _PROM_AVAILABLE = True
 except ImportError:
     _PROM_AVAILABLE = False
-    logger.warning("prometheus_client not installed — /metrics will return placeholder")
+    logger.warning("prometheus_client not installed: /metrics will return placeholder")
 
 router = APIRouter(tags=["ops"])
 

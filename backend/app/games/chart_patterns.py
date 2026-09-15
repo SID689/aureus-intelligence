@@ -101,37 +101,37 @@ PATTERN_LIBRARY: dict[str, PatternInfo] = {
     "head_and_shoulders": PatternInfo(
         "head_and_shoulders", "Head & Shoulders", "bearish_reversal",
         "Three peaks: a left shoulder, a higher head, then a right shoulder roughly level with the left. The two troughs between them define a neckline.",
-        "Read as a topping formation — buyers made a higher high on the head but could not repeat it on the right shoulder, suggesting demand is exhausting after an advance.",
+        "Read as a topping formation: buyers made a higher high on the head but could not repeat it on the right shoulder, suggesting demand is exhausting after an advance.",
         "The pattern is only considered confirmed when price CLOSES below the neckline, ideally on expanding volume. The conventional measured move projects the head-to-neckline distance down from the break.",
         "One of the most widely taught reversal patterns, and therefore one of the most widely front-run. Necklines break and immediately reverse often enough that trading it without confirmation is a coin flip.",
     ),
     "inverse_head_and_shoulders": PatternInfo(
         "inverse_head_and_shoulders", "Inverse Head & Shoulders", "bullish_reversal",
         "The mirror image: three troughs, with the middle one the deepest, and two intervening peaks forming a neckline overhead.",
-        "Read as a bottoming formation — sellers drove a lower low on the head but could not press price down as far on the right shoulder, suggesting supply is drying up.",
+        "Read as a bottoming formation: sellers drove a lower low on the head but could not press price down as far on the right shoulder, suggesting supply is drying up.",
         "Confirmed on a close ABOVE the neckline. Volume expanding on the breakout is the classic corroborating signal.",
         "Bottoms tend to take longer to form than tops. An inverse H&S that breaks out on weak volume frequently fails back into the range.",
     ),
     "double_top": PatternInfo(
         "double_top", "Double Top", "bearish_reversal",
-        "Two peaks at approximately the same level separated by a meaningful trough — an 'M' shape.",
+        "Two peaks at approximately the same level separated by a meaningful trough: an 'M' shape.",
         "Price tested a resistance level twice and was rejected both times, indicating a supply zone that buyers could not absorb.",
         "Confirmed on a close below the intervening trough (the 'valley' or neckline). Until that happens it is just a range.",
         "An unconfirmed double top is indistinguishable from ordinary range-bound trading. Many resolve upward on the third attempt precisely because so many stops sit above the highs.",
     ),
     "double_bottom": PatternInfo(
         "double_bottom", "Double Bottom", "bullish_reversal",
-        "Two troughs at approximately the same level separated by an intervening peak — a 'W' shape.",
+        "Two troughs at approximately the same level separated by an intervening peak: a 'W' shape.",
         "Price found buyers at the same level twice, indicating a demand zone that sellers could not push through.",
         "Confirmed on a close above the intervening peak. The measured move projects the pattern's height up from the breakout.",
-        "The second bottom undercutting the first slightly (a 'spring') is common and does not invalidate it — but a decisive close below both invalidates the read entirely.",
+        "The second bottom undercutting the first slightly (a 'spring') is common and does not invalidate it, but a decisive close below both invalidates the read entirely.",
     ),
     "triple_top": PatternInfo(
         "triple_top", "Triple Top", "bearish_reversal",
         "Three peaks at approximately the same level with troughs between them.",
         "A stronger version of the double top: three failed attempts at the same resistance suggests a persistent seller.",
         "Confirmed on a close below the lowest intervening trough. Declining volume on each successive peak strengthens the read.",
-        "Triple tops are rarer than they appear — most are simply horizontal resistance in a range that eventually breaks upward. The more times a level is tested, the weaker it often becomes.",
+        "Triple tops are rarer than they appear: most are simply horizontal resistance in a range that eventually breaks upward. The more times a level is tested, the weaker it often becomes.",
     ),
     "triple_bottom": PatternInfo(
         "triple_bottom", "Triple Bottom", "bullish_reversal",
@@ -143,34 +143,34 @@ PATTERN_LIBRARY: dict[str, PatternInfo] = {
     "ascending_triangle": PatternInfo(
         "ascending_triangle", "Ascending Triangle", "bullish_continuation",
         "A flat horizontal resistance line with a rising sequence of higher lows pressing up into it.",
-        "Buyers are willing to pay progressively more while sellers defend one fixed price — conventionally read as accumulation resolving upward.",
+        "Buyers are willing to pay progressively more while sellers defend one fixed price: conventionally read as accumulation resolving upward.",
         "Confirmed on a close above the horizontal resistance. The measured move is the triangle's height projected up from the breakout point.",
         "Direction is not guaranteed by the shape. Ascending triangles break down a meaningful fraction of the time, especially against a weak broader market.",
     ),
     "descending_triangle": PatternInfo(
         "descending_triangle", "Descending Triangle", "bearish_continuation",
         "A flat horizontal support line with a falling sequence of lower highs pressing down into it.",
-        "Sellers accept progressively less while buyers defend one fixed price — conventionally read as distribution resolving downward.",
+        "Sellers accept progressively less while buyers defend one fixed price: conventionally read as distribution resolving downward.",
         "Confirmed on a close below the horizontal support, with the height projected down from the break.",
         "The mirror caveat applies: a descending triangle into strong support in a rising market often resolves upward instead.",
     ),
     "symmetrical_triangle": PatternInfo(
         "symmetrical_triangle", "Symmetrical Triangle", "bilateral",
-        "Lower highs and higher lows converging toward a single point — a coil.",
+        "Lower highs and higher lows converging toward a single point: a coil.",
         "Genuinely directionless on its own. It signals compression: volatility is contracting and a range expansion is likely, but the shape does not say which way.",
         "There is nothing to confirm until price closes outside one boundary. The breakout direction is the signal, not the triangle.",
         "This is the pattern most often misread as predictive. Treating a symmetrical triangle as bullish or bearish before the break is imposing a view the chart has not expressed.",
     ),
     "rising_wedge": PatternInfo(
         "rising_wedge", "Rising Wedge", "bearish_reversal",
-        "Both boundaries slope upward, but the lower line rises faster than the upper — the range narrows as price grinds higher.",
+        "Both boundaries slope upward, but the lower line rises faster than the upper: the range narrows as price grinds higher.",
         "Counter-intuitively bearish. Price is still rising but each advance is smaller, indicating momentum decaying even as the trend technically continues.",
         "Confirmed on a close below the lower boundary. The compression means the eventual move is often quick.",
         "Rising wedges can persist far longer than they look sustainable. Shorting a wedge simply because it is a wedge, while price keeps making higher highs, is a well-known way to lose money.",
     ),
     "falling_wedge": PatternInfo(
         "falling_wedge", "Falling Wedge", "bullish_reversal",
-        "Both boundaries slope downward, but the upper line falls faster than the lower — the range narrows as price grinds lower.",
+        "Both boundaries slope downward, but the upper line falls faster than the lower: the range narrows as price grinds lower.",
         "Counter-intuitively bullish. Price is still declining but each leg down is shallower, indicating selling pressure exhausting.",
         "Confirmed on a close above the upper boundary, typically with a sharp expansion once the coil releases.",
         "A falling wedge inside a genuine downtrend is often just an orderly decline. Absent a breakout, 'falling more slowly' is still falling.",
@@ -178,14 +178,14 @@ PATTERN_LIBRARY: dict[str, PatternInfo] = {
     "bull_flag": PatternInfo(
         "bull_flag", "Bull Flag", "bullish_continuation",
         "A sharp near-vertical advance (the pole) followed by a tight, gently downward-drifting consolidation (the flag).",
-        "Read as a pause rather than a reversal — holders are not selling into the rally aggressively, and the shallow drift suggests profit-taking rather than distribution.",
+        "Read as a pause rather than a reversal: holders are not selling into the rally aggressively, and the shallow drift suggests profit-taking rather than distribution.",
         "Confirmed on a close above the flag's upper boundary. The classic target adds the pole's height to the breakout point.",
         "The distinction between a flag and the start of a real reversal is depth. A 'flag' that retraces most of the pole was never a flag.",
     ),
     "bear_flag": PatternInfo(
         "bear_flag", "Bear Flag", "bearish_continuation",
         "A sharp decline (the pole) followed by a tight, gently upward-drifting consolidation (the flag).",
-        "Read as a pause in a decline — the weak bounce suggests relief buying rather than genuine demand returning.",
+        "Read as a pause in a decline: the weak bounce suggests relief buying rather than genuine demand returning.",
         "Confirmed on a close below the flag's lower boundary, with the pole's height projected down.",
         "Bear flags in oversold conditions frequently become genuine bottoms instead. The pattern says nothing about whether the selling was already overdone.",
     ),
@@ -194,7 +194,7 @@ PATTERN_LIBRARY: dict[str, PatternInfo] = {
         "A rounded, U-shaped base that recovers to roughly its starting level, followed by a small shallow pullback (the handle) near the rim.",
         "The rounded shape suggests a gradual transfer from sellers to buyers rather than a panic low, and the shallow handle suggests little remaining supply.",
         "Confirmed on a close above the rim/handle high. The depth of the cup projected upward is the conventional target.",
-        "A V-shaped recovery is not a cup — the roundness matters because it implies gradual accumulation. Deep handles (more than about a third of the cup) tend to fail.",
+        "A V-shaped recovery is not a cup: the roundness matters because it implies gradual accumulation. Deep handles (more than about a third of the cup) tend to fail.",
     ),
 }
 
@@ -398,7 +398,7 @@ def _detect_head_and_shoulders(df, swings, inverse: bool) -> DetectedPattern | N
         word = "trough" if inverse else "peak"
         return DetectedPattern(
             key, round(min(confidence, 0.99), 2),
-            (f"Three {word}s at {ls.price:.2f}, {head.price:.2f} and {rs.price:.2f} — the middle "
+            (f"Three {word}s at {ls.price:.2f}, {head.price:.2f} and {rs.price:.2f}: the middle "
              f"{'undercuts' if inverse else 'clears'} both shoulders, which sit within "
              f"{sym * 100:.1f}% of each other. Neckline runs near {neckline:.2f}."),
             {"neckline": round(neckline, 2), "head": round(head.price, 2),

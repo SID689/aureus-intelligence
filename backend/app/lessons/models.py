@@ -64,7 +64,7 @@ TIER_DESCRIPTIONS: dict[int, str] = {
         "Start here if you've never bought a stock. What an exchange is, what you actually "
         "own, how orders get filled, and how to read a quote without guessing.",
     TIER_FOUNDATIONAL:
-        "Assumes you've placed trades and know the common terms — goes one layer deeper on "
+        "Assumes you've placed trades and know the common terms: goes one layer deeper on "
         "the mechanism behind them and where the standard explanations break down.",
     TIER_INTERMEDIATE:
         "The bridge to professional analysis: valuation under uncertainty, position sizing "

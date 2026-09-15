@@ -49,7 +49,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "A stock has a beta of 0.6. What does this tell you?",
             ["The business is fundamentally safe", "It has historically moved about 60% as much as the market", "It cannot lose more than 60% of its value", "It has low company-specific risk"],
             1,
-            "Beta measures historical co-movement with a benchmark — systematic risk only. It says nothing about the "
+            "Beta measures historical co-movement with a benchmark: systematic risk only. It says nothing about the "
             "quality or safety of the underlying business.",
         ),
         QuizQuestion(
@@ -65,7 +65,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "What is the key difference between volume and liquidity?",
             ["They are the same measure", "Volume is shares already traded; liquidity is how much you could trade now without moving the price", "Liquidity applies only to bonds", "Volume is forward-looking, liquidity is historical"],
             1,
-            "Volume is a backward-looking count. Liquidity is about current order book depth — how much size the market "
+            "Volume is a backward-looking count. Liquidity is about current order book depth: how much size the market "
             "can absorb right now without the price moving against you.",
         ),
         QuizQuestion(
@@ -88,8 +88,8 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "What risk can never be diversified away by owning more individual stocks?",
             ["Fraud at a single company", "Sector concentration risk", "Market-wide systematic risk", "Liquidity risk in one name"],
             2,
-            "Systematic risk affects all equities together. Reducing it requires different asset classes — bonds, cash, "
-            "genuinely uncorrelated assets — not additional stocks.",
+            "Systematic risk affects all equities together. Reducing it requires different asset classes: bonds, cash, "
+            "genuinely uncorrelated assets, not additional stocks.",
         ),
     ],
     "l005": [
@@ -105,7 +105,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             ["It is highly profitable", "It is funding operations by continuously raising new capital", "It is paying down debt aggressively", "It has no capital expenditures"],
             1,
             "Persistently raising capital to cover operating cash burn may be normal for a growth-stage company, or a "
-            "warning sign — but either way the business is not yet self-funding.",
+            "warning sign, but either way the business is not yet self-funding.",
         ),
     ],
     "l006": [
@@ -120,7 +120,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "When do momentum crashes tend to cluster?",
             ["During long periods of low volatility", "Around market turning points, especially after high-volatility periods", "Only in bond markets", "Uniformly at random"],
             1,
-            "The crowding that makes momentum profitable is exactly what makes it dangerous when sentiment flips — "
+            "The crowding that makes momentum profitable is exactly what makes it dangerous when sentiment flips: "
             "everyone is positioned the same way, so the unwind is violent.",
         ),
     ],
@@ -146,7 +146,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             ["Guaranteed recession within 6 months", "Markets pricing in future rate cuts, which usually accompany expected economic weakness", "A shortage of Treasury bonds", "Rising inflation expectations"],
             1,
             "The mechanism is expectation of future cuts. Cuts are usually anticipated because the central bank is "
-            "expected to respond to weakness — which is why inversion correlates with recessions.",
+            "expected to respond to weakness, which is why inversion correlates with recessions.",
         ),
         QuizQuestion(
             "What is the main practical limitation of the inversion signal?",
@@ -166,7 +166,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
         ),
         QuizQuestion(
             "Why do option premiums often collapse immediately after an earnings release regardless of which way the stock moved?",
-            ["Exchanges reset prices after events", "The uncertainty the premium was pricing has resolved — 'volatility crush'", "Traders stop buying options after earnings", "Time value increases after events"],
+            ["Exchanges reset prices after events", "The uncertainty the premium was pricing has resolved: 'volatility crush'", "Traders stop buying options after earnings", "Time value increases after events"],
             1,
             "Premium was elevated to compensate for uncertainty about the size of the move. Once the event resolves, "
             "that uncertainty disappears and the implied volatility component deflates.",
@@ -184,7 +184,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "What is the distinction that actually matters when a stock declines?",
             ["Whether volume was high", "Whether it's a sentiment-driven pullback in an intact fundamental picture or the market correctly repricing genuine deterioration", "Whether the decline exceeded 10%", "Whether analysts downgraded it"],
             1,
-            "Those two cases look identical in the first days of a decline and only separate over time — which is "
+            "Those two cases look identical in the first days of a decline and only separate over time, which is "
             "precisely why an unconditional rule is dangerous.",
         ),
     ],
@@ -207,7 +207,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
     "l012": [
         QuizQuestion(
             "What is the more reliable interpretation of very high short interest?",
-            ["A squeeze is imminent", "Sophisticated participants have taken a structural bet against the business — the bear case is contested", "The company is committing fraud", "The stock is guaranteed to fall"],
+            ["A squeeze is imminent", "Sophisticated participants have taken a structural bet against the business: the bear case is contested", "The company is committing fraud", "The stock is guaranteed to fall"],
             1,
             "High short interest signals genuine, researched disagreement. Most high-short-interest stocks never squeeze; "
             "frequently the short sellers are simply correct.",
@@ -239,7 +239,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
     "l014": [
         QuizQuestion(
             "Why do sell-side price targets tend to cluster near the current price?",
-            ["Regulation requires it", "Career risk — a wildly out-of-consensus wrong call damages an analyst more than a consensus-hugging wrong call", "Analysts lack valuation models", "Targets are set by exchanges"],
+            ["Regulation requires it", "Career risk: a wildly out-of-consensus wrong call damages an analyst more than a consensus-hugging wrong call", "Analysts lack valuation models", "Targets are set by exchanges"],
             1,
             "The asymmetric professional consequence of being wrong alone versus wrong with everyone else creates a "
             "documented anchoring bias toward the current price.",
@@ -255,14 +255,14 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
     "l015": [
         QuizQuestion(
             "When is 'it's already priced in' genuinely true?",
-            ["Whenever an event has been discussed in the news", "When the market had the same information for long enough to digest it AND the outcome matches expectations", "Always, because markets are efficient", "Never — markets are always surprised"],
+            ["Whenever an event has been discussed in the news", "When the market had the same information for long enough to digest it AND the outcome matches expectations", "Always, because markets are efficient", "Never: markets are always surprised"],
             1,
             "All three conditions matter. Information being public is not sufficient if the realised outcome differs "
             "from the market's probability-weighted expectation.",
         ),
         QuizQuestion(
             "A 70%-probability outcome fails to occur and the market moves sharply. What does this demonstrate?",
-            ["The market was irrational", "Ordinary probability — a 70% likely event does not happen 30% of the time", "The probability estimate was fabricated", "Prices are random"],
+            ["The market was irrational", "Ordinary probability: a 70% likely event does not happen 30% of the time", "The probability estimate was fabricated", "Prices are random"],
             1,
             "Surprise at a 30% outcome isn't evidence of irrationality. Wide outcome distributions mean 'obvious in "
             "hindsight' events genuinely weren't obvious beforehand.",
@@ -289,8 +289,8 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "Recovering from a 50% drawdown requires what gain?",
             ["50%", "75%", "100%", "150%"],
             2,
-            "Halving your capital means you must double what remains to get back to even. This asymmetry — and its "
-            "acceleration at deeper losses — is why professionals prioritise avoiding large drawdowns.",
+            "Halving your capital means you must double what remains to get back to even. This asymmetry, and its "
+            "acceleration at deeper losses: is why professionals prioritise avoiding large drawdowns.",
         ),
     ],
     "i002": [
@@ -299,14 +299,14 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             ["Under 10%", "Around 25%", "Commonly 60–80%", "Exactly 50% by construction"],
             2,
             "The majority of a DCF's output usually rests on the terminal value, which is driven by an unknowable "
-            "perpetual growth assumption — the main reason DCF precision is illusory.",
+            "perpetual growth assumption: the main reason DCF precision is illusory.",
         ),
         QuizQuestion(
             "What makes a reverse DCF more practically useful than a standard one?",
             ["It requires fewer inputs", "It converts an unanswerable question into a checkable one: is the growth the price already implies plausible?", "It always produces a higher valuation", "It eliminates the need for a discount rate"],
             1,
             "Instead of guessing growth to produce a value, you take the observable market price and solve for the "
-            "implied growth — which you can then test against industry history and base rates.",
+            "implied growth, which you can then test against industry history and base rates.",
         ),
     ],
     "i003": [
@@ -314,15 +314,15 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "What makes year-over-year changes in Item 1A (Risk Factors) valuable?",
             ["The section is audited", "Companies rarely add risk factors voluntarily, so a new one signals something counsel concluded was now material", "It contains forward earnings guidance", "It lists competitor weaknesses"],
             1,
-            "Much of Item 1A is boilerplate. The signal is the delta — additions and reordering often surface "
+            "Much of Item 1A is boilerplate. The signal is the delta: additions and reordering often surface "
             "deterioration before it reaches the income statement.",
         ),
         QuizQuestion(
             "Net income has grown steadily for three years while operating cash flow has stagnated. What does this most likely indicate?",
-            ["The company is unusually efficient", "Profit is being recognised faster than cash arrives — possibly legitimate growth, possibly aggressive accounting", "Cash flow statements are unreliable", "The company has no debt"],
+            ["The company is unusually efficient", "Profit is being recognised faster than cash arrives: possibly legitimate growth, possibly aggressive accounting", "Cash flow statements are unreliable", "The company has no debt"],
             1,
             "A persistent, widening accrual gap is one of the most accessible red flags. It warrants investigation "
-            "rather than an automatic conclusion — but it should never be ignored.",
+            "rather than an automatic conclusion, but it should never be ignored.",
         ),
     ],
     "i004": [
@@ -335,7 +335,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
         ),
         QuizQuestion(
             "Why can a 35% win rate strategy be excellent?",
-            ["Win rate is inversely related to quality", "Because average wins can be far larger than average losses, producing positive expected value", "Because it trades less frequently", "It cannot be — 35% is always unprofitable"],
+            ["Win rate is inversely related to quality", "Because average wins can be far larger than average losses, producing positive expected value", "Because it trades less frequently", "It cannot be: 35% is always unprofitable"],
             1,
             "EV depends on the payoff distribution. Large winners against small losers can produce strong positive "
             "expectancy despite losing most individual trades.",
@@ -351,7 +351,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
         ),
         QuizQuestion(
             "Why is tracking difference a more honest cost measure than the expense ratio?",
-            ["It is calculated by the SEC", "It captures rebalancing costs, cash drag, and lending revenue — the full real-world gap versus the index", "It is always lower than the expense ratio", "It excludes management fees"],
+            ["It is calculated by the SEC", "It captures rebalancing costs, cash drag, and lending revenue: the full real-world gap versus the index", "It is always lower than the expense ratio", "It excludes management fees"],
             1,
             "The expense ratio is only the advertised fee. Tracking difference measures what actually happened to your "
             "return relative to the index, incorporating every hidden cost and offset.",
@@ -369,14 +369,14 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "A widely anticipated rate hike is announced and stocks rally. Why is this not a contradiction?",
             ["Markets are irrational", "The expected hike was already priced in; what moved markets was the surprise in accompanying guidance", "Rate hikes always help stocks", "The hike must have been cancelled"],
             1,
-            "Markets price anticipated paths continuously. Only deviations from what was already expected move prices — "
+            "Markets price anticipated paths continuously. Only deviations from what was already expected move prices: "
             "which is why direction of surprise beats direction of policy.",
         ),
     ],
     "i007": [
         QuizQuestion(
             "Why does backtesting an index's CURRENT members overstate historical returns?",
-            ["Current members have higher fees", "Those companies were partly selected by having survived and succeeded — a criterion unavailable at the time", "Index membership never changes", "Historical prices are inaccurate"],
+            ["Current members have higher fees", "Those companies were partly selected by having survived and succeeded: a criterion unavailable at the time", "Index membership never changes", "Historical prices are inaccurate"],
             1,
             "Survivorship bias: every company that went bankrupt, was delisted, or acquired in distress has been "
             "silently deleted from the sample.",
@@ -412,7 +412,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "What does gamma measure?",
             ["Sensitivity to time decay", "The rate of change of delta as the underlying moves", "Sensitivity to interest rates", "Implied volatility level"],
             1,
-            "Gamma is the second derivative — it governs how quickly your directional exposure itself changes, which is "
+            "Gamma is the second derivative: it governs how quickly your directional exposure itself changes, which is "
             "why short-gamma positions can see accelerating losses.",
         ),
         QuizQuestion(
@@ -428,7 +428,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "What happens to correlations between equities during systemic stress events?",
             ["They fall toward zero", "They tend to spike toward 1.0, precisely when diversification is most needed", "They remain stable", "They become negative"],
             1,
-            "Forced deleveraging and liquidity-seeking selling hit otherwise-uncorrelated assets simultaneously — "
+            "Forced deleveraging and liquidity-seeking selling hit otherwise-uncorrelated assets simultaneously: "
             "'all correlations go to one' in a crisis.",
         ),
         QuizQuestion(
@@ -451,7 +451,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "Why do callable bonds exhibit negative convexity near the call price?",
             ["They have no maturity date", "Issuers redeem them exactly when it is least favourable to the bondholder, capping upside", "They pay no coupon", "Their duration is always zero"],
             1,
-            "The embedded call option truncates price appreciation — as rates fall and the bond would otherwise rally, "
+            "The embedded call option truncates price appreciation, as rates fall and the bond would otherwise rally, "
             "the likelihood of early redemption caps the gain.",
         ),
     ],
@@ -467,7 +467,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "What does research generally find about execution quality on PFOF-routed retail orders?",
             ["They consistently fill worse than the quoted spread", "They often receive modest price improvement versus the NBBO, though the conflict of interest remains", "Execution quality is identical to institutional orders", "They never fill"],
             1,
-            "Measurable price improvement and a real structural conflict of interest can both be true simultaneously — "
+            "Measurable price improvement and a real structural conflict of interest can both be true simultaneously: "
             "which is why the debate persists.",
         ),
     ],
@@ -476,7 +476,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "What does the deflated Sharpe ratio explicitly correct for?",
             ["Inflation", "The number of trials run during strategy development", "Currency effects", "Survivorship bias only"],
             1,
-            "It adjusts for multiple-comparisons selection bias — testing many configurations and reporting the best "
+            "It adjusts for multiple-comparisons selection bias: testing many configurations and reporting the best "
             "inflates the apparent Sharpe even with zero true skill.",
         ),
         QuizQuestion(
@@ -509,7 +509,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             ["Shorts can exit easily", "An orderly unwind would take many days, so shorts cannot exit in size without moving the price against themselves", "The stock has no short interest", "The company is about to be acquired"],
             1,
             "Days to cover = short interest ÷ average daily volume. High values mean the exit is crowded relative to "
-            "available liquidity — the structural precondition for a squeeze.",
+            "available liquidity: the structural precondition for a squeeze.",
         ),
         QuizQuestion(
             "What distinguishes a genuine short squeeze from an ordinary rally?",
@@ -524,7 +524,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
     "e001": [
         QuizQuestion(
             "What does a '95% VaR of $1M' tell you?",
-            ["Your maximum possible loss is $1M", "There is a 5% chance of losing more than $1M — with no information about how much more", "You will lose $1M 5% of the time exactly", "Your average loss is $1M"],
+            ["Your maximum possible loss is $1M", "There is a 5% chance of losing more than $1M, with no information about how much more", "You will lose $1M 5% of the time exactly", "Your average loss is $1M"],
             1,
             "VaR reports a threshold, not a magnitude beyond it. Its silence about the depth of the tail is precisely "
             "its central weakness.",
@@ -542,12 +542,12 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "Why can't an individual fund's backtest capture factor crowding risk?",
             ["Backtests exclude factor data", "Its historical data contains no information about the positions every OTHER fund holds simultaneously", "Crowding is not measurable", "Backtests only cover one year"],
             1,
-            "Crowding is a property of the aggregate system, invisible in any single participant's own return history — "
+            "Crowding is a property of the aggregate system, invisible in any single participant's own return history: "
             "which is why it only reveals itself during a forced unwind.",
         ),
         QuizQuestion(
             "In the August 2007 quant quake, what drove the correlated losses across funds?",
-            ["A shared fundamental shock to the companies held", "Overlapping factor exposures — one fund's forced deleveraging pressured prices and triggered stop-losses at others", "A coordinated regulatory action", "A single exchange outage"],
+            ["A shared fundamental shock to the companies held", "Overlapping factor exposures: one fund's forced deleveraging pressured prices and triggered stop-losses at others", "A coordinated regulatory action", "A single exchange outage"],
             1,
             "The funds had no direct relationship. Position overlap alone created a self-reinforcing liquidity spiral "
             "with no change in fundamentals.",
@@ -581,7 +581,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "What is the key implication for institutional traders?",
             ["Always execute as fast as possible", "Execution speed is itself a risk decision, not merely a cost-minimisation one", "Market impact can be eliminated entirely", "Only order size matters"],
             1,
-            "Because both extremes carry distinct risks, the choice of trajectory is a risk-management decision — the "
+            "Because both extremes carry distinct risks, the choice of trajectory is a risk-management decision: the "
             "theoretical basis for VWAP and implementation-shortfall algorithms.",
         ),
     ],
@@ -606,7 +606,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             "What is 'volatility laundering' in private-market valuations?",
             ["Illegal manipulation of returns", "Appraisal-based, infrequently-updated valuations artificially smoothing reported volatility and correlation", "A hedging technique", "A tax optimisation strategy"],
             1,
-            "It's a statistical artifact of the valuation method, not fraud — but it does make private assets appear "
+            "It's a statistical artifact of the valuation method, not fraud, but it does make private assets appear "
             "less risky and less correlated than they are on a mark-to-market basis.",
         ),
         QuizQuestion(
@@ -642,7 +642,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
              "The company's future earnings"],
             1,
             "Sentiment measures belief, not reality. A company can be beloved and unprofitable, or "
-            "excellent and ignored — sentiment reports the popularity in both cases, which is why it "
+            "excellent and ignored: sentiment reports the popularity in both cases, which is why it "
             "is one pillar of three rather than a verdict on its own.",
         ),
         QuizQuestion(
@@ -653,13 +653,13 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
              "Regulators require it"],
             1,
             "If a company has been covered positively for months, that optimism is already in the price. "
-            "The information that is not yet priced in is the shift — which is why the change is tracked "
+            "The information that is not yet priced in is the shift, which is why the change is tracked "
             "as its own signal.",
         ),
         QuizQuestion(
             "Aureus weights sentiment at 40% for a short horizon but only 15% for a long one. Why?",
             ["Long-term data is harder to get",
-             "Sentiment decays quickly — this quarter's mood says little about a business in five years",
+             "Sentiment decays quickly: this quarter's mood says little about a business in five years",
              "Long-term investors don't read news",
              "It is an arbitrary choice"],
             1,
@@ -685,7 +685,7 @@ QUIZ_BANK: dict[str, list[QuizQuestion]] = {
             ["That 'company' is a positive word",
              "That 'beat estimates' is a decisive financial phrase, and 'did not' inverts it",
              "That estimates are always wrong",
-             "Nothing — the sentence is neutral"],
+             "Nothing: the sentence is neutral"],
             1,
             "Two failures at once: it does not recognise 'beat estimates' as a phrase carrying strong "
             "positive meaning, and it does not handle the negation that flips it. In financial text, short "

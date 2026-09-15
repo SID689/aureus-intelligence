@@ -105,7 +105,7 @@ def measure(
     try:
         spy_bars = market_svc.fetch_bars("SPY", start, end, frequency="1d").bars
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Benchmark fetch failed — alpha will not be recalibrated", extra={"error": str(exc)})
+        logger.warning("Benchmark fetch failed, alpha will not be recalibrated", extra={"error": str(exc)})
         spy_bars = None
 
     for ticker in tickers:
@@ -180,12 +180,12 @@ def persist(
     rows = []
     for label, (group, scores) in sorted(collected.items()):
         if len(scores) < _MIN_OBSERVATIONS:
-            logger.info("Signal skipped — too few observations",
+            logger.info("Signal skipped: too few observations",
                         extra={"label": label, "n": len(scores)})
             continue
         sd = statistics.pstdev(scores)
         if sd <= 0:
-            logger.info("Signal skipped — no dispersion", extra={"label": label})
+            logger.info("Signal skipped, no dispersion", extra={"label": label})
             continue
         rows.append({
             "label": label, "signal_group": group, "n": len(scores),
@@ -194,7 +194,7 @@ def persist(
         })
 
     if not rows:
-        logger.error("Calibration produced no usable rows — leaving existing values in place")
+        logger.error("Calibration produced no usable rows, leaving existing values in place")
         return CalibrationRun(0, len(collected), universe_size, ["no usable rows"])
 
     engine = create_engine(get_settings().database_url, pool_pre_ping=True, pool_size=1)

@@ -472,7 +472,7 @@ class FundamentalDataService:
                 results.append(provider.fetch_fundamentals(ticker))
             except Exception as exc:
                 logger.warning(
-                    f"{provider.name} fundamental fetch failed — continuing with other sources",
+                    f"{provider.name} fundamental fetch failed: continuing with other sources",
                     extra={"ticker": ticker, "error": str(exc)},
                 )
 

@@ -136,7 +136,7 @@ def complete_json(
     if model_key is None:
         return None
     if not anthropic_configured():
-        logger.info("Anthropic not configured — deterministic output",
+        logger.info("Anthropic not configured: deterministic output",
                     extra={"user_id": user_id})
         return None
 
@@ -153,7 +153,7 @@ def complete_json(
     try:
         reservation = reserve(user_id, estimate, "anthropic", f"{operation}:{model_key}")
     except InsufficientCredits as exc:
-        logger.info("LLM call refused — out of credits",
+        logger.info("LLM call refused: out of credits",
                     extra={"user_id": user_id, "needed": float(exc.required),
                            "available": float(exc.available)})
         return None
@@ -176,7 +176,7 @@ def complete_json(
         # whole reservation rather than charging for a response the user
         # never received.
         settle(user_id, reservation, Decimal(0), "anthropic", f"{operation}:{model_key}")
-        logger.warning("LLM call failed — deterministic output kept",
+        logger.warning("LLM call failed: deterministic output kept",
                        extra={"model": model_id, "error": str(exc)})
         return None
 

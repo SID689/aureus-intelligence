@@ -96,7 +96,7 @@ def run_analysis_task(
 
     except FallbackExhaustedError as exc:
         logger.error(
-            "Analysis failed — all data providers exhausted",
+            "Analysis failed: all data providers exhausted",
             extra={"job_id": job_id, "ticker": ticker, "providers": exc.attempted_providers},
         )
         _store_result(

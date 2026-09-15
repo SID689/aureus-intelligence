@@ -211,13 +211,13 @@ def _load_measured() -> tuple[dict[str, SignalStats], datetime]:
             logger.info("Signal calibration loaded from database",
                         extra={"rows_applied": applied, "measured_at": newest.isoformat()})
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Signal calibration table unavailable — using baked-in literals",
+        logger.warning("Signal calibration table unavailable, using baked-in literals",
                        extra={"error": str(exc)})
 
     age_days = (datetime.now(timezone.utc) - newest).days
     if age_days > _STALE_AFTER_DAYS:
         logger.warning(
-            "Signal calibration is stale — centres may no longer describe the current market",
+            "Signal calibration is stale: centres may no longer describe the current market",
             extra={"age_days": age_days, "measured_at": newest.isoformat(),
                    "remedy": "run app.workers.analysis_tasks.recalibrate_signals"},
         )

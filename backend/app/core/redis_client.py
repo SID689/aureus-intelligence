@@ -39,7 +39,7 @@ def get_redis_client() -> redis.Redis:
         client.ping()
         logger.info("Redis connection established", extra={"url": settings.redis_url})
     except redis.ConnectionError as exc:
-        logger.error("Redis connection failed — rate limiting and caching unavailable", extra={"error": str(exc)})
+        logger.error("Redis connection failed, rate limiting and caching unavailable", extra={"error": str(exc)})
         raise
     return client
 

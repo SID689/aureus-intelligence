@@ -92,7 +92,7 @@ def score_sentiment(ticker: str, b, time_horizon: str = "medium_term") -> Sentim
             "detail": (
                 f"{b.news_document_count} articles over the last week score "
                 f"{b.news_polarity:+.2f} on average once weighted for publisher authority and "
-                f"recency — {'constructive coverage' if b.news_score >= 60 else 'negative coverage' if b.news_score <= 40 else 'a balanced news picture'}"
+                f"recency: {'constructive coverage' if b.news_score >= 60 else 'negative coverage' if b.news_score <= 40 else 'a balanced news picture'}"
             ),
         })
     if b.sec_tone_computed:

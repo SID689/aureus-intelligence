@@ -28,7 +28,7 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
         estimated_read_time_minutes=8,
         body=(
             "Most retail attention goes to WHAT to buy. Professional risk management is overwhelmingly "
-            "concerned with HOW MUCH — because position size, not selection, determines whether a string "
+            "concerned with HOW MUCH, because position size, not selection, determines whether a string "
             "of bad outcomes is a setback or a catastrophe.\n\n"
 
             "**The asymmetry of drawdowns.** Losses and gains are not symmetric, and the gap widens "
@@ -41,19 +41,19 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
             "hits my exit point.' Those are very different numbers.\n\n"
             "  position size = (portfolio × risk %) ÷ (entry price − stop price)\n\n"
             "With a $100,000 portfolio risking 1% ($1,000) on a stock entered at $50 with an exit at $45, "
-            "the risk per share is $5, so the position is 200 shares — $10,000, or 10% of the portfolio. "
+            "the risk per share is $5, so the position is 200 shares: $10,000, or 10% of the portfolio. "
             "Change the exit to $48 and risk-per-share drops to $2, allowing 500 shares ($25,000). Same "
             "1% risk, very different capital committed. The stop distance, not a fixed percentage of "
             "capital, is what should drive size.\n\n"
 
             "**Why professionals cluster around 0.5–2% risk per position.** At 1% risk per position, ten "
-            "consecutive losses costs roughly 10% — unpleasant but fully recoverable. At 10% risk per "
+            "consecutive losses costs roughly 10%: unpleasant but fully recoverable. At 10% risk per "
             "position, ten consecutive losses is a 65% drawdown requiring a 186% gain to recover. Given "
             "that even genuinely skilled strategies routinely produce losing streaks of five to ten, "
             "sizing must survive the streak, not the average.\n\n"
 
             "**Correlation makes 'diversified' positions one position.** Five separate 2% positions in "
-            "five different semiconductor companies is not five independent 2% risks — during a sector "
+            "five different semiconductor companies is not five independent 2% risks: during a sector "
             "selloff they move together, behaving much closer to a single 10% risk. Real position sizing "
             "requires accounting for correlated exposure across holdings, not just per-holding limits."
         ),
@@ -91,7 +91,7 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
         body=(
             "A discounted cash flow model rests on one honest idea: a business is worth the cash it will "
             "produce for its owners, adjusted for the fact that cash arriving later is worth less than "
-            "cash arriving today. Everything else is implementation detail — and the implementation "
+            "cash arriving today. Everything else is implementation detail, and the implementation "
             "details are where most DCFs quietly become fiction.\n\n"
 
             "**The mechanic.** Project free cash flow for a forecast period (commonly 5–10 years), "
@@ -101,7 +101,7 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
 
             "**Why the terminal value is the problem.** In a typical 10-year DCF, the terminal value "
             "routinely accounts for 60–80% of total computed value. That means the majority of your "
-            "'rigorous' answer comes from a single assumption about the perpetual growth rate — an input "
+            "'rigorous' answer comes from a single assumption about the perpetual growth rate: an input "
             "nobody can know. Worse, the standard perpetuity formula is violently sensitive near the "
             "discount rate: with a 9% discount rate, moving terminal growth from 2% to 3% raises terminal "
             "value by roughly 17%, and from 2% to 4% by roughly 40%. Small, defensible-sounding tweaks "
@@ -115,12 +115,12 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
             "**How to use a DCF honestly.** Not as a price target. Its real uses are:\n"
             "  1. **Ranges, not points.** Run pessimistic / base / optimistic and treat the output as a "
             "band. A single number implies precision the method cannot support.\n"
-            "  2. **Reverse DCF** — the highest-value technique here. Instead of computing value from "
+            "  2. **Reverse DCF**: the highest-value technique here. Instead of computing value from "
             "assumptions, take the CURRENT market price and solve for the growth rate that price implies. "
             "This converts an unanswerable question ('what's it worth?') into a tractable one ('is the "
             "market's implied 14% growth for a decade plausible for this business?'), which you can "
             "evaluate against industry data and history.\n"
-            "  3. **Sensitivity tables** — show how value shifts across a grid of discount and growth "
+            "  3. **Sensitivity tables**: show how value shifts across a grid of discount and growth "
             "rates, making the model's fragility explicit rather than hiding it behind one number.\n\n"
 
             "**When a DCF simply doesn't apply.** Pre-profit companies, businesses with wildly cyclical "
@@ -130,13 +130,13 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
         ),
         key_takeaway=(
             "In a typical DCF most of the value sits in the terminal value, driven by an unknowable "
-            "perpetual growth rate — so treat DCF output as a range, not a target. The most useful "
+            "perpetual growth rate, so treat DCF output as a range, not a target. The most useful "
             "version is a reverse DCF: solve for the growth the current price already implies, then judge "
             "whether that's plausible."
         ),
         glossary=[
             GlossaryTerm("discounted cash flow", "Valuing a business as the present value of the cash it's expected to generate."),
-            GlossaryTerm("free cash flow", "Cash from operations minus capital expenditures — cash genuinely available to capital providers."),
+            GlossaryTerm("free cash flow", "Cash from operations minus capital expenditures: cash genuinely available to capital providers."),
             GlossaryTerm("discount rate", "The rate used to convert future cash into present value, reflecting risk and opportunity cost."),
             GlossaryTerm("terminal value", "The value attributed to all cash flows beyond the explicit forecast window. Usually the majority of a DCF's output."),
             GlossaryTerm("perpetual growth rate", "The assumed forever-growth rate in the terminal value calculation. Must be below long-run economic growth to be coherent."),
@@ -170,18 +170,18 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
             "are not audited, they're written by people whose compensation depends on your impression, "
             "and they reliably emphasise favourable framings. Start at the legally-mandated sections.\n\n"
 
-            "**Item 1A — Risk Factors.** Much of this is boilerplate that every company in the industry "
+            "**Item 1A: Risk Factors.** Much of this is boilerplate that every company in the industry "
             "files. The signal is in what CHANGED. A newly added risk factor, or one moved higher in the "
             "ordering, reflects something management and counsel concluded they now had to disclose. "
             "Diffing this section year over year is one of the highest-yield habits in fundamental "
-            "analysis — it surfaces deterioration before it reaches the income statement.\n\n"
+            "analysis: it surfaces deterioration before it reaches the income statement.\n\n"
 
-            "**Item 7 — MD&A.** Management's own explanation of results. Read it for the reasons given "
+            "**Item 7: MD&A.** Management's own explanation of results. Read it for the reasons given "
             "for changes, and specifically watch for shifting metrics: a company that reported GAAP "
             "operating income last year and leads with 'adjusted EBITDA' this year has usually changed "
             "the metric because the old one stopped looking good.\n\n"
 
-            "**Item 8 — Financial Statements and the notes.** The statements themselves are summaries; "
+            "**Item 8: Financial Statements and the notes.** The statements themselves are summaries; "
             "the notes are where the substance is. Revenue recognition policy tells you when a sale "
             "becomes revenue, which determines how aggressive the top line is. Segment reporting shows "
             "which business lines actually generate profit versus which are subsidised by others. "
@@ -191,23 +191,23 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
             "**Cross-check accruals against cash.** The most reliable single red flag available to a "
             "retail analyst: net income growing steadily while operating cash flow stagnates or declines. "
             "Earnings involve judgment; cash is comparatively hard to manufacture. A widening, persistent "
-            "gap between the two means profit is being recognised faster than cash arrives — sometimes "
+            "gap between the two means profit is being recognised faster than cash arrives, sometimes "
             "legitimate (a genuinely growing business extending credit), sometimes the earliest visible "
             "symptom of aggressive accounting.\n\n"
 
             "**Watch dilution.** Compare shares outstanding across several years. A company growing net "
             "income 10% annually while issuing 8% more shares annually is delivering roughly 2% growth "
-            "per share — the number that actually accrues to you. Heavy stock-based compensation makes "
+            "per share: the number that actually accrues to you. Heavy stock-based compensation makes "
             "this common in technology and easy to miss if you only track headline totals."
         ),
         key_takeaway=(
             "The analytical value in a 10-K is in the mandated sections, not the shareholder letter. Diff "
             "Item 1A risk factors year over year, read the notes rather than the summary statements, and "
-            "check net income against operating cash flow and share count — profit per SHARE is what you own."
+            "check net income against operating cash flow and share count: profit per SHARE is what you own."
         ),
         glossary=[
             GlossaryTerm("10-K", "The comprehensive annual report US public companies must file with the SEC."),
-            GlossaryTerm("MD&A", "Management's Discussion and Analysis — management's narrative explanation of financial results."),
+            GlossaryTerm("MD&A", "Management's Discussion and Analysis: management's narrative explanation of financial results."),
             GlossaryTerm("accruals", "The gap between reported earnings and actual cash flow, arising from timing-based accounting."),
             GlossaryTerm("revenue recognition", "The accounting policy determining when a sale is booked as revenue. A key lever for aggressiveness."),
             GlossaryTerm("segment reporting", "A breakdown of results by business line, revealing which segments actually generate profit."),
@@ -217,7 +217,7 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
         callouts=[
             Callout("key_idea", "Diff the risk factors",
                 "Year-over-year changes in Item 1A are among the most underused signals in public filings. "
-                "Companies rarely add a risk factor voluntarily — a new one usually means counsel decided "
+                "Companies rarely add a risk factor voluntarily: a new one usually means counsel decided "
                 "it had become material enough to require disclosure."),
             Callout("common_mistake", "Tracking net income while ignoring share count",
                 "Total profit growing 10% while share count grows 8% is roughly 2% growth for existing "
@@ -234,7 +234,7 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
         tier=TIER_INTERMEDIATE,
         estimated_read_time_minutes=6,
         body=(
-            "Win rate — the percentage of trades that were profitable — is the most quoted and least "
+            "Win rate, the percentage of trades that were profitable, is the most quoted and least "
             "informative performance statistic in retail investing. A 90% win rate can be a losing "
             "strategy and a 35% win rate can be an excellent one, because win rate says nothing about "
             "the SIZE of wins versus losses.\n\n"
@@ -248,20 +248,20 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
             "EV = (0.35 × 500) − (0.65 × 150) = 175 − 97.5 = **+$77.50 per trade.** It feels bad most "
             "days and is clearly superior.\n\n"
 
-            "**Why high win rates attract capital anyway.** Strategy A's shape — frequent small gains, "
-            "rare large losses — is psychologically comfortable and produces an impressive-looking track "
+            "**Why high win rates attract capital anyway.** Strategy A's shape: frequent small gains, "
+            "rare large losses: is psychologically comfortable and produces an impressive-looking track "
             "record right up until the tail event. This payoff profile is common in strategies that sell "
             "options, sell insurance, or bet against volatility, and it's why 'consistent' returns "
             "deserve scrutiny about what happens in the bad state rather than admiration.\n\n"
 
             "**Sample size and the streak problem.** A genuinely positive-EV strategy that wins 35% of "
-            "the time will produce a run of eight straight losses with meaningful regularity — that's "
+            "the time will produce a run of eight straight losses with meaningful regularity: that's "
             "roughly a 3% probability on any given eight-trade window, which over hundreds of trades is "
             "close to inevitable. Abandoning a sound strategy during a statistically ordinary losing "
             "streak is one of the most common ways good processes get discarded.\n\n"
 
-            "**Thinking in R.** Expressing results as R-multiples — profit or loss in units of the amount "
-            "risked — makes strategies comparable across position sizes. A strategy averaging +0.3R over "
+            "**Thinking in R.** Expressing results as R-multiples: profit or loss in units of the amount "
+            "risked: makes strategies comparable across position sizes. A strategy averaging +0.3R over "
             "many trades is profitable regardless of whether R is $100 or $10,000, and the R framing "
             "makes it obvious when a single oversized loss has distorted results."
         ),
@@ -275,7 +275,7 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
             GlossaryTerm("win rate", "Percentage of trades that were profitable. Uninformative without average win and loss sizes."),
             GlossaryTerm("payoff ratio", "Average win divided by average loss. Combined with win rate, determines expected value."),
             GlossaryTerm("R-multiple", "Result expressed in units of initial risk, making outcomes comparable across position sizes."),
-            GlossaryTerm("tail risk", "Risk of rare, extreme outcomes — often concealed by strategies with very high win rates."),
+            GlossaryTerm("tail risk", "Risk of rare, extreme outcomes, often concealed by strategies with very high win rates."),
         ],
         callouts=[
             Callout("example", "A 90% win rate that loses money",
@@ -284,7 +284,7 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
                 "of ten. The hit rate was never the relevant number."),
             Callout("why_it_matters", "Ordinary streaks look like broken strategies",
                 "At a 35% win rate, eight consecutive losses occurs with roughly 3% probability per window "
-                "— effectively certain to happen repeatedly over a few hundred trades. Distinguishing an "
+                ": effectively certain to happen repeatedly over a few hundred trades. Distinguishing an "
                 "expected streak from genuine strategy decay requires knowing the distribution in advance."),
         ],
         quiz=[],
@@ -303,7 +303,7 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
 
             "**Market-cap weighting is the default, and it's momentum by construction.** In a cap-weighted "
             "index, each company's weight equals its share of total market value. As a stock rises, its "
-            "weight automatically rises with it — you hold more of what has already gone up, without ever "
+            "weight automatically rises with it: you hold more of what has already gone up, without ever "
             "placing a trade. This is a feature (it's self-rebalancing and low-turnover, which keeps costs "
             "and taxes down) and a risk (concentration builds silently during a sustained run).\n\n"
 
@@ -317,28 +317,28 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
             "**Equal weighting is a different strategy wearing the same label.** An equal-weighted S&P 500 "
             "fund holds 0.2% of each company regardless of size, which tilts meaningfully toward smaller "
             "companies and requires regular rebalancing (higher turnover, higher costs, more taxable "
-            "events). It is neither better nor worse in the abstract — it is a distinct set of exposures "
+            "events). It is neither better nor worse in the abstract: it is a distinct set of exposures "
             "that will diverge from the cap-weighted version, sometimes for years.\n\n"
 
             "**Tracking difference is the honest cost measure.** The expense ratio is the advertised fee, "
             "but total real-world cost also includes trading costs from rebalancing, cash drag, and "
             "securities-lending revenue offsetting fees. Comparing a fund's actual return to its index's "
-            "return — the tracking difference — captures all of it in one number, which the headline "
+            "return, the tracking difference, captures all of it in one number, which the headline "
             "expense ratio does not.\n\n"
 
             "**Index membership is a committee decision.** Index providers apply rules and judgment about "
-            "inclusion. When a company joins a major index, funds tracking it must buy — creating "
+            "inclusion. When a company joins a major index, funds tracking it must buy: creating "
             "documented, predictable demand around rebalance dates. 'Passive' investing is passive with "
             "respect to your decisions, not with respect to the index provider's."
         ),
         key_takeaway=(
             "Cap-weighted index funds automatically hold more of whatever has already risen, so "
             "'diversified across 500 companies' can still mean heavy concentration in a few correlated "
-            "mega-caps — check the top-ten weight. Compare funds on tracking difference, not just the "
+            "mega-caps: check the top-ten weight. Compare funds on tracking difference, not just the "
             "advertised expense ratio."
         ),
         glossary=[
-            GlossaryTerm("market-cap weighting", "Weighting each index holding by its share of total market value — the default scheme for most major indices."),
+            GlossaryTerm("market-cap weighting", "Weighting each index holding by its share of total market value: the default scheme for most major indices."),
             GlossaryTerm("equal weighting", "Holding the same dollar amount of every constituent, requiring periodic rebalancing."),
             GlossaryTerm("expense ratio", "The advertised annual fee of a fund, expressed as a percentage of assets."),
             GlossaryTerm("tracking difference", "The actual gap between a fund's return and its index's return, capturing all real costs."),
@@ -349,7 +349,7 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
             Callout("key_idea", "Cap weighting is a momentum tilt you didn't choose",
                 "Because weight tracks market value, a cap-weighted fund mechanically increases its "
                 "allocation to winners and decreases it in losers with no trading. That's efficient and "
-                "cheap — and it means concentration quietly grows during a long run in a few names."),
+                "cheap, and it means concentration quietly grows during a long run in a few names."),
             Callout("why_it_matters", "Check the top-ten weight before assuming diversification",
                 "It takes two minutes on any fund's fact sheet and frequently reveals that a nominally "
                 "500-company portfolio has a large share of its risk in a handful of correlated names."),
@@ -365,18 +365,18 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
         estimated_read_time_minutes=7,
         body=(
             "Interest rates influence virtually every asset price through one mechanism: they set the "
-            "rate at which future money is converted into present money. Warren Buffett's framing — that "
-            "rates act on asset values like gravity acts on matter — is unusually precise rather than "
+            "rate at which future money is converted into present money. Warren Buffett's framing, that "
+            "rates act on asset values like gravity acts on matter: is unusually precise rather than "
             "merely poetic.\n\n"
 
             "**The discounting channel.** An asset's value is the present value of its future cash flows. "
             "Raise the discount rate and every future dollar is worth less today, so present value falls "
-            "— mechanically, before any change in the business itself.\n\n"
+            ": mechanically, before any change in the business itself.\n\n"
 
             "**Duration explains which assets fall hardest.** The further into the future an asset's cash "
             "flows sit, the more sensitive its present value is to rate changes. A profitable utility "
             "generating steady cash now is relatively insensitive. An unprofitable growth company whose "
-            "value depends on large cash flows a decade out is extremely sensitive — the same rate move "
+            "value depends on large cash flows a decade out is extremely sensitive: the same rate move "
             "compounds across many more discounting periods. This is why rising-rate environments hit "
             "long-duration growth equities disproportionately, while the underlying businesses may be "
             "entirely unchanged. It is a repricing of time, not a verdict on the company.\n\n"
@@ -387,14 +387,14 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
             "riskless option. Higher rates raise the hurdle every risk asset must clear.\n\n"
 
             "**The real-economy channel, with a lag.** Rate changes affect borrowing costs for mortgages, "
-            "corporate debt, and capital projects — but that transmission takes quarters, not days. This "
+            "corporate debt, and capital projects, but that transmission takes quarters, not days. This "
             "lag is why markets can react instantly to a rate decision while the economic consequences "
             "arrive much later, and why the two are frequently mistaken for each other.\n\n"
 
             "**Expectations, not levels, drive the move.** Markets price in anticipated rate paths "
             "continuously. A rate hike that was fully expected often produces little reaction, while an "
             "unchanged rate accompanied by unexpectedly hawkish commentary can move markets sharply. What "
-            "matters is the surprise relative to what was already priced — which is why 'rates went up "
+            "matters is the surprise relative to what was already priced, which is why 'rates went up "
             "but stocks rallied' is not a paradox.\n\n"
 
             "**Real versus nominal.** The nominal rate minus expected inflation gives the real rate, and "
@@ -403,13 +403,13 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
         ),
         key_takeaway=(
             "Rates set the conversion rate between future and present money, so higher rates mechanically "
-            "reduce asset values — hardest for long-duration assets whose cash flows are far in the future. "
+            "reduce asset values: hardest for long-duration assets whose cash flows are far in the future. "
             "Markets respond to the SURPRISE versus what was already priced, not the level itself."
         ),
         glossary=[
             GlossaryTerm("discount rate", "The rate converting future cash flows into present value. Rises with interest rates."),
             GlossaryTerm("duration (equity)", "How far in the future an asset's cash flows sit. Longer duration means greater rate sensitivity."),
-            GlossaryTerm("risk-free rate", "The return on government debt considered free of default risk — the baseline every risk asset competes against."),
+            GlossaryTerm("risk-free rate", "The return on government debt considered free of default risk: the baseline every risk asset competes against."),
             GlossaryTerm("real interest rate", "The nominal rate minus expected inflation. What actually governs economic decisions."),
             GlossaryTerm("hawkish / dovish", "Hawkish favours tighter policy (higher rates); dovish favours looser policy."),
             GlossaryTerm("priced in", "Already reflected in market prices, so only deviations from the expectation move markets."),
@@ -433,13 +433,13 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
         tier=TIER_INTERMEDIATE,
         estimated_read_time_minutes=6,
         body=(
-            "Before trusting any historical performance claim — your own or someone else's — it's worth "
+            "Before trusting any historical performance claim, your own or someone else's, it's worth "
             "knowing the specific ways historical data systematically flatters strategies.\n\n"
 
             "**Survivorship bias.** A dataset containing only companies that exist today has silently "
             "deleted every company that went bankrupt, was delisted, or was acquired in distress. "
             "Backtesting 'the S&P 500's current members over 20 years' measures the performance of "
-            "companies selected partly for having survived — a criterion unavailable to anyone investing "
+            "companies selected partly for having survived: a criterion unavailable to anyone investing "
             "20 years ago. The same problem afflicts mutual fund databases, where closed and merged funds "
             "vanish, inflating the apparent average performance of the category.\n\n"
 
@@ -455,7 +455,7 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
 
             "**Data mining and multiple comparisons.** Test enough rules against the same history and "
             "some will look excellent through chance alone. Testing 100 variations and reporting the best "
-            "produces an impressive result even with zero real edge — this is a statistical certainty, "
+            "produces an impressive result even with zero real edge: this is a statistical certainty, "
             "not a possibility. The published result is the maximum of many draws, not a typical draw.\n\n"
 
             "**Ignoring costs.** Backtests that omit commissions, bid-ask spreads, slippage, and taxes "
@@ -465,7 +465,7 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
             "**Practical defenses.** Reserve a holdout period never examined during development. Prefer "
             "point-in-time data. Count and disclose how many variations you tested. Model realistic costs. "
             "Most usefully: prefer strategies with a mechanistic explanation for WHY the edge should "
-            "exist — a pattern with no plausible cause is far more likely to be an artifact of the sample."
+            "exist: a pattern with no plausible cause is far more likely to be an artifact of the sample."
         ),
         key_takeaway=(
             "Historical data flatters strategies through survivorship, look-ahead, and restatement bias, "
@@ -486,7 +486,7 @@ TIER_2_INTERMEDIATE: list[Lesson] = [
                 "Running them back 20 years measures a portfolio nobody could have assembled 20 years ago."),
             Callout("why_it_matters", "The best of 100 tests is not a typical result",
                 "If you test 100 parameter sets, the top performer is the maximum of 100 random draws. "
-                "That's expected to look good even with zero skill — which is why the number of variations "
+                "That's expected to look good even with zero skill, which is why the number of variations "
                 "tested is itself a required disclosure in serious quantitative work."),
         ],
         quiz=[],

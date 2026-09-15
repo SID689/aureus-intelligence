@@ -1,5 +1,5 @@
 """
-app/analysis/fundamental.py  (rewrite — structured strengths/weaknesses + honest DCF diagnostics)
+app/analysis/fundamental.py  (rewrite: structured strengths/weaknesses + honest DCF diagnostics)
 ------------------------------------------------------------------------------------------------
 Two direct fixes here:
 
@@ -109,7 +109,7 @@ def _diagnose_dcf_skip(data: FundamentalDataResult) -> str:
     if data.free_cash_flow_ttm is None:
         if provider == "unavailable":
             return (
-                "No fundamental data provider returned results for this ticker at all — "
+                "No fundamental data provider returned results for this ticker at all: "
                 "both Finnhub and SEC EDGAR lookups failed (check that FINNHUB_API_KEY is "
                 "configured, and that this ticker is SEC-registered if you expected an EDGAR match)."
             )
@@ -117,14 +117,14 @@ def _diagnose_dcf_skip(data: FundamentalDataResult) -> str:
             f"{provider} did not report a free cash flow figure for this ticker. "
             + ("Finnhub sometimes omits FCF for smaller-cap or thinly-covered names."
                if provider == "Finnhub" else
-               "SEC EDGAR's operating-cash-flow and capex figures use standardized GAAP tags — "
+               "SEC EDGAR's operating-cash-flow and capex figures use standardized GAAP tags: "
                "if this company's 10-K used a non-standard tag for either figure, the lookup "
                "returns nothing even though the data exists in the filing.")
         )
 
     if data.free_cash_flow_ttm <= 0:
         return (
-            f"{data.free_cash_flow_ttm/1e6:+.1f}M — this company's trailing free cash flow is "
+            f"{data.free_cash_flow_ttm/1e6:+.1f}M: this company's trailing free cash flow is "
             "genuinely negative, per " + provider + ". A DCF model can't meaningfully discount "
             "cash flows that aren't being generated yet. This is common for companies in a heavy "
             "growth or capex phase; it isn't a data problem, it's a fact about the business worth watching."
@@ -173,7 +173,7 @@ def _compute_growth_score(data: FundamentalDataResult, notes: list[str], signals
         s = max(0.0, min(100.0, 50.0 + (g / 0.20) * 50.0))
         components.append(s)
         notes.append(f"Revenue growth YoY {g*100:.1f}% → growth component {s:.0f}/100")
-        signals.append({"label": "Revenue Growth (YoY)", "score": s, "detail": f"Revenue grew {g*100:+.1f}% year-over-year" + (" — a genuine headwind" if s < 40 else " — outpacing the 20% benchmark" if s > 80 else "")})
+        signals.append({"label": "Revenue Growth (YoY)", "score": s, "detail": f"Revenue grew {g*100:+.1f}% year-over-year" + (": a genuine headwind" if s < 40 else ": outpacing the 20% benchmark" if s > 80 else "")})
 
     if len(data.revenue_history) >= 3:
         valid = [v for v in data.revenue_history if v > 0]
@@ -278,7 +278,7 @@ def run_fundamental_analysis(
                 "detail": f"Trading {abs(margin)*100:.1f}% {'below' if margin > 0 else 'above'} estimated intrinsic value of ${intrinsic:.2f}",
             })
         except Exception as exc:
-            dcf_skip_reason = f"DCF calculation raised an error ({exc}) despite having the required inputs — excluded from composite."
+            dcf_skip_reason = f"DCF calculation raised an error ({exc}) despite having the required inputs: excluded from composite."
             notes.append(dcf_skip_reason)
             logger.warning("DCF failed", extra={"ticker": ticker, "error": str(exc)})
     else:
@@ -314,7 +314,7 @@ def run_fundamental_analysis(
                        + ". An absolute multiple says little without this comparison."),
         })
     elif sector_comparison is not None and sector_comparison.stale:
-        notes.append(f"Sector medians for {sector_comparison.sector} are still computing — "
+        notes.append(f"Sector medians for {sector_comparison.sector} are still computing: "
                      f"relative valuation excluded from this run")
 
     # ── Aggregate the METRICS, not the group averages ────────────────

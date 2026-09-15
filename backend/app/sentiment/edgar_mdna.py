@@ -109,7 +109,7 @@ def _ua() -> str:
     if _VALID_UA_RE.fullmatch(configured) and not _is_placeholder_ua(configured):
         return configured
     logger.warning(
-        "SEC_EDGAR_USER_AGENT is not a valid 'Name email@domain' string — "
+        "SEC_EDGAR_USER_AGENT is not a valid 'Name email@domain' string: "
         "using a fallback. SEC returns 403 for malformed agents.",
         extra={"configured": configured},
     )
@@ -296,7 +296,7 @@ def extract_mdna(url: str) -> str | None:
     # A real MD&A is thousands of words. Anything shorter means the
     # heading matched a table of contents entry rather than the section.
     if len(body) < 1500:
-        logger.info("MD&A match too short — likely a contents entry",
+        logger.info("MD&A match too short: likely a contents entry",
                     extra={"url": url, "chars": len(body)})
         return None
     return body[:_MAX_MDNA_CHARS]
@@ -318,12 +318,12 @@ def _classify(polarity: float, unc_shift: float | None, lit_shift: float | None)
     if unc_shift is not None and unc_shift > _MATERIAL_SHIFT:
         cautious_signals += 1
         notes.append(
-            f"Uncertainty language is {unc_shift*100:.2f}pp denser than the prior filing — "
+            f"Uncertainty language is {unc_shift*100:.2f}pp denser than the prior filing: "
             "management is hedging more than it was."
         )
     elif unc_shift is not None and unc_shift < -_MATERIAL_SHIFT:
         notes.append(
-            f"Uncertainty language is {abs(unc_shift)*100:.2f}pp sparser than the prior filing — "
+            f"Uncertainty language is {abs(unc_shift)*100:.2f}pp sparser than the prior filing: "
             "management is hedging less."
         )
 
@@ -342,7 +342,7 @@ def _classify(polarity: float, unc_shift: float | None, lit_shift: float | None)
     if polarity < -0.15:
         notes.append("MD&A language leans negative on results and outlook.")
         return "Cautious", notes
-    notes.append("MD&A tone is in line with the prior filing — no material shift detected.")
+    notes.append("MD&A tone is in line with the prior filing: no material shift detected.")
     return "Neutral", notes
 
 
@@ -360,7 +360,7 @@ def filing_tone(ticker: str) -> FilingTone | None:
 
     cik = resolve_cik(ticker)
     if cik is None:
-        logger.info("No CIK for ticker — not a US domestic filer", extra={"ticker": ticker})
+        logger.info("No CIK for ticker, not a US domestic filer", extra={"ticker": ticker})
         return None
 
     filings = recent_filings(cik)

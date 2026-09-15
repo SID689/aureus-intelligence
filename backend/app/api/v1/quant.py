@@ -32,7 +32,7 @@ DISCLAIMER = (
     "Statistical output only. Factor loadings, VaR, CVaR and simulated return "
     "distributions are estimates derived from historical data and carry model risk. "
     "They are not forecasts, not guarantees, and not investment advice. Value at Risk "
-    "in particular describes a threshold, not a worst case — losses beyond it are "
+    "in particular describes a threshold, not a worst case: losses beyond it are "
     "possible and, in stressed markets, correlated across positions."
 )
 

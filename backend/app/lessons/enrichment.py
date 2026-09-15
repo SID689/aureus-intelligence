@@ -49,7 +49,7 @@ EXERCISES: dict[str, list[Exercise]] = {
             title="The same average return, different order",
             prompt=(
                 "Compounding is order-independent while you are only contributing. Add withdrawals "
-                "and it stops being — which is the whole of sequence risk. Set a long horizon, then "
+                "and it stops being, which is the whole of sequence risk. Set a long horizon, then "
                 "compare what a poor first decade does against a poor last one."
             ),
             params={"principal": 100000, "rate": 7, "years": 30},
@@ -63,7 +63,7 @@ EXERCISES: dict[str, list[Exercise]] = {
             prompt=(
                 "Enter your account value, the fraction of it you are willing to lose on this idea, "
                 "your entry and your stop. The share count falls out of those four numbers. Note "
-                "that a tighter stop permits a LARGER position at identical risk — sizing is a "
+                "that a tighter stop permits a LARGER position at identical risk: sizing is a "
                 "function of distance to the stop, not of how much you like the trade."
             ),
             params={"account": 100000, "risk_pct": 1.0, "entry": 50, "stop": 45},
@@ -72,7 +72,7 @@ EXERCISES: dict[str, list[Exercise]] = {
             kind="risk_of_ruin",
             title="How often a positive edge still ends badly",
             prompt=(
-                "Set a genuine edge — say 55% win rate — and raise the bet size. Watch the "
+                "Set a genuine edge, say 55% win rate, and raise the bet size. Watch the "
                 "probability of ruin climb even though every individual bet is favourable. Betting "
                 "too large turns a winning system into a losing one."
             ),
@@ -99,7 +99,7 @@ EXERCISES: dict[str, list[Exercise]] = {
             title="What a discount rate does to distant cash",
             prompt=(
                 "Compounding forward and discounting back are the same operation reversed. Raise "
-                "the rate and see how much more it changes a 30-year figure than a 3-year one — "
+                "the rate and see how much more it changes a 30-year figure than a 3-year one: "
                 "that difference is precisely why rate rises hit long-duration growth companies "
                 "hardest."
             ),
@@ -119,7 +119,7 @@ PRACTICE: dict[str, list[NumericQuestion]] = {
             unit="x",
             hint="Price divided by earnings per share.",
             explanation=(
-                "$76.80 / $3.20 = 24x. On its own that number means nothing — 24x is expensive for a "
+                "$76.80 / $3.20 = 24x. On its own that number means nothing: 24x is expensive for a "
                 "utility and cheap for a software company with the same growth. A P/E is only "
                 "interpretable against a peer set and a growth rate."
             ),
@@ -134,7 +134,7 @@ PRACTICE: dict[str, list[NumericQuestion]] = {
             hint="Beta scales the market move. Give the answer as a negative number.",
             explanation=(
                 "1.4 x -10% = -14%. This is an EXPECTATION from a historical relationship, not a "
-                "prediction — the stock's own news can swamp it entirely, and beta itself is unstable "
+                "prediction: the stock's own news can swamp it entirely, and beta itself is unstable "
                 "across regimes."
             ),
         ),
@@ -148,7 +148,7 @@ PRACTICE: dict[str, list[NumericQuestion]] = {
             hint="Free cash flow divided by market capitalisation.",
             explanation=(
                 "$480m / $8,000m = 6%. This is what the business generates for owners relative to what "
-                "the market charges for it — a more complete picture than dividend yield, which shows "
+                "the market charges for it: a more complete picture than dividend yield, which shows "
                 "only the portion management chose to pay out."
             ),
         ),

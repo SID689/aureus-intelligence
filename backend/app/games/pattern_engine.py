@@ -106,11 +106,11 @@ QuestionType = Literal["direction", "pattern_id", "pattern_implication"]
 # actually happened. The reveal then shows the real outcome, which often
 # disagrees; that disagreement is the intended lesson.
 BIAS_LABELS: dict[str, str] = {
-    "bullish_reversal": "Bullish reversal — a bottom forming",
-    "bearish_reversal": "Bearish reversal — a top forming",
-    "bullish_continuation": "Bullish continuation — a pause before more upside",
-    "bearish_continuation": "Bearish continuation — a pause before more downside",
-    "bilateral": "Neither — it signals compression, not direction",
+    "bullish_reversal": "Bullish reversal, a bottom forming",
+    "bearish_reversal": "Bearish reversal, a top forming",
+    "bullish_continuation": "Bullish continuation, a pause before more upside",
+    "bearish_continuation": "Bearish continuation, a pause before more downside",
+    "bilateral": "Neither, it signals compression, not direction",
 }
 
 
@@ -205,7 +205,7 @@ def _setup_notes(setup: pd.DataFrame) -> list[str]:
     earlier_vol = float(close.pct_change().dropna().head(len(close) // 2).std() or 0)
     if earlier_vol > 0:
         if recent_vol < earlier_vol * 0.7:
-            notes.append("Volatility has been compressing — ranges are tightening.")
+            notes.append("Volatility has been compressing: ranges are tightening.")
         elif recent_vol > earlier_vol * 1.3:
             notes.append("Volatility has been expanding into the decision point.")
     return notes
@@ -241,7 +241,7 @@ def _rationale(direction: Direction, fwd_pct: float, threshold_pct: float,
     else:
         parts.append(
             f"The move stayed inside the ±{threshold_pct:.1f}% band, so relative to this asset's own "
-            f"volatility nothing resolved — price continued to range around {entry:.2f}. "
+            f"volatility nothing resolved, price continued to range around {entry:.2f}. "
             "Compression often persists longer than it looks like it should."
         )
     return " ".join(parts)
@@ -372,7 +372,7 @@ def generate_scenario(rng: random.Random | None = None,
         return _assemble(rng, *fallback, prefer_question)
 
     raise RuntimeError(
-        "Could not build a pattern scenario — no ticker returned enough historical data. "
+        "Could not build a pattern scenario: no ticker returned enough historical data. "
         "Check market-data provider availability."
     )
 

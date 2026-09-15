@@ -79,7 +79,7 @@ class PolygonProvider(MarketDataProvider):
             # here would burn ~60s waiting on a quota we already know is spent,
             # when AlphaVantage/YFinance can answer immediately.
             raise ProviderBudgetExhausted(
-                "Polygon.io free-tier rate limit (5/min) reached — deferring to next provider",
+                "Polygon.io free-tier rate limit (5/min) reached, deferring to next provider",
                 status_code=429, provider=self.name,
             )
 
@@ -149,7 +149,7 @@ class PolygonProvider(MarketDataProvider):
             # here would burn ~60s waiting on a quota we already know is spent,
             # when AlphaVantage/YFinance can answer immediately.
             raise ProviderBudgetExhausted(
-                "Polygon.io free-tier rate limit (5/min) reached — deferring to next provider",
+                "Polygon.io free-tier rate limit (5/min) reached, deferring to next provider",
                 status_code=429, provider=self.name,
             )
 
@@ -168,7 +168,7 @@ class PolygonProvider(MarketDataProvider):
             if resp.status_code != 403:
                 raise_for_status(resp.status_code, resp.text, self.name)
             # 403 → fall through to previous close
-            logger.debug("Polygon last trade requires paid plan — using prev close", extra={"ticker": ticker})
+            logger.debug("Polygon last trade requires paid plan, using prev close", extra={"ticker": ticker})
         except (AureusAPIError, ProviderUnavailableError):
             raise
         except Exception:
@@ -182,7 +182,7 @@ class PolygonProvider(MarketDataProvider):
             )
         if resp.status_code == 403:
             raise ProviderUnavailableError(
-                "Polygon.io: cannot fetch price — check API key validity.",
+                "Polygon.io: cannot fetch price, check API key validity.",
                 status_code=403, provider=self.name,
             )
         raise_for_status(resp.status_code, resp.text, self.name)
@@ -213,7 +213,7 @@ class AlphaVantageProvider(MarketDataProvider):
     ) -> MarketDataResult:
         settings = get_settings()
         if frequency != "1d":
-            logger.warning("AlphaVantage fallback supports daily only — degrading", extra={"ticker": ticker})
+            logger.warning("AlphaVantage fallback supports daily only, degrading", extra={"ticker": ticker})
             frequency = "1d"
 
         params = {
@@ -415,7 +415,7 @@ class MarketDataService:
             except FallbackExhaustedError:
                 raise
             except Exception as exc:
-                logger.warning(f"{provider.name} bars failed — next", extra={"ticker": ticker, "error": str(exc)})
+                logger.warning(f"{provider.name} bars failed, next", extra={"ticker": ticker, "error": str(exc)})
         raise FallbackExhaustedError(ticker, attempted)
 
     def _read_cache(self, cache_key: str) -> MarketDataResult | None:
@@ -459,5 +459,5 @@ class MarketDataService:
             try:
                 return provider.fetch_latest_price(ticker)
             except Exception as exc:
-                logger.warning(f"{provider.name} price failed — next", extra={"ticker": ticker, "error": str(exc)})
+                logger.warning(f"{provider.name} price failed, next", extra={"ticker": ticker, "error": str(exc)})
         raise FallbackExhaustedError(ticker, attempted)

@@ -89,7 +89,7 @@ def _load_finbert():
             logger.info("FinBERT loaded")
         except Exception as exc:
             _finbert_failed = True
-            logger.info("FinBERT unavailable — using the financial lexicon",
+            logger.info("FinBERT unavailable, using the financial lexicon",
                         extra={"error": str(exc)})
     return _finbert_pipe
 
@@ -229,7 +229,7 @@ def _finbert_polarity(text: str) -> float | None:
             return round(-conf, 4)
         return 0.0
     except Exception as exc:
-        logger.warning("FinBERT scoring failed — falling back to lexicon",
+        logger.warning("FinBERT scoring failed, falling back to lexicon",
                        extra={"error": str(exc)})
         return None
 

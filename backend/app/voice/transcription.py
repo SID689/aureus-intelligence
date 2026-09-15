@@ -41,7 +41,7 @@ def transcribe_audio(audio_bytes: bytes, language: str = "en") -> str:
     settings = get_settings()
     if not settings.openai_configured:
         raise RuntimeError(
-            "OPENAI_API_KEY not configured — backend transcription unavailable. "
+            "OPENAI_API_KEY not configured: backend transcription unavailable. "
             "Use browser STT mode instead (set stt_mode=browser in the voice session)."
         )
 
@@ -92,7 +92,7 @@ def text_to_speech(text: str, voice: str = "alloy") -> bytes:
     """
     settings = get_settings()
     if not settings.openai_configured:
-        raise RuntimeError("OPENAI_API_KEY not configured — backend TTS unavailable.")
+        raise RuntimeError("OPENAI_API_KEY not configured: backend TTS unavailable.")
 
     from openai import OpenAI
     client = OpenAI(api_key=settings.openai_api_key)

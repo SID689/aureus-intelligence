@@ -36,7 +36,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "confuses people about how their money is held.\n\n"
 
             "**Who actually owns your shares.** When you buy 100 shares, they are almost never "
-            "registered in your name. They are held in 'street name' — registered to the broker, "
+            "registered in your name. They are held in 'street name': registered to the broker, "
             "with the broker's internal records saying those particular shares belong to you. This "
             "sounds alarming and is actually fine: it is what makes settlement fast enough to be "
             "practical. But it does mean your claim is a record in a company's books, which is why "
@@ -51,7 +51,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
 
             "**Cash accounts versus margin accounts.** A cash account can only buy with money you "
             "have. A margin account lets you borrow against your holdings to buy more. Brokers "
-            "often open margin accounts by default because it is better business for them — they "
+            "often open margin accounts by default because it is better business for them: they "
             "earn interest on the loan and can lend your shares to short sellers. For someone "
             "starting out, a cash account removes an entire category of ways to lose money "
             "quickly. You can usually switch.\n\n"
@@ -69,7 +69,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "fee is before you are trying to leave."
         ),
         key_takeaway=(
-            "SIPC protects you if your broker fails, not if your investments fall — those are "
+            "SIPC protects you if your broker fails, not if your investments fall: those are "
             "completely different risks and conflating them is the most common misunderstanding "
             "about how brokerage accounts work."
         ),
@@ -87,7 +87,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                 "position falling in value, and any product implying otherwise deserves suspicion."),
             Callout("why_it_matters", "Margin gets opened by default",
                 "Many brokers enable margin unless you opt out, because they profit from it. If you "
-                "did not deliberately choose margin, check which type you have — it is usually one "
+                "did not deliberately choose margin, check which type you have: it is usually one "
                 "screen in account settings."),
         ],
         checkpoints=[
@@ -95,14 +95,14 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                 after_paragraph=2,
                 question="Your broker goes bankrupt. Separately, one of your stocks falls 40%. Which does SIPC address?",
                 options=[
-                    "Both — that is what the coverage is for",
+                    "Both, that is what the coverage is for",
                     "Only the broker's failure",
                     "Only the stock's decline",
                     "Neither; SIPC covers cash only",
                 ],
                 correct_index=1,
                 explanation=(
-                    "SIPC exists for custodial failure — the broker losing or misappropriating assets it "
+                    "SIPC exists for custodial failure: the broker losing or misappropriating assets it "
                     "held for you. Market losses are the risk you deliberately took by investing, and no "
                     "insurance scheme covers them."
                 ),
@@ -114,8 +114,8 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                 ["Your investments falling in value", "Your broker failing and assets going missing",
                  "A company you own going bankrupt", "Losses from a bad trade"],
                 1,
-                "SIPC addresses custodial failure only, up to $500,000. Market losses — whether from a "
-                "falling stock or a bankrupt issuer — are outside its scope entirely.",
+                "SIPC addresses custodial failure only, up to $500,000. Market losses: whether from a "
+                "falling stock or a bankrupt issuer: are outside its scope entirely.",
             ),
             QuizQuestion(
                 "Why do brokers frequently open margin accounts by default?",
@@ -131,8 +131,8 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                 ["Immediately", "Tuesday", "Friday", "The following Monday"],
                 1,
                 "T+1 means one business day after the trade. Your broker may show buying power sooner, but "
-                "the actual settlement — and therefore the point at which spending it cannot cause a "
-                "good-faith violation — is Tuesday.",
+                "the actual settlement, and therefore the point at which spending it cannot cause a "
+                "good-faith violation: is Tuesday.",
             ),
         ],
     ),
@@ -152,7 +152,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
 
             "**The price drops by roughly the dividend.** On the ex-dividend date, the stock opens "
             "lower by approximately the dividend amount. This is not a coincidence or a market "
-            "reaction — it is arithmetic. The company just sent cash out the door, so it is worth "
+            "reaction: it is arithmetic. The company just sent cash out the door, so it is worth "
             "that much less. A $100 stock paying a $1 dividend becomes, all else equal, a $99 "
             "stock plus $1 in your pocket.\n\n"
 
@@ -178,7 +178,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "**So why do dividends matter at all?** Because paying one is a hard commitment. "
             "Earnings can be presented flatteringly; cash leaving the building every quarter "
             "cannot. A long record of maintained and rising dividends is real evidence about a "
-            "business's cash generation and its management's discipline. That is the signal — not "
+            "business's cash generation and its management's discipline. That is the signal, not "
             "the yield number itself."
         ),
         key_takeaway=(
@@ -196,7 +196,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             Callout("example", "Why dividend capture does not work",
                 "A stock trades at $50 and pays a $1 dividend. You buy 100 shares for $5,000 the day "
                 "before the ex-date. Next morning it opens near $49 and you receive $100. You hold "
-                "$4,900 of stock plus $100 cash — still $5,000 — and now owe tax on the $100. You did "
+                "$4,900 of stock plus $100 cash (still $5,000) and now owe tax on the $100. You did "
                 "the trade, paid the spread twice, and are behind."),
             Callout("common_mistake", "Screening for the highest yield",
                 "Sorting a stock screener by dividend yield descending returns, more often than not, a "
@@ -228,7 +228,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                 hint="Annualise the quarterly payment first, then divide by the price.",
                 explanation=(
                     "$0.75 x 4 = $3.00 a year. $3.00 / $80 = 0.0375, or 3.75%. Note that if the price fell "
-                    "to $40 with no change in the payment, the yield would read 7.5% — the same dividend, "
+                    "to $40 with no change in the payment, the yield would read 7.5%: the same dividend, "
                     "a much worse-looking company."
                 ),
             ),
@@ -239,7 +239,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                 hint="Shares times the per-share payment. This is one quarter, not a year.",
                 explanation=(
                     "340 x $0.42 = $142.80. In a taxable account this is income in the year received, even "
-                    "if you immediately reinvest it — reinvestment does not defer the tax."
+                    "if you immediately reinvest it: reinvestment does not defer the tax."
                 ),
             ),
         ],
@@ -258,7 +258,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                  "The company is growing unusually fast", "It is a data error"],
                 1,
                 "Yield rises automatically when price falls. An extreme yield usually means the market has "
-                "already decided the dividend is unsustainable — it is a distress signal more often than "
+                "already decided the dividend is unsustainable: it is a distress signal more often than "
                 "a bargain.",
             ),
             QuizQuestion(
@@ -280,7 +280,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
         estimated_read_time_minutes=7,
         body=(
             "An index fund is a fund that does not try to pick winners. It buys everything in a "
-            "defined list — the S&P 500, the total US market, the world — in proportion to size, "
+            "defined list (the S&P 500, the total US market, the world) in proportion to size, "
             "and holds it. That is the entire strategy, and it is the one most professional "
             "investors fail to beat.\n\n"
 
@@ -294,7 +294,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "**ETF versus mutual fund.** An ETF (exchange-traded fund) trades on an exchange like "
             "a stock, all day, at whatever price the market quotes. A traditional mutual fund is "
             "priced once, after the close, and you transact at that single price. For most people "
-            "the practical differences are small — ETFs are usually more tax-efficient in taxable "
+            "the practical differences are small: ETFs are usually more tax-efficient in taxable "
             "accounts and easier to buy in small amounts, mutual funds are easier to automate "
             "contributions into.\n\n"
 
@@ -306,7 +306,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "standard index is charging for something it is not providing.\n\n"
 
             "**What indexing does not protect you from.** It removes the risk of picking the wrong "
-            "company. It does nothing about the market falling — an S&P 500 fund fell roughly 50% "
+            "company. It does nothing about the market falling: an S&P 500 fund fell roughly 50% "
             "in 2008 and roughly 34% in weeks during March 2020. Diversification across companies "
             "is not diversification across market risk. Believing otherwise is how people discover "
             "their real risk tolerance at the worst possible moment.\n\n"
@@ -314,11 +314,11 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "**Concentration hides inside 'diversified' funds.** A cap-weighted S&P 500 fund holds "
             "500 companies, but the largest handful can be a quarter or more of it. You own the "
             "index; you also own an unusually large bet on a few very big companies. That is not "
-            "an argument against it — it is an argument for knowing what you actually hold."
+            "an argument against it: it is an argument for knowing what you actually hold."
         ),
         key_takeaway=(
             "The average active investor must, by arithmetic, earn the market return before costs "
-            "and less after. Index funds take that average for almost nothing — but they protect "
+            "and less after. Index funds take that average for almost nothing, but they protect "
             "you from picking wrong, not from the market falling."
         ),
         glossary=[
@@ -343,7 +343,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                 title="What a fee actually costs over time",
                 prompt=(
                     "Set the balance to $10,000 and the horizon to 30 years, then compare a 0.03% fee "
-                    "with a 0.75% one. The difference is not 0.72% — it is that percentage compounding "
+                    "with a 0.75% one. The difference is not 0.72%: it is that percentage compounding "
                     "against you every year, on a balance that would otherwise have been growing."
                 ),
                 params={"balance": 10000, "annual_return": 7, "years": 30, "fee_a": 0.03, "fee_b": 0.75},
@@ -357,7 +357,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                 hint="Expense ratio is an annual percentage of the balance.",
                 explanation=(
                     "$25,000 x 0.0060 = $150 a year, deducted whether the fund rose or fell. The same "
-                    "balance in a 0.03% fund pays $7.50 — and the $142.50 difference then compounds for "
+                    "balance in a 0.03% fund pays $7.50, and the $142.50 difference then compounds for "
                     "as long as you hold."
                 ),
             ),
@@ -410,13 +410,13 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "profitable sale pulls forward a tax bill that a held position defers indefinitely.\n\n"
 
             "**Holding period changes the rate a lot.** Sell at a profit within one year and the "
-            "gain is short-term, taxed as ordinary income — the same rate as your salary. Hold "
+            "gain is short-term, taxed as ordinary income: the same rate as your salary. Hold "
             "beyond one year and it is long-term, taxed at preferential rates that for most people "
             "are 0%, 15% or 20%. The difference between selling at day 360 and day 366 can be "
             "more than a third of the gain. The clock starts the day after purchase.\n\n"
 
-            "**Dividends have their own split.** 'Qualified' dividends — most US corporate "
-            "dividends, if you held the shares long enough around the ex-date — get the long-term "
+            "**Dividends have their own split.** 'Qualified' dividends: most US corporate "
+            "dividends, if you held the shares long enough around the ex-date: get the long-term "
             "rates. Non-qualified ones, including most REIT distributions and interest, are taxed "
             "as ordinary income. Your broker reports which is which on a 1099-DIV.\n\n"
 
@@ -425,8 +425,8 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "with the rest carried forward. Deliberately realising losses to offset gains is "
             "called tax-loss harvesting. The trap is the **wash sale rule**: if you buy the same "
             "or a 'substantially identical' security within 30 days before or after the sale, the "
-            "loss is disallowed for now. It is not lost — it is added to the cost basis of the new "
-            "position — but it does not do what you wanted this year. Buying back the same fund a "
+            "loss is disallowed for now. It is not lost: it is added to the cost basis of the new "
+            "position, but it does not do what you wanted this year. Buying back the same fund a "
             "week later is exactly the pattern that triggers it.\n\n"
 
             "**Tax-advantaged accounts change the calculus entirely.** Inside a 401(k) or IRA, "
@@ -435,14 +435,14 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "reasonably rebalance often inside a retirement account and rarely outside one.\n\n"
 
             "**The mutual fund distribution surprise.** A mutual fund can distribute capital gains "
-            "to you in December — creating a tax bill — even in a year the fund lost money, "
+            "to you in December, creating a tax bill, even in a year the fund lost money, "
             "because the distribution reflects the fund's internal sales, not your return. ETFs "
             "largely avoid this, which is the main reason they are preferred in taxable accounts."
         ),
         key_takeaway=(
             "Tax is triggered by selling, not by gaining, and the one-year holding line changes "
             "the rate dramatically. The wash sale rule quietly cancels harvested losses if you buy "
-            "back within 30 days — the single most common accidental mistake in this area."
+            "back within 30 days: the single most common accidental mistake in this area."
         ),
         glossary=[
             GlossaryTerm("realized gain", "Profit locked in by selling. Only realized gains are taxable; an unsold winner is not."),
@@ -469,7 +469,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                 options=[
                     "You owe tax on $8,000 of gain",
                     "You owe tax on half of it",
-                    "None — the gain is unrealized until you sell",
+                    "None: the gain is unrealized until you sell",
                     "You owe tax only if it is a dividend-paying stock",
                 ],
                 correct_index=2,
@@ -506,7 +506,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                  "The loss doubles", "Nothing; wash sale rules apply only to individual stocks"],
                 1,
                 "Repurchasing within 30 days either side triggers the wash sale rule. The loss is not "
-                "destroyed — it moves into the replacement position's basis — but it does not offset this "
+                "destroyed, it moves into the replacement position's basis, but it does not offset this "
                 "year's gains, which was the entire point.",
             ),
             QuizQuestion(
@@ -515,7 +515,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                  "Short-term trades have wider spreads by rule", "Tax rates rise with the number of trades"],
                 1,
                 "Zero-commission does not mean zero-cost. Every profitable sale converts a deferred, "
-                "compounding liability into a bill due this year — and if held under a year, at the higher "
+                "compounding liability into a bill due this year, and if held under a year, at the higher "
                 "ordinary rate.",
             ),
         ],
@@ -536,22 +536,22 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "**A fee is a percentage of your balance, not of your gains.** A 1% advisory fee on "
             "$200,000 is $2,000 a year whether the account rose 20% or fell 20%. In a bad year "
             "you pay it out of a shrinking balance. This is different from how people intuitively "
-            "model it — as a cut of profits — and it is why fees hurt most exactly when you can "
+            "model it, as a cut of profits, and it is why fees hurt most exactly when you can "
             "least afford them.\n\n"
 
             "**The compounding argument.** Money removed as a fee is not just gone, it is gone "
             "along with everything it would have earned. $10,000 growing at 7% for 30 years "
-            "becomes about $76,100. The same $10,000 at 6% — one percentage point of fee — "
+            "becomes about $76,100. The same $10,000 at 6%, one percentage point of fee, "
             "becomes about $57,400. That single point cost roughly $18,700, or nearly a quarter "
             "of the final balance, on a fee that felt like a rounding error each year.\n\n"
 
             "**The fees to actually look for.** Expense ratios on funds, charged automatically and "
             "invisibly. Advisory fees, usually 0.5% to 1.5% of assets annually. Trading spreads, "
             "which never appear as a line item. Account and transfer-out fees. And, in some "
-            "products, sales loads — a percentage taken off the top before a dollar is invested.\n\n"
+            "products, sales loads: a percentage taken off the top before a dollar is invested.\n\n"
 
             "**What a fee should buy.** Paying more is not automatically wrong. Financial planning, "
-            "tax coordination and — genuinely — being talked out of selling everything in a panic "
+            "tax coordination and, genuinely, being talked out of selling everything in a panic "
             "can be worth well over 1% a year. What is not worth paying for is a fund charging "
             "0.8% to hold roughly the same companies an index fund holds for 0.04%. The question "
             "is never 'is this fee small', it is 'what am I receiving that the cheap alternative "
@@ -559,7 +559,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
         ),
         key_takeaway=(
             "A fee is charged on the balance, not the gains, and the money taken stops compounding. "
-            "One percentage point over thirty years costs roughly a quarter of the final balance — "
+            "One percentage point over thirty years costs roughly a quarter of the final balance: "
             "which is why the right question is what the fee buys, not whether it looks small."
         ),
         glossary=[
@@ -578,7 +578,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                 title="One percent, thirty years",
                 prompt=(
                     "Leave fee A at 0% and set fee B to 1%. Watch the gap at year 30, then shorten the "
-                    "horizon to 10 years and watch it shrink. Fees and time multiply each other — which "
+                    "horizon to 10 years and watch it shrink. Fees and time multiply each other, which "
                     "is why this decision matters most for the youngest investors."
                 ),
                 params={"balance": 10000, "annual_return": 7, "years": 30, "fee_a": 0.0, "fee_b": 1.0},
@@ -603,7 +603,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                  "Each trade placed", "Dividends received"],
                 1,
                 "Asset-based fees apply to the balance. In a losing year you still pay, out of a smaller "
-                "account — the opposite of how most people assume it works.",
+                "account: the opposite of how most people assume it works.",
             ),
             QuizQuestion(
                 "Why does a 1% fee cost far more than 1% over a long horizon?",
@@ -628,20 +628,20 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "That is roughly a third of the story, and the least useful third.\n\n"
 
             "**Prices move on surprise, not on news.** If a company is widely expected to earn "
-            "$2.00 and earns $2.00, the stock frequently does nothing — the good result was "
+            "$2.00 and earns $2.00, the stock frequently does nothing: the good result was "
             "already in the price. If it earns $1.80, the stock falls, even though $1.80 is a "
             "profit. What matters is the gap between the outcome and what was already expected. "
             "This is why 'the company reported record earnings and the stock dropped' is not a "
             "paradox: records can still miss expectations.\n\n"
 
             "**Guidance often matters more than results.** Reported earnings describe a quarter "
-            "that already happened. Guidance — management's forecast for the next one — describes "
+            "that already happened. Guidance, management's forecast for the next one, describes "
             "the future the price is actually based on. A beat with lowered guidance regularly "
             "falls harder than a miss with raised guidance.\n\n"
 
             "**Rates and the macro backdrop move everything at once.** A stock is a claim on "
             "future cash. When interest rates rise, future cash is discounted more heavily, so "
-            "prices fall — and companies whose profits sit furthest in the future fall most. On "
+            "prices fall, and companies whose profits sit furthest in the future fall most. On "
             "days when a central bank speaks, most stocks move together, and the movement says "
             "nothing about any individual business.\n\n"
 
@@ -665,7 +665,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
         glossary=[
             GlossaryTerm("guidance", "Management's own forecast for upcoming results. Frequently moves the price more than the reported quarter does."),
             GlossaryTerm("earnings surprise", "The difference between reported earnings and the consensus expectation. The surprise, not the level, is what the price reacts to."),
-            GlossaryTerm("consensus estimate", "The average of analyst forecasts — the bar the market has already priced in."),
+            GlossaryTerm("consensus estimate", "The average of analyst forecasts: the bar the market has already priced in."),
             GlossaryTerm("flows", "Buying and selling driven by mechanics like index rebalancing or fund redemptions rather than by any view on value."),
         ],
         callouts=[
@@ -697,7 +697,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
         quiz=[
             QuizQuestion(
                 "A company earns exactly what analysts expected. What typically happens to the stock?",
-                ["It rises, because earnings were positive", "Little — the expected result was already in the price",
+                ["It rises, because earnings were positive", "Little: the expected result was already in the price",
                  "It falls, because there was no beat", "It becomes more volatile for a week"],
                 1,
                 "Prices embed expectations in advance. Meeting them delivers no new information, so there "
@@ -713,7 +713,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             ),
             QuizQuestion(
                 "A stock jumps 5% on being added to a major index. What does that move indicate about the business?",
-                ["It just became more profitable", "Essentially nothing — index funds are mechanically required to buy it",
+                ["It just became more profitable", "Essentially nothing: index funds are mechanically required to buy it",
                  "Its risk fell", "Analysts upgraded it"],
                 1,
                 "Index inclusion forces buying from funds tracking that index. It is a flow event, not "
@@ -736,14 +736,14 @@ TIER_0_BEGINNER_B: list[Lesson] = [
 
             "**What it actually does.** Holding many things means no single failure can ruin you. "
             "If one position is 2% of your portfolio, a total loss costs 2%. If it is 40%, a total "
-            "loss is close to unrecoverable. The benefit is not that you earn more — it is that "
+            "loss is close to unrecoverable. The benefit is not that you earn more: it is that "
             "the range of outcomes narrows, and specifically that the catastrophic tail gets "
             "cut off.\n\n"
 
             "**The benefit comes from things NOT moving together.** Two companies in the same "
             "industry, exposed to the same customers and the same input costs, fall together. "
             "Owning both is barely more diversified than owning one. What reduces risk is "
-            "combining holdings driven by different things — which is why the useful axes are "
+            "combining holdings driven by different things, which is why the useful axes are "
             "sector, geography and asset class, not simply count.\n\n"
 
             "**The mistake: diversification theatre.** Someone holds eight funds and feels "
@@ -755,13 +755,13 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "**Diminishing returns arrive quickly.** Moving from one stock to twenty removes most "
             "single-company risk. Moving from twenty to two hundred removes a little more. Beyond "
             "that you are mostly adding admin. This is why a single broad index fund is a "
-            "defensible entire equity allocation for many people — it is already thousands of "
+            "defensible entire equity allocation for many people: it is already thousands of "
             "companies.\n\n"
 
             "**What diversification cannot do.** In a genuine crisis, correlations rise: things "
             "that normally move independently fall together, precisely when you needed them not "
             "to. Diversification is not a hedge against systemic collapse. It is protection "
-            "against being wrong about any one thing — which is the risk you are far more likely "
+            "against being wrong about any one thing, which is the risk you are far more likely "
             "to actually face."
         ),
         key_takeaway=(
@@ -778,7 +778,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
         callouts=[
             Callout("common_mistake", "Counting funds instead of exposures",
                 "Open each fund's top ten holdings and compare. People regularly discover their 'diversified' "
-                "portfolio is the same mega-caps four times over — and that they are paying four fees for "
+                "portfolio is the same mega-caps four times over, and that they are paying four fees for "
                 "one bet."),
             Callout("example", "Why position size decides survivability",
                 "A position that goes to zero at 2% of the portfolio costs 2%, recoverable in a normal year. "
@@ -792,7 +792,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                 hint="You need to grow the remainder back to 100 from 75.",
                 explanation=(
                     "You need 100/75 = 1.333, a 33.3% gain. At a 50% position it would take 100%. This "
-                    "asymmetry — losses needing larger gains to undo — is the whole argument for limiting "
+                    "asymmetry, losses needing larger gains to undo, is the whole argument for limiting "
                     "position size."
                 ),
             ),
@@ -803,7 +803,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                 title="The asymmetry of losses",
                 prompt=(
                     "Drag the loss from 10% to 50% to 80% and watch the required recovery. The relationship "
-                    "is not linear — which is why avoiding large losses matters more than capturing large "
+                    "is not linear, which is why avoiding large losses matters more than capturing large "
                     "gains."
                 ),
                 params={"loss_pct": 25},
@@ -820,7 +820,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             ),
             QuizQuestion(
                 "A portfolio holds six US large-cap funds. What is the most likely problem?",
-                ["Too few positions", "Substantial overlap — largely the same companies, with six fees",
+                ["Too few positions", "Substantial overlap: largely the same companies, with six fees",
                  "Excessive international exposure", "Insufficient trading"],
                 1,
                 "US large-cap funds hold heavily overlapping mega-caps. The portfolio has one real exposure "
@@ -832,7 +832,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                  "They stay constant", "They become undefined"],
                 1,
                 "Correlations tend toward one in a crisis. Diversification helps least exactly when it would "
-                "help most — which is why it protects against being wrong about one thing, not against "
+                "help most, which is why it protects against being wrong about one thing, not against "
                 "systemic collapse.",
             ),
         ],
@@ -852,7 +852,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "**1. Selling in the drop, buying in the rally.** The most expensive habit in "
             "investing. A falling market feels dangerous, so people sell; a rising one feels safe, "
             "so they buy back higher. Studies of investor returns versus fund returns consistently "
-            "find a gap of one to two percentage points a year attributable to this timing alone — "
+            "find a gap of one to two percentage points a year attributable to this timing alone: "
             "the funds performed, the investors did not, because of when they were in them.\n\n"
 
             "**2. Loss aversion, and holding losers to avoid admitting them.** A loss hurts "
@@ -871,9 +871,9 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "off feels like skill and is remembered as such. But a decision with a 20% chance of "
             "working is a bad decision even on the occasions it works. Judging yourself on "
             "outcomes rather than process means learning the wrong lesson from your luckiest "
-            "trades — and then repeating it with more money.\n\n"
+            "trades, and then repeating it with more money.\n\n"
 
-            "**What actually helps.** Not willpower — a written plan made in advance, when you are "
+            "**What actually helps.** Not willpower: a written plan made in advance, when you are "
             "calm, about what you will do when things fall. Automating contributions so the "
             "decision is not re-made monthly. Checking the portfolio less often, since more "
             "frequent checking demonstrably increases trading and decreases returns. And keeping "
@@ -894,7 +894,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
         callouts=[
             Callout("key_idea", "Your cost basis is not information",
                 "What you paid affects your tax bill and nothing else. A position is worth holding or not "
-                "based on what it will do from here — a fact entirely independent of whether you happen "
+                "based on what it will do from here: a fact entirely independent of whether you happen "
                 "to be up or down on it."),
             Callout("why_it_matters", "Decide before, not during",
                 "Nobody makes a clear-headed decision during a 30% drawdown. The decision that matters was "
@@ -905,9 +905,9 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                 after_paragraph=2,
                 question="You hold two positions: one up 30%, one down 30%. You need cash. Which does your instinct push you toward selling, and is that instinct reliable?",
                 options=[
-                    "The winner — and yes, banking gains is always right",
-                    "The winner — and no; the instinct is the disposition effect, not analysis",
-                    "The loser — and yes, cutting losses is always right",
+                    "The winner, and yes, banking gains is always right",
+                    "The winner, and no; the instinct is the disposition effect, not analysis",
+                    "The loser, and yes, cutting losses is always right",
                     "Neither; the decision is arbitrary",
                 ],
                 correct_index=1,
@@ -921,7 +921,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
         quiz=[
             QuizQuestion(
                 "What mostly explains the gap between fund returns and the returns investors in those funds actually earn?",
-                ["Hidden fees", "Investor timing — buying after rises and selling after falls",
+                ["Hidden fees", "Investor timing: buying after rises and selling after falls",
                  "Tracking error", "Currency effects"],
                 1,
                 "The funds delivered their returns; investors were not consistently in them. Money tends to "
@@ -930,7 +930,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             QuizQuestion(
                 "Why is your original purchase price irrelevant to whether you should hold a position now?",
                 ["Because brokers do not track it", "Because the future return depends on the price from here, not on what you paid",
-                 "Because it changes with dividends", "It is not irrelevant — it sets your target"],
+                 "Because it changes with dividends", "It is not irrelevant: it sets your target"],
                 1,
                 "The market has no memory of your entry. Future returns are driven by current price versus "
                 "future value; your basis affects only your tax outcome.",
@@ -954,7 +954,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
         tier=TIER_BEGINNER,
         estimated_read_time_minutes=5,
         body=(
-            "You have a lump sum — an inheritance, a bonus, savings you finally moved. Do you "
+            "You have a lump sum: an inheritance, a bonus, savings you finally moved. Do you "
             "invest it all today, or spread it over the next twelve months? This question has a "
             "clear mathematical answer and a completely different practical one, and both are "
             "worth understanding.\n\n"
@@ -964,20 +964,20 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "immediately beats spreading it out roughly two thirds of the time, and by a "
             "meaningful margin on average. On expected value alone, all-at-once wins.\n\n"
 
-            "**What the math omits.** The one third of the time it loses, it can lose badly — and "
+            "**What the math omits.** The one third of the time it loses, it can lose badly, and "
             "you experience that as having invested everything the week before a 25% decline. The "
             "person who does that at the start of their investing life frequently does not stay "
             "invested. A strategy with a slightly lower expected return that you will actually "
             "hold through is superior to an optimal one you will abandon.\n\n"
 
-            "**What dollar-cost averaging actually buys.** Not higher returns — lower regret. By "
+            "**What dollar-cost averaging actually buys.** Not higher returns: lower regret. By "
             "spreading purchases you guarantee an average entry price rather than a single one, "
             "which removes the possibility of the worst-case entry, and with it much of the "
             "anxiety that causes people to sell. It is insurance, and like most insurance it costs "
             "a little expected return.\n\n"
 
             "**A distinction that matters.** Investing every paycheque is not dollar-cost "
-            "averaging in this sense — that is simply investing money as it arrives, which is "
+            "averaging in this sense, that is simply investing money as it arrives, which is "
             "unambiguously correct and has no lump-sum alternative. The comparison only applies "
             "when you already hold the whole amount and are choosing how fast to deploy it.\n\n"
 
@@ -989,13 +989,13 @@ TIER_0_BEGINNER_B: list[Lesson] = [
         ),
         key_takeaway=(
             "Investing a lump sum immediately wins about two thirds of the time and on average. "
-            "Spreading it buys lower regret, not higher returns — and a strategy you will actually "
+            "Spreading it buys lower regret, not higher returns, and a strategy you will actually "
             "stay invested in beats an optimal one you abandon."
         ),
         glossary=[
             GlossaryTerm("dollar-cost averaging", "Deploying a fixed amount at regular intervals, producing an average entry price instead of a single one."),
             GlossaryTerm("lump-sum investing", "Investing the entire available amount immediately."),
-            GlossaryTerm("expected value", "The probability-weighted average outcome — what a decision is worth on average across many repetitions."),
+            GlossaryTerm("expected value", "The probability-weighted average outcome: what a decision is worth on average across many repetitions."),
         ],
         callouts=[
             Callout("key_idea", "Optimal on paper loses to sustainable in practice",
@@ -1011,7 +1011,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                 title="Same money, two schedules",
                 prompt=(
                     "Run both approaches over the same price path, then change the path shape. Note that "
-                    "DCA wins when the market falls then recovers, and loses when it simply rises — and "
+                    "DCA wins when the market falls then recovers, and loses when it simply rises, and "
                     "that you cannot know which you are in beforehand."
                 ),
                 params={"amount": 12000, "months": 12, "scenario": "dip_then_recover"},
@@ -1036,7 +1036,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             ),
             QuizQuestion(
                 "You invest part of every paycheque. Is that the same trade-off as this lesson describes?",
-                ["Yes, identical", "No — you are investing money as it arrives; there is no lump sum to deploy differently",
+                ["Yes, identical", "No: you are investing money as it arrives; there is no lump sum to deploy differently",
                  "Yes, but only in a taxable account", "No, because paycheques are not lump sums by definition"],
                 1,
                 "The comparison only exists when you already hold the full amount. Investing income as you "
@@ -1057,32 +1057,32 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             "written for professionals, but the parts that matter to you are few and always in "
             "the same places.\n\n"
 
-            "**Revenue — the top line.** Total sales for the quarter. The number itself means "
+            "**Revenue: the top line.** Total sales for the quarter. The number itself means "
             "little without context; what matters is the direction and the rate. Growing 3% a "
             "year is a different business from growing 30%, and a company whose revenue is "
             "shrinking has a problem no cost-cutting fixes permanently.\n\n"
 
-            "**Net income — the bottom line.** What is left after every cost. Positive is better "
+            "**Net income: the bottom line.** What is left after every cost. Positive is better "
             "than negative, but this figure is the most manipulable one on the page, because it "
             "includes one-off items: a legal settlement, a writedown, a gain from selling a "
             "building. A quarter can swing from profit to loss on something that will never "
             "recur.\n\n"
 
-            "**Margins — the number that actually tells you about quality.** Gross margin is "
+            "**Margins: the number that actually tells you about quality.** Gross margin is "
             "revenue minus the direct cost of producing the product, as a percentage. Operating "
             "margin subtracts the cost of running the business too. A software company might hold "
-            "an 80% gross margin; a grocer 25%. Neither is 'better' — but a company whose margin "
+            "an 80% gross margin; a grocer 25%. Neither is 'better', but a company whose margin "
             "is falling year over year is losing pricing power, and that is a genuine warning "
             "regardless of what net income did.\n\n"
 
-            "**Free cash flow — the hardest number to fake.** Cash generated by operations minus "
+            "**Free cash flow: the hardest number to fake.** Cash generated by operations minus "
             "what was spent on equipment and facilities. Profit is an accounting opinion in a way "
             "cash is not: revenue can be recognised before payment arrives, and costs can be "
             "spread across years. A company reporting rising profit alongside falling free cash "
-            "flow is worth looking at closely — that divergence precedes a large share of "
+            "flow is worth looking at closely, that divergence precedes a large share of "
             "accounting problems.\n\n"
 
-            "**Guidance — what the price will actually react to.** Management's forecast for next "
+            "**Guidance: what the price will actually react to.** Management's forecast for next "
             "quarter and the year. This describes the future, which is what the stock is priced "
             "on. A strong quarter with weak guidance frequently falls.\n\n"
 
@@ -1102,12 +1102,12 @@ TIER_0_BEGINNER_B: list[Lesson] = [
             GlossaryTerm("gross margin", "Revenue minus the direct cost of producing the product, as a percentage of revenue. A proxy for pricing power."),
             GlossaryTerm("operating margin", "Profit after both production and operating costs, as a percentage of revenue."),
             GlossaryTerm("free cash flow", "Cash from operations minus capital spending. Harder to manipulate than reported profit."),
-            GlossaryTerm("EPS", "Earnings per share — net income divided by shares outstanding. Can rise purely from buybacks reducing the share count."),
+            GlossaryTerm("EPS", "Earnings per share: net income divided by shares outstanding. Can rise purely from buybacks reducing the share count."),
         ],
         callouts=[
             Callout("why_it_matters", "EPS can rise while the business does not",
                 "Earnings per share is profit divided by share count. A company buying back shares raises EPS "
-                "with flat profit. That is not necessarily bad, but it is not growth either — and the "
+                "with flat profit. That is not necessarily bad, but it is not growth either, and the "
                 "headline will not distinguish them."),
             Callout("common_mistake", "Reading net income alone",
                 "One-off items live in net income. A quarter can look transformed by a single asset sale or "
@@ -1129,7 +1129,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
         quiz=[
             QuizQuestion(
                 "Why is free cash flow often more informative than reported net income?",
-                ["It is always larger", "It is harder to manipulate — cash either moved or it did not",
+                ["It is always larger", "It is harder to manipulate: cash either moved or it did not",
                  "It excludes taxes", "Regulators audit it more closely"],
                 1,
                 "Revenue recognition and cost allocation give real latitude over reported profit. Cash "
@@ -1148,7 +1148,7 @@ TIER_0_BEGINNER_B: list[Lesson] = [
                 ["Revenue grew 10%", "The share count fell, probably through buybacks",
                  "Margins expanded", "The company issued new shares"],
                 1,
-                "EPS is profit per share. With profit unchanged, a higher EPS means fewer shares — typically "
+                "EPS is profit per share. With profit unchanged, a higher EPS means fewer shares, typically "
                 "buybacks. Real, but not the same as the business earning more.",
             ),
         ],

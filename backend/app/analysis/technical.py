@@ -342,7 +342,7 @@ def run_technical_analysis(ticker: str, bars: pd.DataFrame) -> TechnicalScore:
     notes: list[str] = []
     signals: list[dict] = []
     if len(bars) < _MIN_BARS:
-        notes.append(f"Only {len(bars)} bars available ({_MIN_BARS} recommended) — indicator reliability reduced")
+        notes.append(f"Only {len(bars)} bars available ({_MIN_BARS} recommended): indicator reliability reduced")
 
     close = bars["close"]
     current_price = float(close.iloc[-1])
@@ -356,7 +356,7 @@ def run_technical_analysis(ticker: str, bars: pd.DataFrame) -> TechnicalScore:
                    "deeply overbought, elevated pullback risk" if rsi_14 >= 70 else "in a neutral range"
         signals.append({"label": "RSI (14)", "score": rsi_score, "detail": f"RSI at {rsi_14:.0f} is {rsi_desc}"})
     else:
-        notes.append("RSI unavailable (insufficient bars) — excluded from composite")
+        notes.append("RSI unavailable (insufficient bars): excluded from composite")
 
     macd_line, signal_line, macd_histogram = _compute_macd(close)
     macd_computed = macd_histogram is not None
@@ -366,7 +366,7 @@ def run_technical_analysis(ticker: str, bars: pd.DataFrame) -> TechnicalScore:
         macd_dir = "accelerating upward momentum" if macd_histogram > 0 else "accelerating downward momentum"
         signals.append({"label": "MACD", "score": macd_score, "detail": f"MACD histogram signals {macd_dir}"})
     else:
-        notes.append("MACD unavailable (insufficient bars) — excluded from composite")
+        notes.append("MACD unavailable (insufficient bars): excluded from composite")
 
     sr_levels = _find_support_resistance(bars)
     sr_computed = len(sr_levels) > 0
@@ -382,7 +382,7 @@ def run_technical_analysis(ticker: str, bars: pd.DataFrame) -> TechnicalScore:
                     "positioned between clear support and resistance levels"
         signals.append({"label": "Support/Resistance", "score": sr_score, "detail": f"Price action is {sr_detail}"})
     else:
-        notes.append("No clear support/resistance levels found — excluded from composite")
+        notes.append("No clear support/resistance levels found: excluded from composite")
 
     volume_computed = len(bars) >= 25
     volume_score = _compute_volume_score(bars) if volume_computed else 50.0
@@ -401,7 +401,7 @@ def run_technical_analysis(ticker: str, bars: pd.DataFrame) -> TechnicalScore:
         notes.append(f"Moving-average alignment → trend-structure component {ma_score:.0f}/100 ({stack})")
         signals.append({
             "label": "MA Alignment (20/50/200)", "score": ma_score,
-            "detail": (f"Price ${current_price:.2f} against {stack} — "
+            "detail": (f"Price ${current_price:.2f} against {stack}: "
                        + ("a bullish stack with every horizon of buyer onside"
                           if ma_score >= 70 else
                           "a bearish stack with shorter averages below longer ones"
@@ -410,7 +410,7 @@ def run_technical_analysis(ticker: str, bars: pd.DataFrame) -> TechnicalScore:
         })
     else:
         ma_score = 50.0
-        notes.append("Moving-average alignment unavailable (insufficient history) — excluded from composite")
+        notes.append("Moving-average alignment unavailable (insufficient history): excluded from composite")
 
     # ── Bollinger %B (position inside the volatility envelope) ────────
     pctb = _compute_bollinger_pctb(close)
@@ -418,9 +418,9 @@ def run_technical_analysis(ticker: str, bars: pd.DataFrame) -> TechnicalScore:
     bb_score = _pctb_to_score(pctb) if bb_computed else 50.0
     if bb_computed:
         notes.append(f"Bollinger %B {pctb:.2f} → volatility-position component {bb_score:.0f}/100")
-        where = ("above the upper band — statistically stretched" if pctb > 1 else
+        where = ("above the upper band: statistically stretched" if pctb > 1 else
                  "riding the upper band" if pctb > 0.8 else
-                 "below the lower band — statistically stretched to the downside" if pctb < 0 else
+                 "below the lower band: statistically stretched to the downside" if pctb < 0 else
                  "hugging the lower band" if pctb < 0.2 else "mid-envelope")
         signals.append({"label": "Bollinger %B", "score": bb_score,
                         "detail": f"Price is {where} (%B {pctb:.2f})"})
@@ -435,13 +435,13 @@ def run_technical_analysis(ticker: str, bars: pd.DataFrame) -> TechnicalScore:
     vwap_pos = _compute_vwap_position(bars)
 
     if atr_pct is not None:
-        notes.append(f"ATR(14) is {atr_pct * 100:.2f}% of price — typical daily range")
+        notes.append(f"ATR(14) is {atr_pct * 100:.2f}% of price: typical daily range")
     if obv_slope is not None:
         signals.append({
             "label": "On-Balance Volume", "score": 65.0 if obv_slope > 0 else 35.0,
-            "detail": ("OBV is rising — volume is accumulating on up-days"
+            "detail": ("OBV is rising, volume is accumulating on up-days"
                        if obv_slope > 0 else
-                       "OBV is falling — volume is concentrated in down-days"),
+                       "OBV is falling: volume is concentrated in down-days"),
         })
     if vwap_pos is not None:
         signals.append({
@@ -463,7 +463,7 @@ def run_technical_analysis(ticker: str, bars: pd.DataFrame) -> TechnicalScore:
     k_trend, k_revert = _regime_weights(ts)
     if ts is not None:
         notes.append(
-            f"Trend strength r²={ts:.2f} — "
+            f"Trend strength r²={ts:.2f}: "
             + ("orderly trend, trend-following signals weighted up" if ts >= 0.6 else
                "choppy, mean-reversion signals weighted up" if ts <= 0.25 else
                "mixed regime, both families weighted near evenly")

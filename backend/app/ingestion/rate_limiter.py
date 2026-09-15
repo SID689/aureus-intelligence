@@ -142,7 +142,7 @@ def with_exponential_backoff(
                     sleep_time = exponential_cap + jitter
 
                     logger.warning(
-                        "Retryable error — backing off",
+                        "Retryable error, backing off",
                         extra={
                             "func": func.__name__,
                             "attempt": attempt + 1,

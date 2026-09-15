@@ -303,7 +303,7 @@ def _guidance(margin: Decimal, net_revenue: Decimal, fixed: Decimal,
     if paid == 0:
         notes.append(
             "No paying subscribers yet. Every vendor subscription taken now is funded "
-            "entirely out of pocket — subscribe to a premium API only when the tier that "
+            "entirely out of pocket: subscribe to a premium API only when the tier that "
             "needs it has customers."
         )
     if margin < 0:

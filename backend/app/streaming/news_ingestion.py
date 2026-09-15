@@ -127,7 +127,7 @@ class FinnhubNewsPoller:
             with httpx.Client(timeout=10.0) as client:
                 resp = client.get(f"{self.BASE_URL}/news", params=params, headers=headers)
             if resp.status_code == 429:
-                logger.warning("Finnhub rate limit hit — backing off 60s")
+                logger.warning("Finnhub rate limit hit, backing off 60s")
                 time.sleep(60)
                 return []
             if resp.status_code != 200:

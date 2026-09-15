@@ -16,6 +16,7 @@ surfaced explicitly and specifically, never just "data unavailable."
 import logging
 
 from app.analysis.models import EnsembleSignal, FundamentalScore, SentimentScore, TechnicalScore
+from app.core.copy import plain_punctuation
 from app.core.config import get_settings
 from app.agents.guardrails import CORE_ORCHESTRATOR_SYSTEM_PROMPT, validate_llm_output
 
@@ -29,8 +30,8 @@ _MAX_CALLOUTS = 3
 def _completeness_phrase(completeness: float) -> str:
     if completeness >= 0.95: return "based on complete data"
     if completeness >= 0.65: return "based on mostly complete data"
-    if completeness >= 0.30: return "based on partial data — treat with extra caution"
-    return "based on very limited data — largely a neutral placeholder"
+    if completeness >= 0.30: return "based on partial data, treat with extra caution"
+    return "based on very limited data: largely a neutral placeholder"
 
 
 def _collect_all_signals(
@@ -87,13 +88,13 @@ def build_deterministic_reasoning(
     weaknesses = sorted([s for s in all_signals if s["score"] <= _WEAKNESS_THRESHOLD], key=lambda s: s["score"])[:_MAX_CALLOUTS]
 
     if strengths:
-        bullets = "; ".join(f"{s['label']} ({s['module']}) — {s['detail']}" for s in strengths)
+        bullets = "; ".join(f"{s['label']} ({s['module']}): {s['detail']}" for s in strengths)
         parts.append(f"What's helping the score: {bullets}.")
     if weaknesses:
-        bullets = "; ".join(f"{s['label']} ({s['module']}) — {s['detail']}" for s in weaknesses)
+        bullets = "; ".join(f"{s['label']} ({s['module']}): {s['detail']}" for s in weaknesses)
         parts.append(f"What's dragging on the score: {bullets}.")
     if not strengths and not weaknesses:
-        parts.append("No individual factor stood out as a strong driver in either direction — this is a genuinely balanced picture across the data available.")
+        parts.append("No individual factor stood out as a strong driver in either direction: this is a genuinely balanced picture across the data available.")
 
     # ── DCF — always explicit, never just "data unavailable" ────────────
     if fundamental.dcf_detail:
@@ -101,7 +102,7 @@ def build_deterministic_reasoning(
         direction = "above" if d.current_price > d.intrinsic_value_per_share else "below"
         parts.append(
             f"The discounted cash flow model estimates intrinsic value at ${d.intrinsic_value_per_share:.2f} "
-            f"per share versus a current price of ${d.current_price:.2f} — trading {direction} the model's "
+            f"per share versus a current price of ${d.current_price:.2f}: trading {direction} the model's "
             f"estimate by {abs(d.margin_of_safety)*100:.1f}%."
         )
     elif fundamental.dcf_skip_reason:
@@ -121,7 +122,7 @@ def build_deterministic_reasoning(
 
 # ── Optional LLM polish ─────────────────────────────────────────────────────
 
-_POLISH_USER_TEMPLATE = """Rewrite the following analysis summary into natural, flowing prose (5-7 sentences) suitable for a professional trading dashboard. Preserve every number and every named strength/weakness exactly as given — do not change, round differently, drop, or add any figure or claim not already present. Keep the specific company-strength and company-weakness callouts; do not water them down into vague generalities. Do not use bullet points.
+_POLISH_USER_TEMPLATE = """Rewrite the following analysis summary into natural, flowing prose (5-7 sentences) suitable for a professional trading dashboard. Preserve every number and every named strength/weakness exactly as given: do not change, round differently, drop, or add any figure or claim not already present. Keep the specific company-strength and company-weakness callouts; do not water them down into vague generalities. Do not use bullet points. Do not use em dashes; use commas, colons or full stops.
 
 SOURCE SUMMARY (all facts must come from here, verbatim numbers and claims):
 {deterministic_text}
@@ -148,7 +149,7 @@ def polish_with_llm(deterministic_text: str, ticker: str) -> tuple[str, str]:
                 system=CORE_ORCHESTRATOR_SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": user_message}],
             )
-            candidate = response.content[0].text.strip()
+            candidate = plain_punctuation(response.content[0].text.strip())
             validation = validate_llm_output(candidate)
             if validation.is_clean:
                 logger.info("Reasoning polished by LLM and passed guardrails", extra={"ticker": ticker, "attempt": attempt})
@@ -157,7 +158,7 @@ def polish_with_llm(deterministic_text: str, ticker: str) -> tuple[str, str]:
 
         return deterministic_text, "deterministic"
     except Exception as exc:
-        logger.warning("LLM polish failed — using deterministic reasoning", extra={"ticker": ticker, "error": str(exc)})
+        logger.warning("LLM polish failed, using deterministic reasoning", extra={"ticker": ticker, "error": str(exc)})
         return deterministic_text, "deterministic"
 
 

@@ -88,7 +88,7 @@ UNAVAILABLE_SOURCES: list[dict[str, str]] = [
     {
         "name": "StockNewsAPI",
         "channel": "news",
-        "reason": "No free tier — paid plans start at $19.99/mo.",
+        "reason": "No free tier, paid plans start at $19.99/mo.",
         "to_enable": "Subscribe, then set STOCKNEWSAPI_KEY and add a fetch function here.",
     },
     {

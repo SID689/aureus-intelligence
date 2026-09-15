@@ -148,7 +148,7 @@ def run_quantitative_analysis(
         notes.append(f"30-day annualized volatility {vol_30d*100:.1f}% → risk component {vol_score:.0f}/100")
         signals.append({"label": "30-Day Volatility", "score": vol_score, "detail": f"Annualized volatility of {vol_30d*100:.0f}%" + (" is elevated relative to typical large-caps" if vol_score < 40 else " is unusually stable" if vol_score > 80 else "")})
     else:
-        notes.append("Insufficient history for volatility (need 30+ days) — excluded from composite")
+        notes.append("Insufficient history for volatility (need 30+ days): excluded from composite")
 
     beta: float | None = None
     alpha: float | None = None
@@ -161,11 +161,11 @@ def run_quantitative_analysis(
             alpha_computed = True
             alpha_score = _alpha_to_score(alpha)
             notes.append(f"Annualized alpha vs S&P 500 {alpha*100:+.2f}% (beta {beta:.2f}) → alpha component {alpha_score:.0f}/100")
-            signals.append({"label": "Alpha vs S&P 500", "score": alpha_score, "detail": f"{alpha*100:+.1f}% annualized alpha (beta {beta:.2f})" + (" — underperforming the market on a risk-adjusted basis" if alpha_score < 40 else " — genuine outperformance beyond market exposure" if alpha_score > 75 else "")})
+            signals.append({"label": "Alpha vs S&P 500", "score": alpha_score, "detail": f"{alpha*100:+.1f}% annualized alpha (beta {beta:.2f})" + (": underperforming the market on a risk-adjusted basis" if alpha_score < 40 else ": genuine outperformance beyond market exposure" if alpha_score > 75 else "")})
         else:
-            notes.append("Insufficient overlapping history vs S&P 500 for alpha/beta — excluded from composite")
+            notes.append("Insufficient overlapping history vs S&P 500 for alpha/beta: excluded from composite")
     else:
-        notes.append("Benchmark (SPY) data unavailable — alpha/beta excluded from composite")
+        notes.append("Benchmark (SPY) data unavailable: alpha/beta excluded from composite")
 
     momentum_12_1 = _compute_momentum_12_1(prices)
     momentum_computed = momentum_12_1 is not None
@@ -174,7 +174,7 @@ def run_quantitative_analysis(
         notes.append(f"12-month minus 1-month momentum {momentum_12_1*100:+.1f}% → momentum component {momentum_score:.0f}/100")
         signals.append({"label": "12-1 Momentum", "score": momentum_score, "detail": f"{momentum_12_1*100:+.1f}% momentum over the trailing year (excluding the most recent month)"})
     else:
-        notes.append("Insufficient history for 12-1 momentum (need 252+ days) — excluded from composite")
+        notes.append("Insufficient history for 12-1 momentum (need 252+ days): excluded from composite")
 
     sharpe = _compute_sharpe(returns)
 
@@ -182,7 +182,7 @@ def run_quantitative_analysis(
     if ml_computed:
         notes.append(f"Ridge regression forward-return signal → ML component {ml_score:.0f}/100")
     else:
-        notes.append("Insufficient history for ML signal (need 100+ days) — excluded from composite")
+        notes.append("Insufficient history for ML signal (need 100+ days): excluded from composite")
 
     result = combine_evidence([
         EvidenceSignal("volatility_score", vol_score,      _W_VOL,      vol_computed,      calibration_label="30-Day Volatility"),
