@@ -295,11 +295,17 @@ class YFinanceProvider(MarketDataProvider):
         interval_map = {"1d": "1d", "1h": "1h", "5m": "5m"}
         try:
             t  = yf.Ticker(ticker)
+            # Split-adjusted only, like Polygon's adjusted=true above it in
+            # the chain. With auto_adjust=True this fallback also removed
+            # dividends, so the same stock scored differently depending on
+            # which provider happened to answer: CVX's three-year technical
+            # pillar read 62 through here and 65 through Polygon, purely
+            # because a rate limit had been hit.
             df = t.history(
                 start=start.isoformat(),
                 end=end.isoformat(),
                 interval=interval_map[frequency],
-                auto_adjust=True,
+                auto_adjust=False,
             )
         except Exception as exc:
             raise ProviderUnavailableError(f"YFinance error for {ticker}: {exc}", provider=self.name)
