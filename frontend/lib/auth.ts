@@ -5,6 +5,7 @@ import GoogleProvider from "next-auth/providers/google";
 
 const API = process.env.NEXTAUTH_API_URL || "http://backend:8000";
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET || "";
+const TIER_REFRESH_MS = 5 * 60 * 1000;
 
 declare module "next-auth" {
   interface User {
@@ -22,6 +23,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     tier: string;
+    tierCheckedAt?: number;
     stripeCustomerId?: string;
   }
 }
@@ -113,6 +115,27 @@ export const authOptions: NextAuthOptions = {
         token.id               = user.id;
         token.tier              = user.tier;
         token.stripeCustomerId = user.stripeCustomerId;
+        token.tierCheckedAt    = Date.now();
+        return token;
+      }
+      // Without this the tier is frozen at sign-in: an upgrade never reaches
+      // the sidebar or the middleware gates until the user signs out and
+      // back in, and a downgrade keeps the old badges. Re-read it at most
+      // every five minutes, whenever the session is read. Display and fast
+      // paths only — the backend checks the plan itself on every request.
+      if (token.id && Date.now() - (token.tierCheckedAt ?? 0) > TIER_REFRESH_MS) {
+        token.tierCheckedAt = Date.now();
+        try {
+          const res = await fetch(`${API}/api/v1/account/entitlements?user_id=${encodeURIComponent(token.id)}`, {
+            cache: "no-store",
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (typeof data.tier === "string") token.tier = data.tier;
+          }
+        } catch {
+          // Keep the previous tier; the next read retries.
+        }
       }
       return token;
     },

@@ -24,6 +24,8 @@ from app.api.v1.education import router as education_router
 from app.api.v1.games     import router as games_router
 from app.api.v1.quant     import router as quant_router
 from app.api.v1.account   import router as account_router
+from app.api.v1.catalysts import router as catalysts_router
+from app.api.v1.leaderboard import router as leaderboard_router
 
 settings = get_settings()
 setup_logging(level=settings.log_level, use_json=settings.is_production)
@@ -79,6 +81,8 @@ app.include_router(education_router)
 app.include_router(quant_router)
 app.include_router(account_router)
 app.include_router(games_router)
+app.include_router(catalysts_router)
+app.include_router(leaderboard_router)
 
 
 @app.get("/health", tags=["ops"])

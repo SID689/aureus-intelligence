@@ -12,6 +12,7 @@ import { Menu } from "lucide-react";
 import { usePortfolio } from "./PortfolioProvider";
 import { TickerTape, StatusDot, useClock, useMounted } from "@/components/ui/primitives";
 import { marketPhase } from "@/lib/format";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 export default function TopChrome({ onOpenNav }: { onOpenNav?: () => void }) {
   const { holdings, loading } = usePortfolio();
@@ -62,6 +63,8 @@ export default function TopChrome({ onOpenNav }: { onOpenNav?: () => void }) {
         <span className="ml-auto text-[10px] text-aureus-muted/80 truncate text-right">
           Informational only · not financial advice · past performance does not indicate future results
         </span>
+
+        <NotificationBell />
       </div>
     </div>
   );

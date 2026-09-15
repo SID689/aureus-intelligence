@@ -37,6 +37,18 @@ class Settings(BaseSettings):
     # ── Phase 4: OpenAI (Whisper STT + TTS) ──────────────────
     openai_api_key: str = Field(default="")
 
+    # ── Web Push (VAPID) ──────────────────────────────────────────────
+    # Generated per environment. The public key is served to browsers;
+    # the private key signs push requests and must never leave the server.
+    vapid_public_key: str = Field(default="")
+    vapid_private_key: str = Field(default="")
+    vapid_claim_sub: str = Field(default="mailto:push-admin@example.invalid")
+
+    # ── Market scanner ───────────────────────────────────────────────
+    # A single switch so an environment on a shared or tightly-limited API
+    # key can run the rest of the platform without the background sweep.
+    scanner_enabled: bool = Field(default=True)
+
     # ── Local LLM ────────────────────────────────────────────
     # Ollama was removed when the paid tiers launched. It was correct for
     # a single-user local app and wrong for a product: several GB of

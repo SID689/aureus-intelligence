@@ -10,6 +10,7 @@ import PillarCard from "@/components/analysis/PillarCard";
 import ThesisCard from "@/components/analysis/ThesisCard";
 import SectorComparisonCard from "@/components/analysis/SectorComparisonCard";
 import SentimentCard from "@/components/analysis/SentimentCard";
+import CatalystTimeline from "@/components/analysis/CatalystTimeline";
 import PriceChart from "@/components/charts/PriceChart";
 import { getFullAnalysis } from "@/lib/api";
 import type { FullAnalysis } from "@/lib/api";
@@ -277,6 +278,11 @@ function TickerAnalysisView() {
 
           {/* ── Sentiment detail ──────────────────────────────── */}
           {sn && <SentimentCard sentiment={sn} />}
+
+          {/* ── Catalysts ─────────────────────────────────────
+              Above the theses on purpose: the cases below cite these
+              events, so the reader should meet them first. */}
+          <CatalystTimeline ticker={ticker} horizon={horizon} userId={userId} initial={data.catalysts} />
 
           {/* ── Bull vs Bear ──────────────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">

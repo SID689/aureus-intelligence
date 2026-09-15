@@ -194,6 +194,8 @@ export interface FullAnalysis {
   agreement?: number;
   bull_case: ThesisCase;
   bear_case: ThesisCase;
+  // Dated events around this analysis. The theses cite these; the score does not use them.
+  catalysts?: CatalystTimelineData;
   generated_at: string;
 }
 
@@ -203,6 +205,56 @@ export const getFullAnalysis = (
   horizon: "short_term" | "medium_term" | "long_term" = "medium_term",
 ): Promise<{ job_id: string; status: string; result: FullAnalysis | null; error?: string }> =>
   apiFetch(`/api/v1/analysis/quick/${ticker}?time_horizon=${horizon}&user_id=${encodeURIComponent(userId)}`);
+
+// ── Catalysts ───────────────────────────────────────────────────────────────
+
+export type CatalystGroup = "earnings" | "deals" | "regulatory" | "corporate" | "macro";
+
+export interface CatalystItem {
+  id: string;
+  scope: "company" | "sector" | "macro";
+  ticker: string | null;
+  sector: string | null;
+  type: string;
+  type_label: string;
+  group: CatalystGroup;
+  title: string;
+  description: string | null;
+  date: string;                 // YYYY-MM-DD, US Eastern
+  time: string | null;          // "bmo" | "amc" | "14:00 ET" | null
+  date_confirmed: boolean | null;
+  impact: "high" | "medium" | "low";
+  direction: "positive" | "negative" | "neutral" | "unknown";
+  source: string;
+  source_url: string | null;
+  details: Record<string, unknown>;
+  days_until: number;           // negative for past events
+  // Decided server-side: a filing dated today has happened, an earnings date today has not.
+  timing: "upcoming" | "recent";
+}
+
+export interface CatalystTimelineData {
+  ticker: string;
+  horizon: string;
+  as_of: string;
+  window: { lookback_days: number; forward_days: number };
+  sector: string | null;
+  upcoming: CatalystItem[];
+  recent: CatalystItem[];
+  primary: (CatalystItem & { relation: "upcoming" | "recent" }) | null;
+  counts: { upcoming: number; recent: number; high_impact_upcoming: number };
+  sources: Record<string, string>;   // per-source status: cached | refreshed (n) | pending | unavailable: ...
+  unavailable: { name: string; reason: string; to_enable: string }[];
+  refresh_throttled?: boolean;
+}
+
+export const getCatalystTimeline = (
+  ticker: string,
+  userId: string,
+  horizon: "short_term" | "medium_term" | "long_term" = "medium_term",
+  refresh = false,
+): Promise<CatalystTimelineData> =>
+  apiFetch(`/api/v1/catalysts/${encodeURIComponent(ticker)}?horizon=${horizon}&refresh=${refresh}&user_id=${encodeURIComponent(userId)}`);
 
 // ── Market data (real bars — fixes the mock-data chart bug) ──────────────────
 

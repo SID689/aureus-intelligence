@@ -108,6 +108,9 @@ class Entitlements:
     quant_monte_carlo_paths: int | None = None
     quant_custom_peers: bool = False
 
+    # Hottest Stocks Leaderboard + Strong Buy alerts (migration 013).
+    leaderboard_enabled: bool = False
+
     max_sentiment_catalysts: int | None = 3
     sec_filing_tone_enabled: bool = False
 
@@ -161,6 +164,7 @@ class Entitlements:
             "features": {
                 "quant_lab": self.quant_lab_enabled,
                 "quant_custom_peers": self.quant_custom_peers,
+                "leaderboard": self.leaderboard_enabled,
                 "sec_filing_tone": self.sec_filing_tone_enabled,
                 **self.features,
             },
@@ -191,6 +195,7 @@ def _row_to_entitlements(row) -> Entitlements:
         quant_history_years=m["quant_history_years"],
         quant_monte_carlo_paths=m["quant_monte_carlo_paths"],
         quant_custom_peers=bool(m["quant_custom_peers"]),
+        leaderboard_enabled=bool(m["leaderboard_enabled"]),
         max_sentiment_catalysts=m["max_sentiment_catalysts"],
         sec_filing_tone_enabled=bool(m["sec_filing_tone_enabled"]),
         features=dict(m["features"] or {}),
@@ -212,6 +217,7 @@ _TIER_COLUMNS = """
     max_backtests_per_day, max_backtest_tickers, max_backtest_years,
     max_portfolio_holdings, max_portfolios,
     quant_lab_enabled, quant_history_years, quant_monte_carlo_paths, quant_custom_peers,
+    leaderboard_enabled,
     max_sentiment_catalysts, sec_filing_tone_enabled, features,
     monthly_credits, llm_model_default, llm_model_deep,
     market_data_providers, sentiment_sources,

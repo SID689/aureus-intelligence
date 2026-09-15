@@ -110,6 +110,67 @@ _HORIZON_CONFIG: dict[str, dict] = {
 }
 
 
+def sector_metrics(fund_data) -> dict[str, float | None]:
+    """
+    The metric set compared against sector medians.
+
+    Shared with the market scanner so both paths compare identical inputs.
+    Sector medians come from Finnhub, which reports margins and returns as
+    PERCENTAGES while our own values are fractions (see _pct_to_fraction),
+    so they are scaled back up here — otherwise every company looks 99%
+    below its sector on every quality metric.
+    """
+    def pct(v: float | None) -> float | None:
+        return v * 100 if v is not None else None
+
+    return {
+        "pe_ratio": fund_data.pe_ratio,
+        "price_to_sales": fund_data.price_to_sales,
+        "pb_ratio": fund_data.pb_ratio,
+        "gross_margin": pct(fund_data.gross_margin),
+        "operating_margin": pct(fund_data.operating_margin),
+        "return_on_equity": pct(fund_data.return_on_equity),
+        "roic": pct(fund_data.roic),
+        "debt_to_equity": fund_data.debt_to_equity,
+    }
+
+
+def pool_pillars(
+    time_horizon: str,
+    *,
+    fundamental: tuple[float, float],
+    technical: tuple[float, float],
+    sentiment: tuple[float, float],
+):
+    """
+    Pool three pillars into the composite. Each argument is
+    (evidence_z, data_completeness).
+
+    THE SINGLE DEFINITION OF A COMPOSITE SCORE. The analysis page and the
+    market scanner both call this, so a stock the scanner puts on the
+    Strong Buy board is scored by exactly the arithmetic the user sees when
+    they click through. Two copies of this logic would eventually disagree,
+    and the first sign would be a stock alerted as a Strong Buy that the
+    analysis page calls a Hold.
+
+    Pools the pillars' STANDARDISED evidence rather than their 0-100
+    scores. Each pillar's evidence_z is already its lean in standard
+    deviations; feeding 0-100 scores back in would standardise a
+    standardised quantity against a second set of constants and shrink
+    everything toward neutral a second time.
+    """
+    w_fund, w_tech, w_sent = _HORIZON_WEIGHTS.get(time_horizon, _HORIZON_WEIGHTS["medium_term"])
+    return combine_evidence(
+        [
+            EvidenceSignal("fundamental", fundamental[0], w_fund, fundamental[1] >= _MODULE_COMPLETENESS_FLOOR),
+            EvidenceSignal("technical",   technical[0],   w_tech, technical[1]   >= _MODULE_COMPLETENESS_FLOOR),
+            EvidenceSignal("sentiment",   sentiment[0],   w_sent, sentiment[1]   >= _MODULE_COMPLETENESS_FLOOR),
+        ],
+        group="ensemble",
+        pre_standardised=True,
+    )
+
+
 def _classify_signal(score: float) -> tuple[Literal["BUY", "HOLD", "SELL"], Literal["STRONG", "MODERATE", "WEAK"]]:
     if score >= _BUY_THRESHOLD:
         return "BUY", "STRONG" if score >= _STRONG_BUY_THRESH else "MODERATE"
@@ -123,6 +184,7 @@ def run_ensemble_analysis(
     time_horizon: Literal["short_term", "medium_term", "long_term"] = "medium_term",
     use_llm_reasoning: bool = True,
     user_id: str | None = None,
+    refresh_catalysts: bool = True,
 ) -> EnsembleSignal:
     ticker = ticker.upper().strip()
     cfg = _HORIZON_CONFIG.get(time_horizon, _HORIZON_CONFIG["medium_term"])
@@ -153,23 +215,7 @@ def run_ensemble_analysis(
         fund_data = FundamentalDataResult(ticker=ticker, provider="unavailable", current_price=current_price)
         fundamental_provider = "unavailable"
 
-    sector_cmp = compare_to_sector(
-        ticker, fund_data.sector,
-        {
-            "pe_ratio": fund_data.pe_ratio,
-            "price_to_sales": fund_data.price_to_sales,
-            "pb_ratio": fund_data.pb_ratio,
-            # Sector medians come from Finnhub, which reports margins/returns as
-            # PERCENTAGES. Our own values are fractions (see _pct_to_fraction),
-            # so scale back up before comparing or every company looks 99%
-            # below its sector on every quality metric.
-            "gross_margin": (fund_data.gross_margin * 100) if fund_data.gross_margin is not None else None,
-            "operating_margin": (fund_data.operating_margin * 100) if fund_data.operating_margin is not None else None,
-            "return_on_equity": (fund_data.return_on_equity * 100) if fund_data.return_on_equity is not None else None,
-            "roic": (fund_data.roic * 100) if fund_data.roic is not None else None,
-            "debt_to_equity": fund_data.debt_to_equity,
-        },
-    )
+    sector_cmp = compare_to_sector(ticker, fund_data.sector, sector_metrics(fund_data))
 
     fundamental_result: FundamentalScore = run_fundamental_analysis(
         ticker, fund_data, time_horizon, sector_comparison=sector_cmp
@@ -180,29 +226,11 @@ def run_ensemble_analysis(
     )
 
     # ── Pillar-level evidence pooling ───────────────────────────────────
-    fund_computed = fundamental_result.data_completeness >= _MODULE_COMPLETENESS_FLOOR
-    tech_computed = technical_result.data_completeness   >= _MODULE_COMPLETENESS_FLOOR
-    sent_computed = sentiment_result.data_completeness   >= _MODULE_COMPLETENESS_FLOOR
-
-    w_fund, w_tech, w_sent = _HORIZON_WEIGHTS.get(time_horizon, _HORIZON_WEIGHTS["medium_term"])
-
-    # Combine the pillars' STANDARDISED evidence, not their 0-100 scores.
-    #
-    # Each pillar already reports evidence_z — its lean in standard
-    # deviations, pooled from its own sub-signals. Feeding the 0-100
-    # scores back in would standardise an already-standardised quantity
-    # against a second set of constants, shrinking everything toward
-    # neutral for a second time. Passing the z-scores straight through
-    # (pre_standardised=True) is both simpler and the only version that
-    # composes correctly.
-    top_result = combine_evidence(
-        [
-            EvidenceSignal("fundamental", fundamental_result.evidence_z, w_fund, fund_computed),
-            EvidenceSignal("technical",   technical_result.evidence_z,   w_tech, tech_computed),
-            EvidenceSignal("sentiment",   sentiment_result.evidence_z,   w_sent, sent_computed),
-        ],
-        group="ensemble",
-        pre_standardised=True,
+    top_result = pool_pillars(
+        time_horizon,
+        fundamental=(fundamental_result.evidence_z, fundamental_result.data_completeness),
+        technical=(technical_result.evidence_z, technical_result.data_completeness),
+        sentiment=(sentiment_result.evidence_z, sentiment_result.data_completeness),
     )
 
     confidence_index = top_result.composite_score
@@ -225,11 +253,26 @@ def run_ensemble_analysis(
         use_llm_polish=use_llm_reasoning, horizon_key=time_horizon,
     )
 
+    # ── Catalysts ───────────────────────────────────────────────────────
+    # Dated events feed the bull and bear cases and the timeline. They do
+    # not touch the composite above — see catalysts/service.py for why.
+    # Never allowed to fail the analysis: a missing timeline is a gap, a
+    # 500 is an outage.
+    catalyst_timeline: dict = {}
+    try:
+        from app.catalysts import service as catalyst_service
+        catalyst_service.record_news_catalysts(ticker, sentiment_result.catalysts)
+        catalyst_timeline = catalyst_service.get_timeline(
+            ticker, time_horizon, sector=fund_data.sector, refresh=refresh_catalysts,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Catalyst timeline unavailable", extra={"ticker": ticker, "error": str(exc)})
+
     # user_id decides which model (if any) polishes the thesis and whose
     # credits pay for it. None = deterministic output, no spend.
     bull, bear = build_theses(
         ticker, time_horizon, fundamental_result, technical_result,
-        sentiment_result, fund_data, user_id=user_id,
+        sentiment_result, fund_data, user_id=user_id, catalysts=catalyst_timeline,
     )
 
     logger.info("Ensemble analysis complete", extra={
@@ -253,4 +296,5 @@ def run_ensemble_analysis(
         overall_data_completeness=overall_completeness, module_weights_used=module_weights_used,
         evidence_z=top_result.z, conviction=top_result.conviction,
         agreement=top_result.agreement,
+        catalysts=catalyst_timeline,
     )

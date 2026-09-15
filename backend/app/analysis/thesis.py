@@ -35,6 +35,7 @@ advocacy, and it is generated from the same metrics as the case itself.
 
 import logging
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Literal
 
 from app.analysis.models import FundamentalScore, SentimentScore, TechnicalScore
@@ -428,6 +429,144 @@ def _falsifiers(stance: str, f: FundamentalScore, t: TechnicalScore, sn: Sentime
     return out[:3]
 
 
+# ── Catalysts ────────────────────────────────────────────────────────────
+# Dated events enter the argument in two places, and deliberately not a
+# third. A catalyst that HAS happened, with a clear direction, is evidence
+# and becomes a point in the matching case. A catalyst that is COMING is
+# not evidence of anything — an earnings date says nothing about the
+# result — so it goes into "what would change this view" as a dated test.
+# Neither moves the score; see catalysts/service.py.
+
+_CATALYST_CATEGORY = "Catalysts & Event Risk"
+_MAX_CATALYST_POINTS = 2
+
+# An EPS "beat" of 130% is far more often a basis mismatch (a GAAP actual
+# against an adjusted estimate, a one-off gain) than a genuine beat of that
+# size. Such a report stays on the timeline, flagged, and is not argued from.
+_MAX_CREDIBLE_SURPRISE_PCT = 50.0
+
+# How far back a catalyst still counts as evidence. A guidance raise from
+# ten weeks ago is stale for a trade measured in weeks, but still part of
+# the picture for a six-month view.
+_CATALYST_RECENCY_DAYS = {"short_term": 30, "medium_term": 90, "long_term": 90}
+
+
+def _fmt_day(iso: str) -> str:
+    d = date.fromisoformat(iso)
+    return f"{d:%b} {d.day}"
+
+
+def _ago(days: int) -> str:
+    return "today" if days == 0 else f"{days} day{'s' if days != 1 else ''} ago"
+
+
+def _eps(v) -> str:
+    return f"{v:.2f}" if isinstance(v, (int, float)) else str(v)
+
+
+def _source_label(source: str) -> str:
+    if source.startswith("news:"):
+        return source[5:] or "news coverage"
+    if "8k" in source or source.startswith("sec"):
+        return "an SEC 8-K filing"
+    if "earnings" in source:
+        return "the earnings calendar"
+    return source
+
+
+def _catalyst_point(c: dict) -> ThesisPoint:
+    details = c.get("details") or {}
+    positive = c["direction"] == "positive"
+    day, ago = _fmt_day(c["date"]), _ago(-c["days_until"])
+
+    surprise = details.get("surprise_pct")
+    if c["type"] == "earnings" and surprise is not None:
+        return ThesisPoint(
+            _CATALYST_CATEGORY,
+            f"{'Beat' if positive else 'Missed'} consensus EPS by {abs(surprise):.1f}% in {c['title']}",
+            (f"Reported {day} ({ago}): EPS of {_eps(details.get('eps_actual'))} against a "
+             f"{_eps(details.get('eps_estimate'))} estimate. Prices have historically tended to keep drifting "
+             f"in the direction of a surprise for weeks afterwards, though the effect is weaker in large, "
+             f"heavily covered companies."),
+            "EPS surprise", f"{surprise:+.1f}%",
+        )
+
+    base = (c.get("description") or c["title"]).rstrip(".")
+    return ThesisPoint(
+        _CATALYST_CATEGORY,
+        c["title"],
+        f"{base}. Dated {day} ({ago}); source: {_source_label(c.get('source', ''))}.",
+        c.get("type_label") or c["type"], day,
+    )
+
+
+def _catalyst_points(catalysts: dict | None, horizon: Horizon) -> tuple[list[ThesisPoint], list[ThesisPoint]]:
+    """Recent company events with a clear direction, split into (bull, bear)."""
+    if not catalysts:
+        return [], []
+    recency = _CATALYST_RECENCY_DAYS.get(horizon, 90)
+    bull: list[ThesisPoint] = []
+    bear: list[ThesisPoint] = []
+    for c in catalysts.get("recent") or []:          # newest first
+        if c.get("scope") != "company" or c.get("impact") not in ("high", "medium"):
+            continue
+        if -c["days_until"] > recency:
+            continue
+        # A rumoured deal is worth showing on the timeline. It is not
+        # evidence, and an argument that cites it as evidence is weaker
+        # for it.
+        if (c.get("details") or {}).get("speculative"):
+            continue
+        surprise = (c.get("details") or {}).get("surprise_pct")
+        if c["type"] == "earnings" and isinstance(surprise, (int, float)) and abs(surprise) > _MAX_CREDIBLE_SURPRISE_PCT:
+            continue
+        if c.get("direction") == "positive":
+            bull.append(_catalyst_point(c))
+        elif c.get("direction") == "negative":
+            bear.append(_catalyst_point(c))
+    return bull[:_MAX_CATALYST_POINTS], bear[:_MAX_CATALYST_POINTS]
+
+
+def _dated_falsifiers(stance: str, catalysts: dict | None, horizon: Horizon) -> list[str]:
+    """Upcoming high-impact events, phrased as the test they pose to this case."""
+    if not catalysts:
+        return []
+    out: list[str] = []
+    seen_types: set[str] = set()
+    upcoming = catalysts.get("upcoming") or []       # soonest first
+
+    for c in upcoming:
+        if c.get("scope") != "company" or c.get("impact") != "high" or c["type"] in seen_types:
+            continue
+        seen_types.add(c["type"])
+        n = c["days_until"]
+        when = "today" if n == 0 else f"in {n} day{'s' if n != 1 else ''}"
+        day = _fmt_day(c["date"])
+        if c["type"] == "earnings":
+            est = (c.get("details") or {}).get("eps_estimate")
+            cons = f" against consensus EPS of {_eps(est)}" if est is not None else ""
+            test = ("a miss" + cons + " would test this case sooner than any of the slower-moving evidence"
+                    if stance == "bull" else
+                    "a clear beat" + cons + " would challenge the bearish read directly")
+            out.append(f"The {c['title']} report on {day} ({when}, per the consensus calendar): {test}.")
+        else:
+            out.append(f"{c['title']} on {day} ({when}) is scheduled, and its outcome is not something "
+                       f"this analysis can anticipate.")
+        if len(out) == 2:
+            return out
+
+    # Rate decisions move everything, so they are only worth naming where
+    # the window is short enough for one to dominate a single stock's signal.
+    if horizon == "short_term":
+        fomc = next((c for c in upcoming if c.get("type") == "fomc"), None)
+        if fomc:
+            n = fomc["days_until"]
+            out.append(f"The FOMC decision on {_fmt_day(fomc['date'])} "
+                       f"({'today' if n == 0 else f'in {n} days'}) can move the whole market more than any "
+                       f"single-stock signal over a window this short.")
+    return out[:2]
+
+
 def _summary(stance: str, ticker: str, points: list[ThesisPoint], horizon: Horizon) -> str:
     label = {"short_term": "the next few weeks", "medium_term": "the next one to six months",
              "long_term": "a multi-year horizon"}[horizon]
@@ -440,22 +579,40 @@ def _summary(stance: str, ticker: str, points: list[ThesisPoint], horizon: Horiz
     joined = ", ".join(cats[:-1]) + (" and " + cats[-1] if len(cats) > 1 else cats[0])
     direction = "supports" if stance == "bull" else "argues against"
     return (f"Over {label}, the evidence that {direction} {ticker} rests on {joined}. "
-            f"Each point below is derived from a metric that actually computed for this ticker; "
+            f"Each point below is derived from a metric that actually computed for this ticker"
+            f"{', or from a dated event with its source' if _CATALYST_CATEGORY in cats else ''}; "
             f"nothing is asserted without a number behind it.")
 
 
 def build_theses(ticker: str, horizon: Horizon,
                  fundamental: FundamentalScore, technical: TechnicalScore,
                  sentiment: SentimentScore, fundamental_data,
-                 user_id: str | None = None) -> tuple[Thesis, Thesis]:
-    """Build the bull and bear cases. Always returns both, never raises."""
-    bull_pts = _order_and_trim(_bull_points(fundamental, technical, sentiment, fundamental_data, horizon), horizon)
-    bear_pts = _order_and_trim(_bear_points(fundamental, technical, sentiment, fundamental_data, horizon), horizon)
+                 user_id: str | None = None,
+                 catalysts: dict | None = None) -> tuple[Thesis, Thesis]:
+    """
+    Build the bull and bear cases. Always returns both, never raises.
+
+    `catalysts` is the timeline from catalysts.service.get_timeline. Event
+    points take at most two of the six slots, so a busy news month cannot
+    crowd the fundamentals out of the argument.
+    """
+    try:
+        cat_bull, cat_bear = _catalyst_points(catalysts, horizon)
+        dated_bull = _dated_falsifiers("bull", catalysts, horizon)
+        dated_bear = _dated_falsifiers("bear", catalysts, horizon)
+    except Exception as exc:  # noqa: BLE001 — a malformed timeline must not cost the thesis
+        logger.warning("Catalyst thesis points skipped", extra={"ticker": ticker, "error": str(exc)})
+        cat_bull, cat_bear, dated_bull, dated_bear = [], [], [], []
+
+    bull_pts = _order_and_trim(_bull_points(fundamental, technical, sentiment, fundamental_data, horizon),
+                               horizon, limit=6 - len(cat_bull)) + cat_bull
+    bear_pts = _order_and_trim(_bear_points(fundamental, technical, sentiment, fundamental_data, horizon),
+                               horizon, limit=6 - len(cat_bear)) + cat_bear
 
     bull = Thesis("bull", _summary("bull", ticker, bull_pts, horizon), bull_pts,
-                  _falsifiers("bull", fundamental, technical, sentiment, fundamental_data))
+                  (dated_bull + _falsifiers("bull", fundamental, technical, sentiment, fundamental_data))[:4])
     bear = Thesis("bear", _summary("bear", ticker, bear_pts, horizon), bear_pts,
-                  _falsifiers("bear", fundamental, technical, sentiment, fundamental_data))
+                  (dated_bear + _falsifiers("bear", fundamental, technical, sentiment, fundamental_data))[:4])
 
     return _with_cached_polish(ticker, horizon, bull, bear, user_id)
 
@@ -476,17 +633,26 @@ def build_theses(ticker: str, horizon: Horizon,
 _POLISH_CACHE_TTL = 60 * 60 * 12   # theses move slowly; half a day is plenty
 
 
-def _cache_key(ticker: str, horizon: str, stance: str, model: str = "none") -> str:
+def _cache_key(ticker: str, horizon: str, thesis: "Thesis", model: str = "none") -> str:
     """
-    The MODEL is part of the key, deliberately.
+    The MODEL and the POINTS are both part of the key, deliberately.
 
     Elite polishes with Haiku and Institutional with Sonnet. Keying only
     on (ticker, horizon, stance) would let whichever plan ran first
     populate the cache for everyone — an Institutional customer paying
     $499 would be served an Elite user's Haiku output, and the difference
     they are paying for would silently vanish behind a cache hit.
+
+    The cache stores polished DETAIL text positionally, one string per
+    point. If the points change — a catalyst lands, a metric crosses a
+    threshold — while their count stays the same, a key without a
+    fingerprint would paste yesterday's prose under today's headlines. The
+    fingerprint is over the headlines because polishing rewrites details,
+    never headlines.
     """
-    return f"thesis_polished:{ticker}:{horizon}:{stance}"
+    import hashlib
+    fp = hashlib.sha1("\x1f".join(p.headline for p in thesis.points).encode()).hexdigest()[:12]
+    return f"thesis_polished:v2:{ticker}:{horizon}:{thesis.stance}:{model}:{fp}"
 
 
 def _with_cached_polish(ticker: str, horizon: Horizon,
@@ -511,7 +677,7 @@ def _with_cached_polish(ticker: str, horizon: Horizon,
     missing: list[Thesis] = []
     for th in (bull, bear):
         try:
-            raw = redis.get(_cache_key(ticker, horizon, th.stance, model))
+            raw = redis.get(_cache_key(ticker, horizon, th, model))
         except Exception:
             raw = None
         if raw:
@@ -544,7 +710,7 @@ def _spawn_background_polish(ticker: str, horizon: Horizon, theses: list[Thesis]
                 polished = _polish(th, ticker, horizon, user_id)
                 if polished:
                     redis.setex(
-                        _cache_key(ticker, horizon, th.stance, model),
+                        _cache_key(ticker, horizon, th, model),
                         _POLISH_CACHE_TTL,
                         _json.dumps([p.detail for p in polished.points]),
                     )

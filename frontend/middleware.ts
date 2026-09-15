@@ -7,6 +7,10 @@ import type { JWT } from "next-auth/jwt";
 // Routes that require specific tiers
 const TIER_GATES: Record<string, string[]> = {
   "/voice":   ["elite", "institutional"],
+  // Fast path only. The page re-checks the plan against the database
+  // server-side (app/(dashboard)/leaderboard/page.tsx), because the tier in
+  // the JWT can lag a plan change.
+  "/leaderboard": ["elite", "institutional"],
   "/settings/billing": ["elite", "institutional"],
 };
 

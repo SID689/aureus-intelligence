@@ -254,3 +254,7 @@ class EnsembleSignal:
     evidence_z: float = 0.0
     conviction: float = 0.0
     agreement: float = 0.0
+
+    # The catalyst timeline used to build this analysis's bull and bear
+    # cases, returned so the page shows the same events the argument cites.
+    catalysts: dict = field(default_factory=dict)

@@ -68,7 +68,20 @@ def run_sentiment_analysis(
             sec_tone_score=50.0, data_completeness=0.0,
             analysis_notes=[f"Sentiment analysis could not run: {exc}"],
         )
+    return score_sentiment(ticker, b, time_horizon)
 
+
+def score_sentiment(ticker: str, b, time_horizon: str = "medium_term") -> SentimentScore:
+    """
+    Turn one SentimentBreakdown into the pillar score for one horizon.
+
+    Split from run_sentiment_analysis so the market scanner can fetch a
+    ticker's coverage ONCE and score it for all three horizons. Only the
+    stream weights differ by horizon; fetching three times to change three
+    weights would triple the scanner's news and StockTwits spend for
+    nothing. The analysis page calls this same function, so both paths
+    score identically.
+    """
     notes: list[str] = list(b.notes)
     signals: list[dict] = []
 

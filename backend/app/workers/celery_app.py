@@ -34,6 +34,7 @@ def create_celery_app() -> Celery:
             "app.workers.market_tasks",
             "app.workers.news_tasks",
             "app.workers.analysis_tasks",
+            "app.workers.scanner_tasks",
         ],
 
         task_queues=(
@@ -97,6 +98,29 @@ def create_celery_app() -> Celery:
                 # a market-data refresh in substance anyway — it fetches
                 # bars and fundamentals — and run_analysis_task already
                 # lands on this queue via task_default_queue.
+                "options":  {"queue": "market-data"},
+            },
+            # Fires every 15 minutes; the scanner decides whether a pass is
+            # actually due (15 min while the US market is open, hourly
+            # otherwise) and holds a Redis lock, so an overrun never
+            # overlaps the next beat. Quota ceilings: app/scanner/budget.py.
+            # `expires` drops a beat that sat queued behind a busy worker
+            # instead of letting several stale ones run back to back.
+            "scan-market-every-15min": {
+                "task":     "app.workers.scanner_tasks.run_market_scan",
+                "schedule": 900,
+                "options":  {"queue": "market-data", "expires": 840},
+            },
+            "refresh-scanner-universe-weekly": {
+                "task":     "app.workers.scanner_tasks.refresh_scanner_universe",
+                "schedule": crontab(hour=5, minute=0, day_of_week="sun"),
+                "options":  {"queue": "market-data"},
+            },
+            # 10:30 UTC is 06:30 in New York during daylight time and 05:30
+            # in winter: before the open either way.
+            "refresh-catalysts-daily": {
+                "task":     "app.workers.scanner_tasks.refresh_catalysts_market_wide",
+                "schedule": crontab(hour=10, minute=30),
                 "options":  {"queue": "market-data"},
             },
             "stream-health-check-every-5min": {

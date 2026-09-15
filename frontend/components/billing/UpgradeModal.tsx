@@ -23,6 +23,7 @@ const TIER_BENEFITS = {
     "25,000 credits/month — ~1,600 AI analyses",
     "Real-time market data via Polygon (no 15-min delay)",
     "The Quant Lab — factor models, Monte Carlo, VaR",
+    "Hottest Stocks Leaderboard + instant Strong Buy alerts",
     "5-minute cache, priority queue, 3 concurrent jobs",
     "300 voice minutes + 2 programmatic API keys",
   ],
@@ -36,6 +37,32 @@ const TIER_BENEFITS = {
   ],
 };
 
+// What a specific locked feature does, shown when someone arrives from it.
+// Every claim maps to shipped behaviour in backend/app/scanner and
+// backend/app/notifications — keep it that way.
+const FEATURE_PITCH: Record<string, { title: string; lead: string; points: string[] }> = {
+  leaderboard: {
+    title: "The Hottest Stocks Leaderboard",
+    lead: "The whole S&P 500, rescored every 15 minutes while the market is open, by the same engine as your analysis page.",
+    points: [
+      "A live board of every stock whose verified score clears the Strong Buy line, with price, composite and its primary catalyst",
+      "An alert the moment a new name enters: in the app while you are here, as a push notification when you are not",
+      "The names on the verge, and the exact test each one is still failing",
+      "Entry and exit rules published in full. Nothing on the board is hand-picked",
+    ],
+  },
+  notifications: {
+    title: "Strong Buy alerts",
+    lead: "Know the moment a stock enters the Strong Buy board, whether or not the app is open.",
+    points: [
+      "Instant in-app alerts, and push notifications to any browser you switch them on for",
+      "At most one alert per stock every 72 hours, so a name hovering at the line cannot flood you",
+      "A full history behind the bell, for anything you missed",
+      "Comes with the Hottest Stocks Leaderboard",
+    ],
+  },
+};
+
 const TIER_PRICE: Record<"elite" | "institutional", string> = {
   elite: "99",
   institutional: "499",
@@ -44,6 +71,7 @@ const TIER_PRICE: Record<"elite" | "institutional", string> = {
 export default function UpgradeModal({ feature, requiredTier = "elite", onClose }: Props) {
   const { data: session } = useSession();
   const [loading, setLoading] = useState<string | null>(null);
+  const pitch = feature ? FEATURE_PITCH[feature] : undefined;
 
   const handleUpgrade = async (tier: "elite" | "institutional") => {
     setLoading(tier);
@@ -65,7 +93,7 @@ export default function UpgradeModal({ feature, requiredTier = "elite", onClose 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
          onClick={onClose}>
-      <div className="w-full max-w-2xl rounded-2xl border border-aureus-rule p-6 space-y-6"
+      <div className="w-full max-w-2xl max-h-[92vh] overflow-y-auto mx-4 rounded-2xl border border-aureus-rule p-6 space-y-6"
            style={{ background: "var(--panel)" }}
            onClick={(e) => e.stopPropagation()}>
         {/* Header */}
@@ -75,17 +103,28 @@ export default function UpgradeModal({ feature, requiredTier = "elite", onClose 
             <Zap className="w-6 h-6 text-aureus-gold" />
           </div>
           <h2 className="text-aureus-text text-xl font-bold">
-            {feature ? `Unlock ${feature}` : "Upgrade your plan"}
+            {feature ? `Unlock ${pitch?.title ?? feature}` : "Upgrade your plan"}
           </h2>
           <p className="text-aureus-muted text-sm">
-            {feature
+            {pitch?.lead ?? (feature
               ? `${feature} requires ${requiredTier === "institutional" ? "Institutional" : "Elite"} or above.`
-              : "Access advanced features built for serious traders."}
+              : "Access advanced features built for serious traders.")}
           </p>
         </div>
 
+        {pitch && (
+          <ul className="rounded-xl border border-aureus-gold/30 bg-aureus-gold/[0.05] px-4 py-3.5 space-y-2">
+            {pitch.points.map((point) => (
+              <li key={point} className="flex items-start gap-2.5 text-[13px] text-aureus-soft leading-relaxed">
+                <Check className="w-3.5 h-3.5 text-aureus-gold mt-1 flex-shrink-0" />
+                {point}
+              </li>
+            ))}
+          </ul>
+        )}
+
         {/* Plans */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {(["elite", "institutional"] as const).map((tier) => (
             <div key={tier}
                  className={`rounded-xl border p-4 space-y-3 ${

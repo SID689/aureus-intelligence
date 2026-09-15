@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
   LayoutDashboard, LineChart, Mic, FlaskConical, GraduationCap, Gamepad2,
-  Settings, LogOut, Lock, Sigma, X,
+  Settings, LogOut, Lock, Sigma, X, Flame,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,7 @@ const NAV_GROUPS: {
   {
     label: "Research",
     items: [
+      { href: "/leaderboard", label: "Leaderboard", icon: Flame, tier: "elite" },
       { href: "/backtest",  label: "Backtest",  icon: FlaskConical },
       { href: "/quant-lab", label: "Quant Lab", icon: Sigma, tier: "elite" },
       { href: "/voice",     label: "Voice",     icon: Mic,   tier: "elite" },

@@ -108,6 +108,73 @@ site with ten visitors. Sensible public values:
 That alone cuts Redis traffic and provider calls by more than an order of
 magnitude.
 
+Leave `scan-market-every-15min` alone. It fires every 15 minutes but the
+scanner decides for itself whether a pass is due (every 15 minutes while
+the US market is open, hourly otherwise), and its provider spend is capped
+in `app/scanner/budget.py` regardless of how often beat fires.
+
+## Market scanner, catalysts and alerts
+
+### What it spends
+
+The scanner holds itself to ceilings sized for free plans, leaving the
+larger share of each quota to people using the site:
+
+| Provider | Free limit | Scanner ceiling | Worst case per day |
+|---|---|---|---|
+| Finnhub | 60/min, shared with users | 30/min | ~2,200 calls |
+| StockTwits | ~200/hour per IP | 90/hour | ~1,300 calls |
+| Yahoo (prices) | unpublished | ~6 batch requests per pass | ~260 requests |
+| SEC EDGAR | 10/sec | a few per minute | ~650 requests |
+
+The daily catalyst sweep (10:30 UTC) adds about 25 Finnhub calendar calls.
+On a shared or tightly limited key, set `SCANNER_ENABLED=false` in
+`backend/.env` and the rest of the platform runs without it.
+
+Coverage builds over the first day: prices for the whole index on the
+first pass, fundamentals and sentiment a few dozen names per pass. The
+board stays empty until scores are verified, by design.
+
+### Web Push
+
+1. Generate a VAPID key pair once per environment and put it in
+   `backend/.env`. Never reuse the development keys, and never rotate them
+   casually: every existing browser subscription is bound to the public key
+   and silently stops working when it changes.
+
+```bash
+docker compose exec -T backend python -c "from py_vapid import Vapid01; import base64; from cryptography.hazmat.primitives import serialization as s; v=Vapid01(); v.generate_keys(); e=lambda b: base64.urlsafe_b64encode(b).rstrip(b'=').decode(); print('VAPID_PUBLIC_KEY='+e(v.public_key.public_bytes(s.Encoding.X962, s.PublicFormat.UncompressedPoint))); print('VAPID_PRIVATE_KEY='+e(v.private_key.private_numbers().private_value.to_bytes(32,'big')))"
+```
+
+2. Set `VAPID_CLAIM_SUB=mailto:<a real address you read>`. Push services
+   use it to contact you before they block a sender.
+
+3. Push only works on HTTPS (browsers exempt `localhost` alone), so it
+   will not work over a bare IP.
+
+4. `pywebpush` is in `requirements.txt`. Rebuild the backend images after
+   pulling this change, or the alert worker fails at import:
+
+```bash
+docker compose build backend celery-worker celery-agent-worker celery-beat
+```
+
+### WebSockets behind a proxy
+
+Live alerts use `/api/v1/ws/market`. Set `NEXT_PUBLIC_WS_URL` to
+`wss://<host>` (a build arg, like the other `NEXT_PUBLIC_*` values) and
+make sure the proxy forwards the upgrade. Caddy does this by default;
+nginx needs `proxy_http_version 1.1` plus the `Upgrade` and `Connection`
+headers on that location.
+
+### Not covered on free data
+
+Economic releases (CPI, payrolls) are not on the catalyst timeline:
+Finnhub's economic calendar is a paid endpoint and the BLS prohibits
+automated retrieval of its schedule. FOMC dates, earnings, SEC 8-K events,
+dividends and FDA advisory meetings are covered. The timeline itself tells
+users what is missing and why.
+
 ## Never run `next build` inside the dev container
 
 `docker-compose.yml` mounts `.next` as an anonymous volume:
@@ -171,3 +238,11 @@ docker compose exec -T frontend sh -c 'rm -rf /app/.next/* /app/.next/.[!.]*' &&
       for you.
 - [ ] The Grafana service in the prod overlay ships default credentials.
       Change them or do not expose that port.
+- [ ] Generate production VAPID keys and set a real `VAPID_CLAIM_SUB`
+      (see "Web Push" above). The development claim address is a
+      placeholder at `example.invalid`.
+- [ ] `INTERNAL_API_SECRET` must be identical in `backend/.env` and
+      `frontend/.env.local`. The leaderboard, notifications and live
+      alerts authenticate with tokens signed by it, and fail closed
+      (401/503) when the two disagree or it is unset.
+- [ ] Confirm the proxy passes WebSocket upgrades for `/api/v1/ws/`.
