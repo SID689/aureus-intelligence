@@ -58,10 +58,10 @@ from app.core.config import get_settings
 
 logger = logging.getLogger("aureus.core.entitlements")
 
-TierName = Literal["sovereign", "elite", "institutional"]
+TierName = Literal["sovereign", "plus", "elite", "institutional"]
 
 # Least to most privileged.
-_TIER_ORDER: list[str] = ["sovereign", "elite", "institutional"]
+_TIER_ORDER: list[str] = ["sovereign", "plus", "elite", "institutional"]
 
 # Tier rows change only when someone edits a plan, so a short cache
 # removes a database round-trip from every gated request without making
@@ -80,6 +80,18 @@ def tier_rank(tier: str) -> int:
         return _TIER_ORDER.index((tier or "sovereign").lower())
     except ValueError:
         return 0
+
+
+def next_tier(tier: str) -> str:
+    """
+    The plan one step up, for "raise this limit" suggestions.
+
+    Quota messages point here rather than straight at Elite: someone who
+    has run out of daily analyses on the free plan wants more volume, and
+    Plus sells exactly that for a fraction of the price. Feature gates
+    (the Quant Lab, voice, the leaderboard) name their own minimum instead.
+    """
+    return _TIER_ORDER[min(tier_rank(tier) + 1, len(_TIER_ORDER) - 1)]
 
 
 # ── The resolved plan ─────────────────────────────────────────────────
@@ -268,7 +280,7 @@ def resolve_entitlements(user_id: str, use_cache: bool = True) -> Entitlements:
                     text(f"SELECT {_TIER_COLUMNS} FROM subscription_tiers WHERE tier_name = 'sovereign'")
                 ).fetchone()
     except Exception as exc:
-        logger.warning("Entitlement resolution failed — defaulting to sovereign",
+        logger.warning("Entitlement resolution failed, defaulting to sovereign",
                        extra={"user_id": user_id, "error": str(exc)})
         return _SOVEREIGN_FALLBACK
 
@@ -333,7 +345,7 @@ def get_usage(user_id: str, counter_type: CounterType) -> float:
             ).fetchone()
         return float(row[0]) if row else 0.0
     except Exception as exc:
-        logger.warning("Usage read failed — treating as zero",
+        logger.warning("Usage read failed, treating as zero",
                        extra={"user_id": user_id, "counter": counter_type, "error": str(exc)})
         return 0.0
 
@@ -361,7 +373,7 @@ def record_usage(user_id: str, counter_type: CounterType, amount: float = 1.0) -
                 {"uid": user_id, "ct": counter_type, "pk": _period_key(counter_type), "amt": amount},
             )
     except Exception as exc:
-        logger.warning("Usage write failed — request still served",
+        logger.warning("Usage write failed: request still served",
                        extra={"user_id": user_id, "counter": counter_type, "error": str(exc)})
 
 
@@ -396,7 +408,7 @@ def _quota_error(kind: str, used: float, limit: int, ent: Entitlements, unit: st
     authenticated and simply out of quota on their plan, and 402 is what
     tells a client to offer an upgrade rather than show an access error.
     """
-    upgrade = "elite" if ent.tier == "sovereign" else "institutional"
+    upgrade = next_tier(ent.tier)
     return HTTPException(
         status_code=402,
         detail={

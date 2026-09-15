@@ -21,7 +21,7 @@ from sqlalchemy import text
 from app.core.entitlements import (
     _engine, _TIER_COLUMNS, _row_to_entitlements,
     resolve_entitlements, usage_summary,
-)
+ next_tier)
 
 logger = logging.getLogger("aureus.api.account")
 
@@ -116,7 +116,7 @@ def create_api_key(req: ApiKeyRequest) -> dict:
             "error": "tier_required",
             "message": str(exc),
             "current_tier": ent.tier,
-            "suggested_tier": "elite" if ent.tier == "sovereign" else "institutional",
+            "suggested_tier": next_tier(ent.tier),
         })
     except Exception as exc:
         logger.error("API key issue failed", extra={"error": str(exc)})

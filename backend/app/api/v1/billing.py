@@ -50,7 +50,7 @@ def _verify_internal(x_internal_secret: str = Header(default="")) -> None:
     retried webhook, the cost of a false accept is free paid plans.
     """
     if not INTERNAL_SECRET:
-        logger.error("INTERNAL_API_SECRET is not configured — refusing internal call")
+        logger.error("INTERNAL_API_SECRET is not configured: refusing internal call")
         raise HTTPException(status_code=503, detail="Internal auth not configured")
     if not secrets.compare_digest(x_internal_secret or "", INTERNAL_SECRET):
         raise HTTPException(status_code=403, detail="Unauthorized internal call")
@@ -60,7 +60,7 @@ def _verify_internal(x_internal_secret: str = Header(default="")) -> None:
 
 class TierUpdateRequest(BaseModel):
     stripe_customer_id:     str
-    new_tier:               Literal["sovereign", "elite", "institutional"]
+    new_tier:               Literal["sovereign", "plus", "elite", "institutional"]
     subscription_status:    str
     stripe_subscription_id: str = ""
 
@@ -132,7 +132,7 @@ def login(req: LoginRequest) -> dict:
     # Verify password (bcrypt)
     pw_hash = row.password_hash or ""
     if not pw_hash:
-        raise HTTPException(status_code=401, detail="Account uses SSO — use your SSO provider")
+        raise HTTPException(status_code=401, detail="Account uses SSO: use your SSO provider")
 
     try:
         is_valid = bcrypt.checkpw(req.password.encode(), pw_hash.encode())
@@ -171,7 +171,7 @@ def _create_stripe_customer(email: str, name: str) -> str:
         customer = stripe.Customer.create(email=email, name=name or email)
         return customer.id
     except Exception as exc:
-        logger.warning("Stripe customer creation failed at signup — continuing without it", extra={"error": str(exc)})
+        logger.warning("Stripe customer creation failed at signup, continuing without it", extra={"error": str(exc)})
         return ""
 
 
@@ -242,7 +242,7 @@ def signup(req: SignupRequest) -> dict:
         raise
     except Exception as exc:
         logger.error("Signup failed", extra={"error": str(exc)}, exc_info=True)
-        raise HTTPException(status_code=500, detail="Signup failed — please try again")
+        raise HTTPException(status_code=500, detail="Signup failed: please try again")
     finally:
         engine.dispose()
 
@@ -343,7 +343,7 @@ def claim_event(req: EventClaimRequest) -> dict:
             )
             return {"duplicate": res.rowcount == 0}
     except Exception as exc:
-        logger.warning("Event claim failed — allowing processing",
+        logger.warning("Event claim failed: allowing processing",
                        extra={"event_id": req.event_id, "error": str(exc)})
         # Fail open: processing twice is recoverable, dropping a payment
         # event is not.

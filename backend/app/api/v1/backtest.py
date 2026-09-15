@@ -31,7 +31,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.core.entitlements import check_quota, record_usage, resolve_entitlements
+from app.core.entitlements import check_quota, record_usage, resolve_entitlements, next_tier
 from app.backtesting.engine import BacktestConfig, run_backtest
 from app.backtesting.strategy_engine import (
     BacktestRunConfig,
@@ -142,7 +142,7 @@ def run_strategy_backtest_endpoint(req: StrategyBacktestRequest) -> dict:
             "limit": ent.max_backtest_tickers,
             "requested": len(req.tickers),
             "current_tier": ent.tier,
-            "suggested_tier": "elite" if ent.tier == "sovereign" else "institutional",
+            "suggested_tier": next_tier(ent.tier),
         })
 
     span_years = (req.end_date - req.start_date).days / 365.25
@@ -157,7 +157,7 @@ def run_strategy_backtest_endpoint(req: StrategyBacktestRequest) -> dict:
             "limit": ent.max_backtest_years,
             "requested": round(span_years, 1),
             "current_tier": ent.tier,
-            "suggested_tier": "elite" if ent.tier == "sovereign" else "institutional",
+            "suggested_tier": next_tier(ent.tier),
         })
 
     record_usage(req.user_id, "backtest_run", 1.0)

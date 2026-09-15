@@ -16,7 +16,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, text
 
-from app.core.entitlements import resolve_entitlements
+from app.core.entitlements import resolve_entitlements, next_tier
 from app.core.config import get_settings
 from app.ingestion.market_data import MarketDataService
 from app.ingestion.rate_limiter import FallbackExhaustedError
@@ -81,7 +81,7 @@ def _recalculate_portfolio_weights(portfolio_id: str) -> None:
                         {"id": h.id},
                     ).fetchone()
                     price = float(existing.current_price) if existing and existing.current_price else 0.0
-                    logger.warning("Could not re-price holding — keeping last known price", extra={"ticker": h.ticker})
+                    logger.warning("Could not re-price holding, keeping last known price", extra={"ticker": h.ticker})
 
                 value = price * float(h.quantity)
                 priced.append((str(h.id), price, value))
@@ -209,7 +209,7 @@ def add_or_update_holding(req: AddHoldingRequest) -> dict:
                         "limit": ent.max_portfolio_holdings,
                         "current": held,
                         "current_tier": ent.tier,
-                        "suggested_tier": "elite" if ent.tier == "sovereign" else "institutional",
+                        "suggested_tier": next_tier(ent.tier),
                     })
 
             if existing:
