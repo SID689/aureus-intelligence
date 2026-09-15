@@ -6,8 +6,8 @@ import { getLearningLevel, setLearningLevel } from "@/lib/api";
 // Must stay in sync with TIER_LABELS in backend/app/lessons/models.py —
 // the `value` is the integer persisted as user_learning_progress.base_level.
 const LEVELS = [
-  { value: 0, label: "New to Investing", desc: "Start here if you've never bought a stock — exchanges, order types, reading a quote." },
-  { value: 1, label: "Foundational+",    desc: "Assumes you've placed trades and know the basics — goes one layer deeper." },
+  { value: 0, label: "New to Investing", desc: "Start here if you have never bought a stock: exchanges, order types and reading a quote." },
+  { value: 1, label: "Foundational+",    desc: "Assumes you have placed trades and know the basics, then goes one layer deeper." },
   { value: 2, label: "Intermediate",     desc: "Position sizing math, valuation under uncertainty, reading filings, expected value." },
   { value: 3, label: "Advanced",         desc: "Factor mechanics, options greeks, correlation math, market microstructure." },
   { value: 4, label: "Expert",           desc: "Institutional-grade: risk model internals, execution theory, crowding dynamics." },
@@ -44,8 +44,8 @@ export default function LearningLevelCard({ userId }: { userId: string }) {
       <CardContent className="space-y-3">
         <p className="text-aureus-muted text-sm">
           Sets your starting level for the daily lesson shown on the dashboard. Your level also
-          rises automatically as you read more lessons — every 15 completed lessons advances you
-          one tier, on top of whatever you set here.
+          rises automatically as you read more lessons. Every 15 completed lessons advances you
+          one level, on top of whatever you set here.
         </p>
 
         <div className="space-y-2">
@@ -54,7 +54,7 @@ export default function LearningLevelCard({ userId }: { userId: string }) {
               key={l.value}
               onClick={() => handleSelect(l.value)}
               disabled={saving}
-              className={`w-full text-left rounded-lg border p-3 transition-colors ${
+              className={`w-full text-left rounded-sm border p-3 transition-colors ${
                 current === l.value
                   ? "border-aureus-gold bg-aureus-gold/5"
                   : "border-aureus-rule hover:border-aureus-muted"

@@ -2,7 +2,7 @@
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
-export type TierName = "sovereign" | "elite" | "institutional";
+export type TierName = "sovereign" | "plus" | "elite" | "institutional";
 
 export interface AureusUser {
   id: string;
@@ -107,6 +107,7 @@ export interface PortfolioAlert {
 
 export const TIER_FEATURES: Record<TierName, { label: string; color: string }> = {
   sovereign:     { label: "Sovereign",     color: "text-aureus-muted" },
+  plus:          { label: "Plus",          color: "text-aureus-soft" },
   elite:         { label: "Elite",         color: "text-aureus-gold" },
-  institutional: { label: "Institutional", color: "text-purple-400" },
+  institutional: { label: "Institutional", color: "text-aureus-text" },
 };

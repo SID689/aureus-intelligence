@@ -150,7 +150,7 @@ export class VoiceWebSocket {
       // there is nothing worth printing from it. An abandoned handshake
       // (StrictMode remount, navigation) is expected and silent.
       if (this.intentionalClose) return;
-      console.warn("Voice stream connection failed — retrying in 3s.");
+      console.warn("Voice stream connection failed: retrying in 3s.");
     };
   }
 

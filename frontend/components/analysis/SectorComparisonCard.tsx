@@ -20,12 +20,11 @@ const PCT_METRICS = new Set(["gross_margin", "operating_margin", "return_on_equi
 export default function SectorComparisonCard({ data }: { data: SectorComparison }) {
   if (data.stale) {
     return (
-      <Card>
-        <CardHeader><CardTitle>Sector Comparison</CardTitle></CardHeader>
+      <Card flat>
+        <CardHeader><CardTitle>Sector comparison</CardTitle></CardHeader>
         <CardContent>
           <p className="text-xs text-aureus-muted">
-            Computing {data.sector} peer medians across {data.peer_count} companies —
-            this appears on your next load.
+            Computing {data.sector} peer medians across {data.peer_count} companies. The comparison appears on your next load.
           </p>
         </CardContent>
       </Card>
@@ -38,14 +37,14 @@ export default function SectorComparisonCard({ data }: { data: SectorComparison 
   const fmt = (k: string, v: number) => (PCT_METRICS.has(k) ? `${v.toFixed(1)}%` : `${v.toFixed(2)}x`);
 
   return (
-    <Card>
+    <Card flat>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Sector Comparison — {data.sector}</CardTitle>
+          <CardTitle>Sector comparison · {data.sector}</CardTitle>
           {data.relative_score != null && (
             <span className="text-[10px] text-aureus-muted">
               Relative valuation{" "}
-              <span className={data.relative_score >= 50 ? "text-aureus-verdigris" : "text-aureus-oxblood"}>
+              <span className={data.relative_score >= 50 ? "text-aureus-emerald" : "text-aureus-crimson"}>
                 {data.relative_score.toFixed(0)}/100
               </span>
             </span>
@@ -69,7 +68,7 @@ export default function SectorComparisonCard({ data }: { data: SectorComparison 
                   <td className="py-1.5 text-aureus-text">{LABELS[k] ?? k}</td>
                   <td className="py-1.5 text-right font-mono text-aureus-text">{fmt(k, c.value)}</td>
                   <td className="py-1.5 text-right font-mono text-aureus-muted">{fmt(k, c.median)}</td>
-                  <td className={`py-1.5 text-right font-mono ${c.favourable ? "text-aureus-verdigris" : "text-aureus-oxblood"}`}>
+                  <td className={`py-1.5 text-right font-mono ${c.favourable ? "text-aureus-emerald" : "text-aureus-crimson"}`}>
                     {c.premium_pct >= 0 ? "+" : ""}{c.premium_pct.toFixed(0)}%
                   </td>
                 </tr>
@@ -78,8 +77,7 @@ export default function SectorComparisonCard({ data }: { data: SectorComparison 
           </table>
         </div>
         <p className="text-[10px] text-aureus-muted mt-2 leading-relaxed">
-          Median of {data.peer_count} large-cap {data.sector} peers. Green means favourable —
-          below the median for a valuation multiple, above it for a quality metric.
+          Median of {data.peer_count} large-cap {data.sector} peers. Emerald marks the favourable side: below the median for a valuation multiple, above it for a quality metric.
         </p>
       </CardContent>
     </Card>

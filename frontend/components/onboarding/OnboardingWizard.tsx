@@ -2,10 +2,7 @@
 import { useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import {
-  ArrowRight, ArrowLeft, Check, ScrollText, LineChart, Newspaper,
-  AlertTriangle, Lightbulb, Layers, PenLine, Sparkles,
-} from "lucide-react";
+import { IconArrowLeft, IconArrowRight, IconCheck } from "@/components/ui/icons";
 import Logo from "@/components/brand/Logo";
 import {
   onboardingReducer, initialOnboardingState, buildCompletionPayload,
@@ -46,10 +43,10 @@ import {
  * see the whole flow, where you are in it, and that it is short.
  */
 
-const PILLAR_ICON: Record<PillarId, typeof ScrollText> = {
-  fundamental: ScrollText,
-  technical: LineChart,
-  sentiment: Newspaper,
+const PILLAR_CODE: Record<string, string> = {
+  fundamental: "F",
+  technical: "T",
+  sentiment: "S",
 };
 
 export default function OnboardingWizard() {
@@ -78,7 +75,7 @@ export default function OnboardingWizard() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ background: "var(--bg)" }}>
+    <div className="min-h-screen flex" style={{ background: "var(--ink)" }}>
       <style>{`
         @keyframes fadeSlide { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
         .panel-in { animation: fadeSlide .45s cubic-bezier(.22,1,.36,1) both; }
@@ -136,18 +133,18 @@ function ProgressRail({ step }: { step: OnboardingStep }) {
             <div key={s} className="flex gap-3.5">
               {/* Rail: dot plus the connector to the next step */}
               <div className="flex flex-col items-center">
-                <div className={`w-6 h-6 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${
-                  done ? "border-aureus-verdigrisdim bg-aureus-verdigris/15"
+                <div className={`w-6 h-6 border flex items-center justify-center flex-shrink-0 transition-colors ${
+                  done ? "border-aureus-emeralddim bg-aureus-emerald/15"
                     : active ? "border-aureus-gold bg-aureus-gold/15"
                     : "border-aureus-rule"
                 }`}>
                   {done
-                    ? <Check className="w-3 h-3 text-aureus-verdigris" />
+                    ? <IconCheck className="w-3 h-3 text-aureus-emerald" />
                     : <span className={`text-[10px] font-mono-num ${active ? "text-aureus-gold" : "text-aureus-muted"}`}>{i + 1}</span>}
                 </div>
                 {i < steps.length - 1 && (
                   <div className={`w-px flex-1 min-h-[34px] my-1 transition-colors ${
-                    done ? "bg-aureus-verdigris/40" : "bg-aureus-rule"}`} />
+                    done ? "bg-aureus-emerald/40" : "bg-aureus-rule"}`} />
                 )}
               </div>
               <div className="pb-2">
@@ -208,15 +205,15 @@ function Nav({ onBack, onNext, nextLabel = "Continue", nextDisabled = false, hin
       {onBack ? (
         <button onClick={onBack}
                 className="flex items-center gap-1.5 text-aureus-muted hover:text-aureus-text text-sm transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back
+          <IconArrowLeft className="w-3.5 h-3.5" /> Back
         </button>
       ) : <span />}
       <div className="flex items-center gap-4">
         {hint && <span className="text-[11px] text-aureus-muted">{hint}</span>}
         {onNext && (
           <button onClick={onNext} disabled={nextDisabled}
-                  className="flex items-center gap-2 bg-aureus-gold text-aureus-ink font-semibold px-6 py-2.5 rounded-lg text-sm hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity">
-            {nextLabel} <ArrowRight className="w-4 h-4" />
+                  className="flex items-center gap-2 bg-aureus-gold text-aureus-ink font-semibold px-6 py-2.5 rounded-sm text-sm hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity">
+            {nextLabel} <IconArrowRight className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
@@ -229,9 +226,8 @@ function Nav({ onBack, onNext, nextLabel = "Continue", nextDisabled = false, hin
 function WelcomeStep({ onNext }: { onNext: () => void }) {
   return (
     <div className="panel-in">
-      <div className="inline-flex items-center gap-2 text-[11px] text-aureus-gold border border-aureus-gold/30 rounded-full px-3 py-1 mb-7"
-           style={{ background: "rgb(var(--gold-rgb) / 0.07)" }}>
-        <Sparkles className="w-3 h-3" /> Before your first analysis
+      <div className="inline-flex items-center gap-2 text-[11px] text-aureus-gold border border-aureus-gold/30 rounded-sm px-3 py-1 mb-7 bg-aureus-gold/[0.07]">
+        Before your first analysis
       </div>
 
       <h1 className="font-display text-4xl md:text-5xl text-aureus-text leading-[1.1] mb-6" style={{ fontWeight: 600 }}>
@@ -242,17 +238,16 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
         different question, and each is blind to something the others catch.
       </p>
       <p className="text-aureus-muted leading-relaxed max-w-xl mb-9">
-        Two minutes here and every score on the platform becomes readable — including the times
+        Two minutes here and every score on the platform becomes readable, including the times
         it tells you it isn't sure.
       </p>
 
-      <div className="grid sm:grid-cols-3 gap-3 mb-2">
+      <div className="grid gap-2 mb-2">
         {METHODOLOGIES.map((m, i) => {
-          const Icon = PILLAR_ICON[m.id];
           return (
-            <div key={m.id} className={`pop-in d${i + 1} rounded-xl border border-aureus-rule p-4`}
+            <div key={m.id} className={`pop-in d${i + 1} rounded-sm border border-aureus-rule p-4`}
                  style={{ background: "var(--panel)" }}>
-              <Icon className="w-5 h-5 text-aureus-gold mb-2.5" strokeWidth={1.5} />
+              <span className="font-mono-num text-[12px] text-aureus-gold">{PILLAR_CODE[m.id]}</span>
               <div className="text-aureus-text text-sm font-medium">{m.title}</div>
               <div className="text-[11px] text-aureus-muted mt-0.5 leading-snug">{m.essence}</div>
             </div>
@@ -277,7 +272,6 @@ function PillarsStep({ state, dispatch }: {
 }) {
   const [tab, setTab] = useState<"depends" | "method" | "risks">("depends");
   const m = METHODOLOGIES.find((x) => x.id === state.activePillar)!;
-  const Icon = PILLAR_ICON[m.id];
   const ready = allPillarsSeen(state);
   const remaining = PILLAR_IDS.filter((p) => !state.seenPillars.includes(p)).length;
 
@@ -295,8 +289,8 @@ function PillarsStep({ state, dispatch }: {
         </div>
         <div className="flex gap-1.5">
           {PILLAR_IDS.map((p) => (
-            <div key={p} className="flex-1 h-1.5 rounded-full overflow-hidden bg-aureus-rule">
-              <div className="h-full rounded-full transition-all duration-500"
+            <div key={p} className="flex-1 h-1.5 overflow-hidden bg-aureus-rule">
+              <div className="h-full transition-all duration-500"
                    style={{
                      width: state.seenPillars.includes(p) ? "100%" : "0%",
                      background: "var(--gold)",
@@ -309,18 +303,17 @@ function PillarsStep({ state, dispatch }: {
       {/* Pillar selector */}
       <div className="grid grid-cols-3 gap-2.5 mb-6">
         {METHODOLOGIES.map((pm) => {
-          const PIcon = PILLAR_ICON[pm.id];
           const active = pm.id === state.activePillar;
           const seen = state.seenPillars.includes(pm.id);
           return (
             <button key={pm.id} onClick={() => select(pm.id)}
-                    className={`text-left rounded-xl border p-3.5 transition-all ${
+                    className={`text-left rounded-sm border p-3.5 transition-all ${
                       active ? "border-aureus-gold" : "border-aureus-rule hover:border-aureus-muted"
                     }`}
                     style={{ background: active ? "rgb(var(--gold-rgb) / 0.07)" : "var(--panel)" }}>
               <div className="flex items-center justify-between mb-1.5">
-                <PIcon className={`w-4 h-4 ${active ? "text-aureus-gold" : "text-aureus-muted"}`} strokeWidth={1.5} />
-                {seen && <Check className="w-3 h-3 text-aureus-verdigris" />}
+                <span className={`font-mono-num text-[12px] ${active ? "text-aureus-gold" : "text-aureus-muted"}`}>{PILLAR_CODE[pm.id]}</span>
+                {seen && <IconCheck className="w-3 h-3 text-aureus-emerald" />}
               </div>
               <div className={`text-[13px] font-medium ${active ? "text-aureus-gold" : "text-aureus-text"}`}>
                 {pm.title}
@@ -331,13 +324,12 @@ function PillarsStep({ state, dispatch }: {
       </div>
 
       {/* Active pillar */}
-      <div key={m.id} className="panel-in rounded-2xl border border-aureus-rule overflow-hidden"
+      <div key={m.id} className="panel-in rounded-sm border border-aureus-rule overflow-hidden"
            style={{ background: "var(--panel)" }}>
         <div className="p-6 md:p-7">
           <div className="flex items-start gap-3.5 mb-5">
-            <div className="w-11 h-11 rounded-xl border border-aureus-gold/30 flex items-center justify-center flex-shrink-0"
-                 style={{ background: "rgb(var(--gold-rgb) / 0.08)" }}>
-              <Icon className="w-5 h-5 text-aureus-gold" strokeWidth={1.5} />
+            <div className="w-11 h-11 rounded-sm border border-aureus-gold/30 flex items-center justify-center flex-shrink-0 bg-aureus-gold/[0.08]">
+              <span className="font-mono-num text-[12px] text-aureus-gold">{PILLAR_CODE[m.id]}</span>
             </div>
             <div className="min-w-0">
               <h3 className="font-display text-2xl text-aureus-text leading-tight" style={{ fontWeight: 600 }}>
@@ -348,17 +340,16 @@ function PillarsStep({ state, dispatch }: {
           </div>
 
           {/* The one sentence to remember */}
-          <div className="rounded-xl border border-aureus-gold/25 p-4 mb-5 flex gap-3"
-               style={{ background: "rgb(var(--gold-rgb) / 0.05)" }}>
-            <Lightbulb className="w-4 h-4 text-aureus-gold flex-shrink-0 mt-0.5" strokeWidth={1.75} />
+          <div className="rounded-sm border border-aureus-gold/25 p-4 mb-5 flex gap-3 bg-aureus-gold/[0.05]">
+            <span className="label-caps text-aureus-gold shrink-0 pt-1">Key idea</span>
             <p className="text-[13px] text-aureus-text leading-relaxed">{m.keyIdea}</p>
           </div>
 
           <p className="text-sm text-aureus-muted leading-relaxed mb-3">{m.whatItIs}</p>
           <p className="text-sm text-aureus-muted/80 leading-relaxed mb-6">{m.whyThisHorizon}</p>
 
-          {/* Weight by horizon — shows why the blend shifts */}
-          <div className="rounded-xl border border-aureus-rule p-4 mb-6" style={{ background: "var(--bg)" }}>
+          {/* Weight by horizon: shows why the blend shifts */}
+          <div className="rounded-sm border border-aureus-rule p-4 mb-6" style={{ background: "var(--ink)" }}>
             <div className="text-[10px] uppercase tracking-widest text-aureus-muted mb-3">
               How much this pillar counts
             </div>
@@ -366,8 +357,8 @@ function PillarsStep({ state, dispatch }: {
               {m.weightByHorizon.map((w) => (
                 <div key={w.horizon} className="flex items-center gap-3">
                   <span className="w-14 text-[11px] text-aureus-muted">{w.horizon}</span>
-                  <div className="flex-1 h-2 rounded-full bg-aureus-rule overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-700"
+                  <div className="flex-1 h-2 bg-aureus-rule overflow-hidden">
+                    <div className="h-full transition-all duration-700"
                          style={{ width: `${w.pct}%`, background: "var(--gold)" }} />
                   </div>
                   <span className="w-9 text-right font-mono-num text-[11px] text-aureus-gold">{w.pct}%</span>
@@ -400,7 +391,7 @@ function PillarsStep({ state, dispatch }: {
                 {m.dependsOn.map((d) => (
                   <div key={d.label} className="text-[13px]">
                     <span className="text-aureus-text font-medium">{d.label}</span>
-                    <span className="text-aureus-muted"> — {d.detail}</span>
+                    <span className="text-aureus-muted">: {d.detail}</span>
                   </div>
                 ))}
               </div>
@@ -415,12 +406,11 @@ function PillarsStep({ state, dispatch }: {
               <div className="space-y-3">
                 {m.risks.map((r) => (
                   <div key={r.label} className="text-[13px]">
-                    <span className="text-aureus-oxblood font-medium">{r.label}</span>
-                    <span className="text-aureus-muted"> — {r.detail}</span>
+                    <span className="text-aureus-crimson font-medium">{r.label}</span>
+                    <span className="text-aureus-muted">: {r.detail}</span>
                   </div>
                 ))}
                 <div className="flex gap-2.5 pt-3 border-t border-aureus-rule">
-                  <AlertTriangle className="w-4 h-4 text-aureus-oxblood flex-shrink-0 mt-0.5" strokeWidth={1.75} />
                   <p className="text-[13px] text-aureus-muted leading-relaxed">
                     <span className="text-aureus-text font-medium">Blind spot: </span>{m.blindSpot}
                   </p>
@@ -430,14 +420,13 @@ function PillarsStep({ state, dispatch }: {
           </div>
         </div>
 
-        {/* The synthesis, revealed only once all three are explored —
+        {/* The synthesis, revealed only once all three are explored:
             it is the payoff, and it does not land before then. */}
         {ready && (
-          <div className="pop-in border-t border-aureus-rule p-6 md:p-7" style={{ background: "var(--bg)" }}>
+          <div className="pop-in border-t border-aureus-rule p-6 md:p-7" style={{ background: "var(--ink)" }}>
             <div className="flex items-center gap-2 mb-3">
-              <Layers className="w-4 h-4 text-aureus-verdigris" strokeWidth={1.75} />
-              <span className="text-[11px] uppercase tracking-widest text-aureus-verdigris">
-                All three explored — here's why they're combined
+              <span className="text-[11px] uppercase tracking-widest text-aureus-emerald">
+                All three explored: here's why they're combined
               </span>
             </div>
             <p className="text-[13px] text-aureus-muted leading-relaxed">{SYNTHESIS_NOTE}</p>
@@ -479,11 +468,11 @@ function DiagnosticStep({ state, dispatch }: {
       {/* Per-question progress, so the length is visible up front */}
       <div className="flex gap-1.5 mb-8">
         {SOPHISTICATION_QUESTIONS.map((x, i) => (
-          <div key={x.id} className="flex-1 h-1 rounded-full overflow-hidden bg-aureus-rule">
-            <div className="h-full rounded-full transition-all duration-500"
+          <div key={x.id} className="flex-1 h-1 overflow-hidden bg-aureus-rule">
+            <div className="h-full transition-all duration-500"
                  style={{
                    width: state.answers[x.id] ? "100%" : i === state.questionIndex ? "35%" : "0%",
-                   background: state.answers[x.id] ? "var(--verdigris)" : "var(--gold)",
+                   background: state.answers[x.id] ? "var(--emerald)" : "var(--gold)",
                  }} />
           </div>
         ))}
@@ -501,7 +490,7 @@ function DiagnosticStep({ state, dispatch }: {
             return (
               <button key={opt.value}
                       onClick={() => dispatch({ type: "ANSWER_QUESTION", questionId: q.id, value: opt.value })}
-                      className={`pop-in d${i + 1} text-left rounded-xl border p-4 transition-all group ${
+                      className={`pop-in d${i + 1} text-left rounded-sm border p-4 transition-all group ${
                         active ? "border-aureus-gold" : "border-aureus-rule hover:border-aureus-muted"
                       }`}
                       style={{ background: active ? "rgb(var(--gold-rgb) / 0.07)" : "var(--panel)" }}>
@@ -515,7 +504,7 @@ function DiagnosticStep({ state, dispatch }: {
                   <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
                     active ? "border-aureus-gold bg-aureus-gold" : "border-aureus-rule group-hover:border-aureus-muted"
                   }`}>
-                    {active && <Check className="w-2.5 h-2.5 text-aureus-ink" strokeWidth={3} />}
+                    {active && <IconCheck className="w-2.5 h-2.5 text-aureus-ink" strokeWidth={2} />}
                   </div>
                 </div>
               </button>
@@ -524,9 +513,9 @@ function DiagnosticStep({ state, dispatch }: {
         </div>
       </div>
 
-      {/* Live calibration meter — makes the diagnostic feel like it is
+      {/* Live calibration meter: makes the diagnostic feel like it is
           doing something rather than collecting answers into a void. */}
-      <div className="mt-8 rounded-xl border border-aureus-rule p-4" style={{ background: "var(--panel)" }}>
+      <div className="mt-8 rounded-sm border border-aureus-rule p-4" style={{ background: "var(--panel)" }}>
         <div className="flex items-baseline justify-between mb-2">
           <span className="text-[10px] uppercase tracking-widest text-aureus-muted">Detail level</span>
           <span className="text-[11px] text-aureus-gold">
@@ -535,8 +524,8 @@ function DiagnosticStep({ state, dispatch }: {
               : score / max >= 0.35 ? "Balanced" : "Guided"}
           </span>
         </div>
-        <div className="relative h-1.5 rounded-full bg-aureus-rule overflow-hidden">
-          <div className="h-full rounded-full transition-all duration-700"
+        <div className="relative h-1.5 bg-aureus-rule overflow-hidden">
+          <div className="h-full transition-all duration-700"
                style={{ width: `${max ? (score / max) * 100 : 0}%`, background: "var(--gold)" }} />
         </div>
         <div className="flex justify-between text-[10px] text-aureus-muted mt-1.5">
@@ -567,7 +556,7 @@ function SignatureStep({ onSign, onBack }: {
   return (
     <div className="panel-in">
       <div className="flex items-center gap-2 text-[11px] text-aureus-gold mb-4">
-        <PenLine className="w-3.5 h-3.5" /> Last step
+        Last step
       </div>
       <h2 className="font-display text-3xl text-aureus-text leading-tight mb-2" style={{ fontWeight: 600 }}>
         Risk acknowledgment
@@ -576,7 +565,7 @@ function SignatureStep({ onSign, onBack }: {
         Required once, then never again. This is stored with your account and timestamped.
       </p>
 
-      <div className="rounded-xl border border-aureus-rule p-5 space-y-3 text-[13px] text-aureus-muted leading-relaxed mb-5"
+      <div className="rounded-sm border border-aureus-rule p-5 space-y-3 text-[13px] text-aureus-muted leading-relaxed mb-5"
            style={{ background: "var(--panel)" }}>
         <p>Aureus Intelligence provides software-generated informational analysis only. Nothing on this
            platform constitutes investment, legal, or tax advice, nor a recommendation to buy, hold, or
@@ -595,21 +584,21 @@ function SignatureStep({ onSign, onBack }: {
         ].map(([checked, setter, label], i) => (
           <button key={i}
                   onClick={() => (setter as (v: boolean) => void)(!(checked as boolean))}
-                  className={`w-full text-left flex items-start gap-3 rounded-xl border p-3.5 transition-colors ${
+                  className={`w-full text-left flex items-start gap-3 rounded-sm border p-3.5 transition-colors ${
                     checked ? "border-aureus-gold/50" : "border-aureus-rule hover:border-aureus-muted"
                   }`}
                   style={{ background: checked ? "rgb(var(--gold-rgb) / 0.05)" : "var(--panel)" }}>
             <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
               checked ? "border-aureus-gold bg-aureus-gold" : "border-aureus-rule"
             }`}>
-              {(checked as boolean) && <Check className="w-2.5 h-2.5 text-aureus-ink" strokeWidth={3} />}
+              {(checked as boolean) && <IconCheck className="w-2.5 h-2.5 text-aureus-ink" strokeWidth={2} />}
             </div>
             <span className="text-[13px] text-aureus-muted leading-relaxed">{label as string}</span>
           </button>
         ))}
       </div>
 
-      <div className="rounded-xl border border-aureus-rule p-5" style={{ background: "var(--panel)" }}>
+      <div className="rounded-sm border border-aureus-rule p-5" style={{ background: "var(--panel)" }}>
         <label className="text-[10px] uppercase tracking-widest text-aureus-muted">
           Type your full legal name to sign
         </label>
@@ -638,9 +627,8 @@ function CompleteStep({ tier, onFinish, submitting }: {
   const result = TIER_RESULT[tier ?? "novice"] ?? TIER_RESULT.novice;
   return (
     <div className="panel-in text-center">
-      <div className="pop-in w-16 h-16 rounded-2xl border border-aureus-verdigrisdim/40 flex items-center justify-center mx-auto mb-7"
-           style={{ background: "rgb(var(--verdigris-rgb) / 0.1)" }}>
-        <Check className="w-8 h-8 text-aureus-verdigris" strokeWidth={2} />
+      <div className="pop-in w-16 h-16 rounded-sm border border-aureus-emeralddim/40 flex items-center justify-center mx-auto mb-7 bg-aureus-emerald/[0.1]">
+        <IconCheck className="w-8 h-8 text-aureus-emerald" strokeWidth={1.5} />
       </div>
 
       <h2 className="font-display text-4xl text-aureus-text leading-tight mb-3" style={{ fontWeight: 600 }}>
@@ -651,20 +639,20 @@ function CompleteStep({ tier, onFinish, submitting }: {
         <span className="text-aureus-gold font-medium">{result.title}</span>.
       </p>
 
-      <div className="rounded-2xl border border-aureus-rule p-6 text-left mb-8 max-w-xl mx-auto"
+      <div className="rounded-sm border border-aureus-rule p-6 text-left mb-8 max-w-xl mx-auto"
            style={{ background: "var(--panel)" }}>
         <div className="text-[10px] uppercase tracking-widest text-aureus-gold mb-2.5">
           What that means
         </div>
         <p className="text-[13px] text-aureus-muted leading-relaxed">{result.body}</p>
         <p className="text-[11px] text-aureus-muted/70 mt-4 pt-4 border-t border-aureus-rule">
-          Change this any time in Settings — it adjusts on its own as you complete lessons.
+          Change this any time in Settings: it adjusts on its own as you complete lessons.
         </p>
       </div>
 
       <button onClick={onFinish} disabled={submitting}
-              className="inline-flex items-center gap-2 bg-aureus-gold text-aureus-ink font-semibold px-7 py-3 rounded-lg hover:opacity-90 disabled:opacity-40 transition-opacity">
-        {submitting ? "Finishing…" : "Enter Aureus"} <ArrowRight className="w-4 h-4" />
+              className="inline-flex items-center gap-2 bg-aureus-gold text-aureus-ink font-semibold px-7 py-3 rounded-sm hover:opacity-90 disabled:opacity-40 transition-opacity">
+        {submitting ? "Finishing" : "Enter Aureus"} <IconArrowRight className="w-3.5 h-3.5" />
       </button>
     </div>
   );

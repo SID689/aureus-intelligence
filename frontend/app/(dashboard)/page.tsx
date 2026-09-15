@@ -10,7 +10,8 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Newspaper, Plus, Wallet } from "lucide-react";
+import { IconArrowRight, IconPlus } from "@/components/ui/icons";
+import { Skeleton, SkeletonTable } from "@/components/ui/Skeleton";
 import { usePortfolio } from "@/components/dashboard/PortfolioProvider";
 import AddPositionModal from "@/components/dashboard/AddPositionModal";
 import DailyLesson from "@/components/dashboard/DailyLesson";
@@ -99,20 +100,20 @@ export default function DashboardPage() {
           <h1 className="font-display text-[28px] leading-none">Portfolio</h1>
           <p className="text-[13px] text-aureus-muted mt-2">
             {loading
-              ? "Loading your positions…"
+              ? <Skeleton className="inline-block align-middle h-3 w-40" />
               : holdings.length === 0
                 ? "No positions on file yet."
                 : `${holdings.length} position${holdings.length === 1 ? "" : "s"} · ${priced} priced`}
           </p>
         </div>
         <Button onClick={() => setShowAdd(true)} disabled={!portfolioId}>
-          <Plus className="w-4 h-4" strokeWidth={2.25} /> Add position
+          <IconPlus className="w-3.5 h-3.5" strokeWidth={1.75} /> Add position
         </Button>
       </div>
 
       {error && (
-        <Sheet className="px-5 py-3.5 border-aureus-oxblooddim">
-          <p className="text-[13px] text-aureus-oxblood">{error}</p>
+        <Sheet className="px-5 py-3.5 border-aureus-crimsondim">
+          <p className="text-[13px] text-aureus-crimson">{error}</p>
         </Sheet>
       )}
 
@@ -122,15 +123,15 @@ export default function DashboardPage() {
           <div className="p-6 flex flex-col min-w-0 border-b lg:border-b-0 lg:border-r border-aureus-rule">
             <CapsLabel>Portfolio value</CapsLabel>
             <Figure className="mt-2.5 leading-none" style={{ fontSize: "clamp(2.25rem,4.5vw,3.25rem)", letterSpacing: "-0.03em" }}>
-              {loading ? "—" : money(totals.totalValue)}
+              {loading ? <Skeleton className="h-11 w-56" /> : money(totals.totalValue)}
             </Figure>
             <div className="flex items-center gap-3 mt-3">
               <Figure tone={up ? "up" : "down"} className="text-lg">
-                {loading ? "—" : signedMoney(totals.pnl)}
+                {loading ? <Skeleton className="h-5 w-28" /> : signedMoney(totals.pnl)}
               </Figure>
               {!loading && (
                 <span className={`font-mono-num text-[12px] px-1.5 py-0.5 rounded ${
-                  up ? "bg-aureus-verdigris/15 text-aureus-verdigris" : "bg-aureus-oxblood/15 text-aureus-oxblood"
+                  up ? "bg-aureus-emerald/15 text-aureus-emerald" : "bg-aureus-crimson/15 text-aureus-crimson"
                 }`}>
                   {signed(totals.pnlPct)}%
                 </span>
@@ -158,11 +159,11 @@ export default function DashboardPage() {
             <StatColumns
               className="border-b border-aureus-rule"
               items={[
-                { label: "Invested", value: loading ? "—" : money(totals.cost), sub: "cost basis" },
-                { label: "Positions", value: loading ? "—" : String(holdings.length), sub: `${priced} priced` },
+                { label: "Invested", value: loading ? <Skeleton className="h-5 w-24" /> : money(totals.cost), sub: "cost basis" },
+                { label: "Positions", value: loading ? <Skeleton className="h-5 w-10" /> : String(holdings.length), sub: `${priced} priced` },
                 {
                   label: "Return on cost",
-                  value: loading ? "—" : `${signed(totals.pnlPct)}%`,
+                  value: loading ? <Skeleton className="h-5 w-16" /> : `${signed(totals.pnlPct)}%`,
                   sub: "all-time",
                   tone: up ? "up" : "down",
                 },
@@ -219,10 +220,9 @@ export default function DashboardPage() {
           )}
         </div>
         {loading ? (
-          <p className="px-5 py-8 text-sm text-aureus-muted">Loading positions…</p>
+          <SkeletonTable rows={4} columns={[2, 1, 1, 1, 2, 2, 3, 1]} />
         ) : holdings.length === 0 ? (
           <EmptyState
-            icon={Wallet}
             title="No holdings yet"
             action={<Button size="sm" onClick={() => setShowAdd(true)} disabled={!portfolioId}>Add your first position</Button>}
           >
@@ -240,7 +240,7 @@ export default function DashboardPage() {
       <RuledLabel
         right={
           <Link href="/analysis" className="flex items-center gap-1.5 text-[11px] text-aureus-muted hover:text-aureus-gold transition-colors">
-            <Newspaper className="w-3 h-3" /> Run a full analysis
+            Run a full analysis <IconArrowRight className="w-3 h-3" />
           </Link>
         }
       >

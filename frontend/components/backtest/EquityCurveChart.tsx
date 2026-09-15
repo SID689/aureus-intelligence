@@ -14,7 +14,7 @@ function EquityTooltip({ active, payload, label }: TooltipProps<number, string>)
   const strategy = payload.find((p) => p.dataKey === "strategy_equity")?.value as number | undefined;
   const benchmark = payload.find((p) => p.dataKey === "benchmark_equity")?.value as number | undefined;
   return (
-    <div className="rounded-lg border border-aureus-rule p-3 text-xs space-y-1 shadow-xl" style={{ background: "var(--bg)" }}>
+    <div className="rounded-sm border border-aureus-rule p-3 text-xs space-y-1 shadow-overlay" style={{ background: "var(--ink)" }}>
       <div className="text-aureus-muted font-medium">{label}</div>
       {strategy != null && (
         <div className="text-aureus-gold font-bold">Strategy: ${strategy.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>

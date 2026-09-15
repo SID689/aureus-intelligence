@@ -21,8 +21,8 @@ const buttonVariants = cva(
         outline: "border border-aureus-rulestrong text-aureus-text hover:border-aureus-gold hover:text-aureus-gold",
         subtle:  "bg-aureus-panellift text-aureus-soft hover:bg-aureus-panelhigh hover:text-aureus-text",
         ghost:   "text-aureus-muted hover:text-aureus-text hover:bg-aureus-panellift",
-        danger:  "border border-aureus-oxblooddim text-aureus-oxblood hover:bg-aureus-oxblood/10 hover:border-aureus-oxblood",
-        success: "bg-aureus-verdigris text-aureus-ink hover:bg-aureus-verdigrisbright",
+        danger:  "border border-aureus-crimsondim text-aureus-crimson hover:bg-aureus-crimson/10 hover:border-aureus-crimson",
+        success: "bg-aureus-emerald text-aureus-ink hover:bg-aureus-emeraldbright",
       },
       size: {
         default: "h-9 px-4 text-sm",

@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, Check, Lock, X } from "lucide-react";
+import { IconBell, IconCheck, IconClose, IconLock } from "@/components/ui/icons";
 import { Figure } from "@/components/ui/primitives";
 import PushToggle from "./PushToggle";
 import { cn } from "@/lib/utils";
@@ -114,8 +114,8 @@ export default function NotificationBell() {
         title="Strong Buy alerts are part of the Elite plan"
         aria-label="Strong Buy alerts (Elite plan)"
       >
-        <Bell className="w-4 h-4" strokeWidth={1.75} />
-        <Lock className="w-2.5 h-2.5 absolute -bottom-0.5 -right-0.5 text-aureus-golddim" />
+        <IconBell className="w-4 h-4" strokeWidth={1.75} />
+        <IconLock className="w-2.5 h-2.5 absolute -bottom-0.5 -right-0.5 text-aureus-golddim" />
       </Link>
     );
   }
@@ -128,18 +128,18 @@ export default function NotificationBell() {
         aria-label={unread > 0 ? `Strong Buy alerts, ${unread} unread` : "Strong Buy alerts"}
         aria-expanded={open}
       >
-        <Bell className="w-4 h-4" strokeWidth={1.75} />
+        <IconBell className="w-4 h-4" strokeWidth={1.75} />
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1.5 min-w-[15px] h-[15px] px-1 rounded-full bg-aureus-verdigris text-aureus-ink
-                           font-mono-num text-[9px] font-semibold leading-[15px] text-center shadow-[0_0_10px_rgba(131,189,162,0.55)]">
+          <span className="absolute -top-1 -right-1.5 min-w-[15px] h-[15px] px-1 rounded-full bg-aureus-emerald text-aureus-ink
+                           font-mono-num text-[9px] font-semibold leading-[15px] text-center">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2.5 w-[min(23rem,calc(100vw-2rem))] z-40 rounded-[10px] border border-aureus-rule
-                        border-t-aureus-golddim bg-aureus-panel shadow-lift rise-in">
+        <div className="absolute right-0 top-full mt-2.5 w-[min(23rem,calc(100vw-2rem))] z-40 rounded-sm border border-aureus-rule
+                        border-t-aureus-golddim bg-aureus-panel shadow-overlay rise-in">
           <div className="flex items-center justify-between px-4 py-3 border-b border-aureus-rule">
             <div>
               <div className="text-[13px] text-aureus-text">Strong Buy alerts</div>
@@ -147,13 +147,13 @@ export default function NotificationBell() {
             </div>
             {unread > 0 && (
               <button onClick={markAll} className="flex items-center gap-1 text-[11.5px] text-aureus-gold hover:text-aureus-goldbright">
-                <Check className="w-3 h-3" /> Mark all read
+                <IconCheck className="w-3 h-3" /> Mark all read
               </button>
             )}
           </div>
 
           <div className="max-h-[min(26rem,60vh)] overflow-y-auto">
-            {error && <p className="px-4 py-4 text-[12px] text-aureus-oxblood">{error}</p>}
+            {error && <p className="px-4 py-4 text-[12px] text-aureus-crimson">{error}</p>}
             {!error && items.length === 0 && !loading && (
               <div className="px-4 py-8 text-center">
                 <p className="text-[13px] text-aureus-soft">No alerts yet</p>
@@ -168,7 +168,7 @@ export default function NotificationBell() {
                 onClick={() => openAlert(a)}
                 className="w-full text-left flex gap-3 px-4 py-3 border-b border-aureus-rulesoft hover:bg-aureus-panellift transition-colors"
               >
-                <span className={cn("mt-1.5 w-1.5 h-1.5 rounded-full shrink-0", a.read_at ? "bg-transparent" : "bg-aureus-verdigris")} />
+                <span className={cn("mt-1.5 w-1.5 h-1.5 rounded-full shrink-0", a.read_at ? "bg-transparent" : "bg-aureus-emerald")} />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-3">
                     <span className="text-[13px] text-aureus-text">
@@ -179,7 +179,7 @@ export default function NotificationBell() {
                   </span>
                   <span className="block text-[12px] text-aureus-soft leading-relaxed mt-0.5">{a.body}</span>
                   <span className="block mt-1 text-[11px] text-aureus-muted">
-                    Composite <Figure className="text-[11px] text-aureus-verdigris">{a.composite.toFixed(1)}</Figure>
+                    Composite <Figure className="text-[11px] text-aureus-emerald">{a.composite.toFixed(1)}</Figure>
                   </span>
                 </span>
               </button>
@@ -187,7 +187,7 @@ export default function NotificationBell() {
             {nextBefore && (
               <button onClick={() => load(nextBefore)} disabled={loading}
                       className="w-full py-2.5 text-[12px] text-aureus-gold hover:text-aureus-goldbright">
-                {loading ? "Loading…" : "Older alerts"}
+                {loading ? "Loading" : "Older alerts"}
               </button>
             )}
           </div>
@@ -202,10 +202,10 @@ export default function NotificationBell() {
       )}
 
       {toast && !open && (
-        <div role="status" className="fixed right-4 top-[4.5rem] z-50 w-[min(22rem,calc(100vw-2rem))] rounded-[10px] border border-aureus-verdigris/40
-                                      bg-aureus-panel shadow-lift px-4 py-3.5 rise-in">
+        <div role="status" className="fixed right-4 top-[4.5rem] z-50 w-[min(22rem,calc(100vw-2rem))] rounded-sm border border-aureus-emerald/40
+                                      bg-aureus-panel shadow-overlay px-4 py-3.5 rise-in">
           <div className="flex items-start gap-3">
-            <span className="mt-1 w-2 h-2 rounded-full bg-aureus-verdigris shrink-0 pulse-gold" />
+            <span className="mt-1 w-2 h-2 rounded-full bg-aureus-emerald shrink-0 pulse-gold" />
             <div className="min-w-0 flex-1">
               <div className="text-[13px] text-aureus-text">{toast.title}</div>
               <p className="text-[12px] text-aureus-soft leading-relaxed mt-0.5">{toast.body}</p>
@@ -214,7 +214,7 @@ export default function NotificationBell() {
               </button>
             </div>
             <button onClick={() => setToast(null)} className="text-aureus-muted hover:text-aureus-text" aria-label="Dismiss">
-              <X className="w-3.5 h-3.5" />
+              <IconClose className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

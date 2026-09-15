@@ -15,7 +15,7 @@
  * makes the response instant.
  */
 import { useState } from "react";
-import { Check, X } from "lucide-react";
+import { IconCheck, IconClose } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import type { LessonCheckpoint } from "@/lib/api";
 
@@ -26,7 +26,7 @@ export default function Checkpoint({ checkpoint }: { checkpoint: LessonCheckpoin
 
   return (
     <aside
-      className="my-7 rounded-[10px] border border-aureus-rule bg-aureus-panellift overflow-hidden"
+      className="my-7 rounded-sm border border-aureus-rule bg-aureus-panellift overflow-hidden"
       // Not an <article>: this interrupts the prose rather than continuing
       // it, and screen readers benefit from the distinction.
       aria-label="Comprehension checkpoint"
@@ -56,14 +56,14 @@ export default function Checkpoint({ checkpoint }: { checkpoint: LessonCheckpoin
                   "w-full text-left rounded-md border px-3.5 py-2.5 text-[13px] transition-colors flex items-start gap-2.5",
                   state === "idle" &&
                     "border-aureus-rule text-aureus-soft hover:border-aureus-gold hover:text-aureus-text cursor-pointer",
-                  state === "right" && "border-aureus-verdigris bg-aureus-verdigris/10 text-aureus-verdigris",
-                  state === "wrong" && "border-aureus-oxblood bg-aureus-oxblood/10 text-aureus-oxblood",
+                  state === "right" && "border-aureus-emerald bg-aureus-emerald/10 text-aureus-emerald",
+                  state === "wrong" && "border-aureus-crimson bg-aureus-crimson/10 text-aureus-crimson",
                   state === "dim" && "border-aureus-rulesoft text-aureus-muted opacity-60",
                 )}
               >
                 <span className="pt-0.5 shrink-0 w-4">
-                  {state === "right" && <Check className="w-3.5 h-3.5" strokeWidth={2.5} />}
-                  {state === "wrong" && <X className="w-3.5 h-3.5" strokeWidth={2.5} />}
+                  {state === "right" && <IconCheck className="w-3.5 h-3.5" strokeWidth={1.75} />}
+                  {state === "wrong" && <IconClose className="w-3.5 h-3.5" strokeWidth={1.75} />}
                 </span>
                 <span>{opt}</span>
               </button>
@@ -73,7 +73,7 @@ export default function Checkpoint({ checkpoint }: { checkpoint: LessonCheckpoin
 
         {answered && (
           <div className="mt-4 pt-3.5 border-t border-aureus-rule rise-in">
-            <span className={cn("label-caps", correct ? "text-aureus-verdigris" : "text-aureus-amber")}>
+            <span className={cn("label-caps", correct ? "text-aureus-emerald" : "text-aureus-amber")}>
               {correct ? "Correct" : "Not quite"}
             </span>
             <p className="text-[13px] text-aureus-soft leading-relaxed mt-1.5">{checkpoint.explanation}</p>

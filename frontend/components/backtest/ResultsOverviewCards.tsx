@@ -8,7 +8,7 @@ interface Props {
 function StatCard({
   label, value, tone = "neutral", sub,
 }: { label: string; value: string; tone?: "good" | "bad" | "neutral"; sub?: string }) {
-  const color = tone === "good" ? "text-aureus-verdigris" : tone === "bad" ? "text-aureus-oxblood" : "text-aureus-text";
+  const color = tone === "good" ? "text-aureus-emerald" : tone === "bad" ? "text-aureus-crimson" : "text-aureus-text";
   return (
     <Card>
       <CardContent className="p-4">

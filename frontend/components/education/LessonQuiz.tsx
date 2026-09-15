@@ -66,21 +66,21 @@ export default function LessonQuiz({
           </p>
         </div>
         {alreadyPassed && (
-          <span className="text-xs text-aureus-verdigris border border-aureus-verdigrisdim/40 bg-aureus-verdigris/10 rounded px-2 py-0.5">
-            ✓ Passed
+          <span className="text-xs text-aureus-emerald border border-aureus-emeralddim/40 bg-aureus-emerald/10 rounded px-2 py-0.5">
+            Passed
           </span>
         )}
       </div>
 
       {error && (
-        <div className="rounded-lg border border-aureus-oxblooddim bg-aureus-oxblood/10 p-3 text-aureus-oxblood text-xs">{error}</div>
+        <div className="rounded-sm border border-aureus-crimsondim bg-aureus-crimson/10 p-3 text-aureus-crimson text-xs">{error}</div>
       )}
 
       {questions.map((q, qi) => {
         const r = resultFor(qi);
         return (
-          <div key={qi} className="rounded-lg border border-aureus-rule p-4 space-y-3"
-               style={{ background: "var(--bg)" }}>
+          <div key={qi} className="rounded-sm border border-aureus-rule p-4 space-y-3"
+               style={{ background: "var(--ink)" }}>
             <p className="text-sm text-aureus-text font-medium">
               <span className="text-aureus-muted mr-2">{qi + 1}.</span>{q.question}
             </p>
@@ -90,8 +90,8 @@ export default function LessonQuiz({
                 const selected = answers[qi] === oi;
                 let tone = "border-aureus-rule text-aureus-text hover:border-aureus-muted";
                 if (r) {
-                  if (oi === r.correct_index) tone = "border-aureus-verdigrisdim bg-aureus-verdigris/10 text-aureus-verdigris";
-                  else if (selected) tone = "border-aureus-oxblooddim bg-aureus-oxblood/10 text-aureus-oxblood";
+                  if (oi === r.correct_index) tone = "border-aureus-emeralddim bg-aureus-emerald/10 text-aureus-emerald";
+                  else if (selected) tone = "border-aureus-crimsondim bg-aureus-crimson/10 text-aureus-crimson";
                   else tone = "border-aureus-rule/50 text-aureus-muted";
                 } else if (selected) {
                   tone = "border-aureus-gold bg-aureus-gold/10 text-aureus-gold";
@@ -108,15 +108,15 @@ export default function LessonQuiz({
                       {String.fromCharCode(65 + oi)}
                     </span>
                     {opt}
-                    {r && oi === r.correct_index && <span className="float-right">✓</span>}
-                    {r && selected && oi !== r.correct_index && <span className="float-right">✕</span>}
+                    {r && oi === r.correct_index && <span className="float-right label-caps text-aureus-emerald">Correct</span>}
+                    {r && selected && oi !== r.correct_index && <span className="float-right label-caps text-aureus-crimson">Your answer</span>}
                   </button>
                 );
               })}
             </div>
 
             {r && (
-              <div className="rounded-md border-l-2 border-aureus-gold bg-aureus-gold/[0.04] px-3 py-2">
+              <div className="rounded-sm border border-aureus-gold/25 bg-aureus-gold/[0.04] px-3 py-2">
                 <p className="text-xs text-aureus-muted leading-relaxed">
                   <span className="text-aureus-gold font-semibold">Why: </span>{r.explanation}
                 </p>
@@ -128,19 +128,19 @@ export default function LessonQuiz({
 
       {!result ? (
         <Button onClick={handleSubmit} disabled={!allAnswered || submitting} className="w-full">
-          {submitting ? "Checking…" : allAnswered ? "Submit Answers" : `Answer all ${questions.length} questions`}
+          {submitting ? "Checking" : allAnswered ? "Submit Answers" : `Answer all ${questions.length} questions`}
         </Button>
       ) : (
-        <div className={`rounded-lg border p-4 text-center space-y-2 ${
-          result.passed ? "border-aureus-verdigrisdim bg-aureus-verdigris/10" : "border-aureus-gold bg-aureus-amber/10"
+        <div className={`rounded-sm border p-4 text-center space-y-2 ${
+          result.passed ? "border-aureus-emeralddim bg-aureus-emerald/10" : "border-aureus-gold bg-aureus-amber/10"
         }`}>
-          <p className={`text-lg font-semibold ${result.passed ? "text-aureus-verdigris" : "text-aureus-gold"}`}>
+          <p className={`text-lg font-semibold ${result.passed ? "text-aureus-emerald" : "text-aureus-gold"}`}>
             {result.score} / {result.total} correct
           </p>
           <p className="text-xs text-aureus-muted">
             {result.passed
-              ? `Passed — best score ${result.best_score}/${result.total}. Total XP for this lesson: ${result.xp_earned_total_for_lesson}.`
-              : `${result.pass_mark} correct needed to pass. Review the explanations above and try again — your best score is kept.`}
+              ? `Passed: best score ${result.best_score}/${result.total}. Total XP for this lesson: ${result.xp_earned_total_for_lesson}.`
+              : `${result.pass_mark} correct needed to pass. Review the explanations above and try again: your best score is kept.`}
           </p>
           <Button variant="outline" size="sm" onClick={handleRetry}>Retake Quiz</Button>
         </div>

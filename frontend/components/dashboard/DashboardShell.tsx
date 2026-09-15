@@ -46,7 +46,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         <div className="absolute inset-0 bg-black/70" onClick={() => setNavOpen(false)} />
         <div
           className={cn(
-            "absolute inset-y-0 left-0 shadow-modal transition-transform duration-200",
+            "absolute inset-y-0 left-0 shadow-overlay transition-transform duration-200",
             navOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >

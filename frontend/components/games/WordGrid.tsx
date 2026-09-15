@@ -24,7 +24,7 @@ interface Props {
 }
 
 const STATE_CLASS: Record<TileState, string> = {
-  correct: "bg-aureus-verdigris border-aureus-verdigris text-aureus-text",
+  correct: "bg-aureus-emerald border-aureus-emerald text-aureus-text",
   present: "bg-aureus-gold border-aureus-gold text-aureus-ink",
   absent: "bg-aureus-rule/60 border-aureus-rule text-aureus-muted",
 };

@@ -157,8 +157,8 @@ function FeeDrag({ p }: { p: Record<string, number> }) {
         <Slider label="Fee B" value={feeB} onChange={setFeeB} min={0} max={2} step={0.01} format={(v) => `${v.toFixed(2)}%`} />
       </div>
       <MiniCurve series={[
-        { values: a, color: "var(--verdigris)" },
-        { values: b, color: "var(--oxblood)" },
+        { values: a, color: "var(--emerald)" },
+        { values: b, color: "var(--crimson)" },
       ]} />
       <div className="grid sm:grid-cols-3 gap-4">
         <Readout label={`At ${feeA.toFixed(2)}%`} value={money(a[a.length - 1])} tone="up" />
@@ -169,7 +169,7 @@ function FeeDrag({ p }: { p: Record<string, number> }) {
       <Working lines={[
         `A fee is subtracted from the return, then the remainder compounds:`,
         `(1 + ${ret}% − fee)^${years}`,
-        `The ${(feeB - feeA).toFixed(2)}pp fee difference costs ${gapPct.toFixed(1)}% of the ending balance — not ${(feeB - feeA).toFixed(2)}%.`,
+        `The ${(feeB - feeA).toFixed(2)}pp fee difference costs ${gapPct.toFixed(1)}% of the ending balance, not ${(feeB - feeA).toFixed(2)}%.`,
       ]} />
     </div>
   );
@@ -196,13 +196,13 @@ function DrawdownRecovery({ p }: { p: Record<string, number> }) {
         <div className="flex items-center gap-3">
           <span className="w-24 text-[11px] text-aureus-muted shrink-0">Loss</span>
           <span className="flex-1 h-2 rounded-sm bg-aureus-panelhigh overflow-hidden">
-            <span className="block h-full bg-aureus-oxblood" style={{ width: `${Math.min(100, loss)}%` }} />
+            <span className="block h-full bg-aureus-crimson" style={{ width: `${Math.min(100, loss)}%` }} />
           </span>
         </div>
         <div className="flex items-center gap-3">
           <span className="w-24 text-[11px] text-aureus-muted shrink-0">Recovery</span>
           <span className="flex-1 h-2 rounded-sm bg-aureus-panelhigh overflow-hidden">
-            <span className="block h-full bg-aureus-verdigris"
+            <span className="block h-full bg-aureus-emerald"
                   style={{ width: `${Math.min(100, Number.isFinite(required) ? required : 100)}%` }} />
           </span>
         </div>
@@ -210,7 +210,7 @@ function DrawdownRecovery({ p }: { p: Record<string, number> }) {
       <Working lines={[
         `$100 − ${loss}% = ${(remaining * 100).toFixed(1)} remaining`,
         `100 / ${(remaining * 100).toFixed(1)} = ${Number.isFinite(required) ? (1 / remaining).toFixed(3) : "—"}, a ${Number.isFinite(required) ? required.toFixed(1) : "—"}% gain`,
-        `The relationship is not linear — it accelerates sharply past 50%.`,
+        `The relationship is not linear: it accelerates sharply past 50%.`,
       ]} />
     </div>
   );
@@ -247,14 +247,14 @@ function PositionSize({ p }: { p: Record<string, number> }) {
       </div>
       {stop >= entry && (
         <p className="text-[12px] text-aureus-amber">
-          The stop is at or above the entry — for a long position it belongs below.
+          The stop is at or above the entry: for a long position it belongs below.
         </p>
       )}
       <Working lines={[
         `Risk budget: ${money(account)} x ${riskPct}% = ${money(riskDollars)}`,
         `Risk per share: $${entry} − $${stop} = $${perShare.toFixed(2)}`,
         `Shares: ${money(riskDollars)} / $${perShare.toFixed(2)} = ${shares.toLocaleString()}`,
-        `A TIGHTER stop permits a larger position at identical risk — size follows the stop, not conviction.`,
+        `A TIGHTER stop permits a larger position at identical risk: size follows the stop, not conviction.`,
       ]} />
     </div>
   );
@@ -339,7 +339,7 @@ function RiskOfRuin({ p }: { p: Record<string, number> }) {
       <Working lines={[
         `Staking a fixed FRACTION compounds, so the geometric mean governs:`,
         `g = ${winRate}%·ln(1+${betPct}%) + ${100 - winRate}%·ln(1−${betPct}%)`,
-        `A positive edge with too large a stake still has a negative geometric mean — the median path loses even though the average bet is favourable.`,
+        `A positive edge with too large a stake still has a negative geometric mean: the median path loses even though the average bet is favourable.`,
       ]} />
     </div>
   );
@@ -400,7 +400,7 @@ function DollarCostAverage({ p }: { p: Record<string, unknown> }) {
       <Working lines={[
         `Lump sum buys ${lumpShares.toFixed(1)} shares at ${prices[0]}.`,
         `Spreading buys ${dcaShares.toFixed(1)} shares at an average of ${(amount / dcaShares).toFixed(1)}.`,
-        `Spreading wins when the path dips and recovers, and loses when it simply rises — and you cannot know which you are in beforehand.`,
+        `Spreading wins when the path dips and recovers, and loses when it simply rises, and you cannot know which you are in beforehand.`,
       ]} />
     </div>
   );
@@ -424,7 +424,7 @@ export default function LessonExerciseCard({ exercise }: { exercise: LessonExerc
     // An unknown kind means the curriculum is ahead of the frontend. Say
     // so quietly rather than crashing the lesson around it.
     return (
-      <div className="rounded-[10px] border border-aureus-rule bg-aureus-panel p-5">
+      <div className="rounded-sm border border-aureus-rule bg-aureus-panel p-5">
         <p className="text-[13px] text-aureus-muted">
           This lesson includes an interactive exercise ({exercise.kind}) that this version of the
           app cannot display yet.
@@ -434,7 +434,7 @@ export default function LessonExerciseCard({ exercise }: { exercise: LessonExerc
   }
 
   return (
-    <div className="rounded-[10px] border border-aureus-rule border-t-aureus-golddim bg-aureus-panel shadow-lift overflow-hidden">
+    <div className="rounded-sm border border-aureus-rule border-t-aureus-golddim bg-aureus-panel overflow-hidden">
       <div className="px-5 py-3.5 border-b border-aureus-rule">
         <div className="label-caps">Try it</div>
         <h4 className="font-display text-[17px] text-aureus-text mt-1">{exercise.title}</h4>

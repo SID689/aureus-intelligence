@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const stripeCustomerId = session.user.stripeCustomerId;
   if (!stripeCustomerId) {
     return NextResponse.json(
-      { error: "No Stripe customer on file for this account — contact support." },
+      { error: "No Stripe customer on file for this account, contact support." },
       { status: 400 }
     );
   }

@@ -5,7 +5,8 @@ import {
   Tooltip, ResponsiveContainer, Scatter, Cell,
 } from "recharts";
 import { useSession } from "next-auth/react";
-import { RefreshCw } from "lucide-react";
+import { IconRefresh } from "@/components/ui/icons";
+import { LoadingRegion, SkeletonChart } from "@/components/ui/Skeleton";
 import { runQuickAnalysis, getBars } from "@/lib/api";
 import type { PriceBar } from "@/lib/api";
 import { Figure } from "@/components/ui/primitives";
@@ -25,8 +26,8 @@ interface Props {
  */
 const C = {
   gold:      "var(--gold)",
-  up:        "var(--verdigris)",
-  down:      "var(--oxblood)",
+  up:        "var(--emerald)",
+  down:      "var(--crimson)",
   grid:      "var(--grid-line)",
   muted:     "var(--text-muted)",
   panel:     "var(--panel-lift)",
@@ -47,7 +48,7 @@ function PriceTooltip({ active, payload }: { active?: boolean; payload?: { paylo
   const up = d.close >= d.open;
 
   return (
-    <div className="rounded-md border border-aureus-rule bg-aureus-panellift px-3 py-2 text-xs space-y-1 shadow-lift2">
+    <div className="rounded-md border border-aureus-rule bg-aureus-panellift px-3 py-2 text-xs space-y-1 shadow-overlay">
       <div className="text-aureus-muted">{d.timestamp}</div>
       <div className="text-aureus-soft">
         Close <Figure tone={up ? "up" : "down"} className="font-semibold">${d.close?.toFixed(2)}</Figure>
@@ -142,16 +143,14 @@ export default function PriceChart({ ticker, horizon = "medium_term", days = 180
 
   if (loading) {
     return (
-      <div className="h-[364px] flex items-center justify-center text-sm text-aureus-muted">
-        Loading {ticker} from live market data…
-      </div>
+      <LoadingRegion label={`Loading ${ticker} price history`}><SkeletonChart height={364} /></LoadingRegion>
     );
   }
 
   if (error) {
     return (
       <div className="h-[364px] flex flex-col items-center justify-center gap-2 text-center px-4">
-        <span className="text-aureus-oxblood text-sm">{error}</span>
+        <span className="text-aureus-crimson text-sm">{error}</span>
         <button onClick={loadChart} className="text-xs text-aureus-gold hover:text-aureus-goldbright">Retry</button>
       </div>
     );
@@ -172,7 +171,7 @@ export default function PriceChart({ ticker, horizon = "medium_term", days = 180
         <div className="flex items-center gap-3">
           {provider && <span className="text-[11px] text-aureus-muted">via {provider}</span>}
           <button onClick={loadChart} className="text-aureus-muted hover:text-aureus-text transition-colors" aria-label="Refresh chart">
-            <RefreshCw className="w-3 h-3" />
+            <IconRefresh className="w-3 h-3" />
           </button>
         </div>
       </div>

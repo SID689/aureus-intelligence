@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid,
 } from "recharts";
-import { BookOpen } from "lucide-react";
+import { LoadingRegion, Skeleton, SkeletonChart } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { newPatternScenario, submitPatternGuess } from "@/lib/api";
@@ -29,10 +29,10 @@ interface Props {
 }
 
 const BIAS_TONE: Record<string, string> = {
-  bullish_reversal: "text-aureus-verdigris",
-  bullish_continuation: "text-aureus-verdigris",
-  bearish_reversal: "text-aureus-oxblood",
-  bearish_continuation: "text-aureus-oxblood",
+  bullish_reversal: "text-aureus-emerald",
+  bullish_continuation: "text-aureus-emerald",
+  bearish_reversal: "text-aureus-crimson",
+  bearish_continuation: "text-aureus-crimson",
   bilateral: "text-aureus-gold",
 };
 
@@ -77,11 +77,11 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
     }
   };
 
-  if (loading) return <div className="py-16 text-center text-aureus-muted text-sm">Loading today&apos;s chart…</div>;
+  if (loading) return <LoadingRegion label="Loading today’s chart" className="space-y-4"><SkeletonChart height={300} /><Skeleton className="h-10 w-full" delay={120} /></LoadingRegion>;
   if (error && !scenario) {
     return (
       <div className="py-16 text-center space-y-3">
-        <p className="text-aureus-oxblood text-sm">{error}</p>
+        <p className="text-aureus-crimson text-sm">{error}</p>
         <Button variant="outline" size="sm" onClick={load}>Try Again</Button>
       </div>
     );
@@ -118,7 +118,7 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
       {/* For implication questions the formation is named in the prompt, so
           describing its shape here gives away nothing extra. */}
       {scenario.named_pattern && !result && (
-        <div className="rounded-lg border-l-2 border-aureus-gold bg-aureus-gold/[0.05] px-3 py-2.5">
+        <div className="rounded-sm border border-aureus-gold/30 bg-aureus-gold/[0.05] px-3 py-2.5">
           <p className="text-xs text-aureus-gold uppercase tracking-wider mb-1">
             {scenario.named_pattern.name}
           </p>
@@ -134,7 +134,7 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
         ))}
       </div>
 
-      <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--panel)" }}>
+      <div className="rounded-sm border border-aureus-rule p-3" style={{ background: "var(--panel)" }}>
         <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" vertical={false} />
@@ -144,7 +144,7 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
                    tickLine={false} axisLine={false} width={52}
                    tickFormatter={(v) => `$${Number(v).toFixed(0)}`} />
             <Tooltip
-              contentStyle={{ background: "var(--bg)", border: "1px solid var(--rule)", borderRadius: 8, fontSize: 12 }}
+              contentStyle={{ background: "var(--ink)", border: "1px solid var(--rule)", borderRadius: 8, fontSize: 12 }}
               labelStyle={{ color: "var(--text-muted)" }}
               // Left unannotated on purpose: recharts types a formatter's
               // value as ValueType (string | number | array), so declaring
@@ -154,8 +154,8 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
             <Line type="monotone" dataKey="setup" stroke="var(--gold)" strokeWidth={1.8} dot={false} connectNulls={false} />
             {result && (
               <Line type="monotone" dataKey="outcome" strokeWidth={2} dot={false} connectNulls={false}
-                    stroke={result.correct_direction === "bullish_breakout" ? "var(--verdigris)"
-                          : result.correct_direction === "bearish_breakdown" ? "var(--oxblood)" : "var(--text-muted)"} />
+                    stroke={result.correct_direction === "bullish_breakout" ? "var(--emerald)"
+                          : result.correct_direction === "bearish_breakdown" ? "var(--crimson)" : "var(--text-muted)"} />
             )}
             {result && (
               <ReferenceLine x={data[setupLen - 1]?.date} stroke="var(--text-muted)" strokeDasharray="4 3"
@@ -172,7 +172,7 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
               <button
                 key={c.value}
                 onClick={() => setChoice(c.value)}
-                className={`rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${
+                className={`rounded-sm border px-3 py-2.5 text-sm text-left transition-colors ${
                   choice === c.value
                     ? "border-aureus-gold bg-aureus-gold/10 text-aureus-gold"
                     : "border-aureus-rule text-aureus-text hover:border-aureus-muted"
@@ -183,19 +183,19 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
             ))}
           </div>
           <Button className="w-full" disabled={!choice || submitting} onClick={handleAnswer}>
-            {submitting ? "Checking…" : choice ? "Lock In Answer" : "Pick an answer"}
+            {submitting ? "Checking" : choice ? "Lock In Answer" : "Pick an answer"}
           </Button>
         </div>
       ) : (
         <div className="space-y-3">
-          <div className={`rounded-lg border p-4 space-y-2 ${
-            result.correct ? "border-aureus-verdigrisdim bg-aureus-verdigris/10" : "border-aureus-oxblooddim bg-aureus-oxblood/10"
+          <div className={`rounded-sm border p-4 space-y-2 ${
+            result.correct ? "border-aureus-emeralddim bg-aureus-emerald/10" : "border-aureus-crimsondim bg-aureus-crimson/10"
           }`}>
-            <p className={`font-semibold ${result.correct ? "text-aureus-verdigris" : "text-aureus-oxblood"}`}>
+            <p className={`font-semibold ${result.correct ? "text-aureus-emerald" : "text-aureus-crimson"}`}>
               {result.correct ? "Correct" : "Not this time"}
               {!result.correct && (
                 <span className="text-aureus-muted font-normal">
-                  {" — the answer was "}
+                  {": the answer was "}
                   {scenario.choices.find((c) => c.value === result.correct_answer)?.label ?? result.correct_answer}
                 </span>
               )}
@@ -208,9 +208,8 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
 
           {/* Pattern deep-dive — the teaching payload */}
           {pattern && (
-            <div className="rounded-lg border border-aureus-rule p-4 space-y-3" style={{ background: "var(--panel)" }}>
+            <div className="rounded-sm border border-aureus-rule p-4 space-y-3" style={{ background: "var(--panel)" }}>
               <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-aureus-gold" />
                 <h4 className="text-aureus-text font-semibold text-sm">{pattern.name}</h4>
                 <Badge variant="muted" className={BIAS_TONE[pattern.bias] ?? ""}>
                   {pattern.bias.replace(/_/g, " ")}
@@ -234,15 +233,15 @@ export default function PatternGame({ userId, onRoundComplete }: Props) {
                 </section>
               ))}
 
-              <section className="rounded-md border-l-2 border-aureus-oxblooddim bg-aureus-oxblood/10 px-3 py-2">
-                <h5 className="text-[10px] uppercase tracking-wider text-aureus-oxblood mb-0.5">Why it isn&apos;t a guarantee</h5>
+              <section className="rounded-sm border border-aureus-crimsondim bg-aureus-crimson/10 px-3 py-2">
+                <h5 className="text-[10px] uppercase tracking-wider text-aureus-crimson mb-0.5">Why it isn&apos;t a guarantee</h5>
                 <p className="text-sm text-aureus-text leading-relaxed">{pattern.caveat}</p>
               </section>
             </div>
           )}
 
-          <div className="rounded-lg border border-aureus-rule px-4 py-3 text-center"
-               style={{ background: "var(--bg)" }}>
+          <div className="rounded-sm border border-aureus-rule px-4 py-3 text-center"
+               style={{ background: "var(--ink)" }}>
             <p className="text-sm text-aureus-muted">
               That&apos;s today&apos;s chart. A new one unlocks tomorrow.
             </p>

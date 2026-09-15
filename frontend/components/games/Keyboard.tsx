@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { Delete } from "lucide-react";
+import { IconBackspace } from "@/components/ui/icons";
 import type { TileState } from "@/lib/api";
 
 /**
@@ -19,7 +19,7 @@ const ROWS = [
 ];
 
 const STATE_CLASS: Record<TileState, string> = {
-  correct: "bg-aureus-verdigris text-aureus-text border-aureus-verdigris",
+  correct: "bg-aureus-emerald text-aureus-text border-aureus-emerald",
   present: "bg-aureus-gold text-aureus-ink border-aureus-gold",
   absent: "bg-aureus-rule/40 text-aureus-muted/60 border-transparent",
 };
@@ -71,7 +71,7 @@ export default function Keyboard({ keyStates, onKey, disabled }: Props) {
                     : "bg-aureus-rule/20 border-aureus-rule text-aureus-text hover:bg-aureus-rule/40",
                 ].join(" ")}
               >
-                {k === "BACK" ? <Delete className="w-4 h-4 mx-auto" /> : k}
+                {k === "BACK" ? <IconBackspace className="w-4 h-4 mx-auto" title="Backspace" /> : k}
               </button>
             );
           })}

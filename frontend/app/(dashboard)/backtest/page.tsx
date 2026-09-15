@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { FlaskConical } from "lucide-react";
+import { LoadingRegion, Skeleton, SkeletonChart, SkeletonLines, SkeletonList, SkeletonPageHeader, SkeletonSheet, SkeletonStatColumns } from "@/components/ui/Skeleton";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { EmptyState, ErrorNote, Note, PageHeader } from "@/components/ui/primitives";
 import StrategyBuilder from "@/components/backtest/StrategyBuilder";
@@ -25,7 +25,7 @@ export default function BacktestPage() {
       const res = await runStrategyBacktest({ ...req, user_id: userId });
       setResult(res);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Backtest failed — check the backend is reachable and the date range has historical data available.");
+      setError(e instanceof Error ? e.message : "Backtest failed, check the backend is reachable and the date range has historical data available.");
       setResult(null);
     } finally {
       setRunning(false);
@@ -36,7 +36,7 @@ export default function BacktestPage() {
     <div className="space-y-6">
       <PageHeader
         title="Backtesting"
-        lead="Define a rule-based strategy and simulate it trade by trade against historical prices —
+        lead="Define a rule-based strategy and simulate it trade by trade against historical prices:
               full execution log, equity curve against the S&amp;P 500, and the performance statistics
               an allocator would actually ask for."
       />
@@ -58,7 +58,7 @@ export default function BacktestPage() {
 
           {!result && !error && !running && (
             <Card flat>
-              <EmptyState icon={FlaskConical} title="No backtest run yet">
+              <EmptyState title="No backtest run yet">
                 Configure a strategy on the left and run it. Performance statistics, an equity
                 curve against the S&amp;P 500, and every simulated trade will appear here.
               </EmptyState>
@@ -67,9 +67,7 @@ export default function BacktestPage() {
 
           {running && (
             <Card flat>
-              <CardContent className="py-16 text-center">
-                <p className="text-aureus-muted text-sm">Simulating trade-by-trade execution…</p>
-              </CardContent>
+              <CardContent><LoadingRegion label="Simulating trade-by-trade execution" className="space-y-5"><SkeletonStatColumns columns={4} /><SkeletonChart height={240} /></LoadingRegion></CardContent>
             </Card>
           )}
 
@@ -79,7 +77,7 @@ export default function BacktestPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Equity curve — strategy vs. S&amp;P 500</CardTitle>
+                  <CardTitle>Equity curve: strategy vs. S&amp;P 500</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <EquityCurveChart points={result.equity_curve} />

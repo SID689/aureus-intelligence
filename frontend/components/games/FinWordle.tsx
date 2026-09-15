@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LoadingRegion, Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/button";
 import WordGrid from "./WordGrid";
 import Keyboard from "./Keyboard";
@@ -101,12 +102,20 @@ export default function FinWordle({ userId, currentStreak, onRoundComplete }: Pr
   }, [session, submitting, userId, onRoundComplete, setGuess]);
 
   if (loading) {
-    return <div className="py-16 text-center text-aureus-muted text-sm">Loading today&apos;s puzzle…</div>;
+    return (
+      <LoadingRegion label="Loading today’s puzzle" className="max-w-xs mx-auto py-6 space-y-1.5">
+        {Array.from({ length: 6 }, (_, r) => (
+          <div key={r} className="grid grid-cols-5 gap-1.5">
+            {Array.from({ length: 5 }, (_, c) => <Skeleton key={c} className="aspect-square" delay={r * 60 + c * 30} />)}
+          </div>
+        ))}
+      </LoadingRegion>
+    );
   }
   if (!session) {
     return (
       <div className="py-16 text-center space-y-3">
-        <p className="text-aureus-oxblood text-sm">{message ?? "Game unavailable"}</p>
+        <p className="text-aureus-crimson text-sm">{message ?? "Game unavailable"}</p>
         <Button variant="outline" size="sm" onClick={() => load(mode)}>Retry</Button>
       </div>
     );
@@ -174,7 +183,7 @@ export default function FinWordle({ userId, currentStreak, onRoundComplete }: Pr
       {finished ? (
         <div className="text-center space-y-2 pt-2">
           <p className="text-sm text-aureus-muted">
-            {session.status === "won" ? "Solved" : "Round over"} —{" "}
+            {session.status === "won" ? "Solved" : "Round over"}, {" "}
             <button onClick={() => setShowModal(true)} className="text-aureus-gold hover:underline">
               see what {session.answer} means
             </button>

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Trash2 } from "lucide-react";
+import { IconTrash } from "@/components/ui/icons";
 import { addHolding, updateHolding, deleteHolding } from "@/lib/api";
 import type { Holding } from "@/lib/api";
 
@@ -70,9 +70,9 @@ export default function AddPositionModal({ portfolioId, userId, onClose, onAdded
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
       <form onSubmit={handleSubmit}
-            className="w-full max-w-sm rounded-xl border border-aureus-rule p-5 space-y-4"
+            className="w-full max-w-sm mx-4 rounded-sm border border-aureus-rule p-5 space-y-4 shadow-overlay"
             style={{ background: "var(--panel)" }}
             onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
@@ -81,14 +81,14 @@ export default function AddPositionModal({ portfolioId, userId, onClose, onAdded
           </h3>
           {isEditing && (
             <button type="button" onClick={() => setConfirmDelete(true)}
-                    className="text-aureus-oxblood hover:text-aureus-oxblood transition-colors" aria-label="Delete position">
-              <Trash2 className="w-4 h-4" />
+                    className="text-aureus-crimson hover:text-aureus-crimson transition-colors" aria-label="Delete position">
+              <IconTrash className="w-4 h-4" />
             </button>
           )}
         </div>
 
         {error && (
-          <div className="rounded p-2 bg-aureus-oxblood/10 border border-aureus-oxblooddim text-aureus-oxblood text-xs">{error}</div>
+          <div className="rounded p-2 bg-aureus-crimson/10 border border-aureus-crimsondim text-aureus-crimson text-xs">{error}</div>
         )}
 
         {confirmDelete ? (
@@ -99,11 +99,11 @@ export default function AddPositionModal({ portfolioId, userId, onClose, onAdded
             </p>
             <div className="flex gap-2">
               <button type="button" onClick={handleDelete} disabled={deleting}
-                      className="flex-1 py-2 rounded-lg border border-aureus-oxblooddim text-aureus-oxblood text-sm font-semibold hover:bg-aureus-oxblood/10 disabled:opacity-50">
-                {deleting ? "Removing..." : "Yes, remove it"}
+                      className="flex-1 py-2 rounded-sm border border-aureus-crimsondim text-aureus-crimson text-sm font-semibold hover:bg-aureus-crimson/10 disabled:opacity-50">
+                {deleting ? "Removing" : "Yes, remove it"}
               </button>
               <button type="button" onClick={() => setConfirmDelete(false)}
-                      className="px-4 py-2 rounded-lg border border-aureus-rule text-aureus-muted text-sm hover:text-aureus-text">
+                      className="px-4 py-2 rounded-sm border border-aureus-rule text-aureus-muted text-sm hover:text-aureus-text">
                 Cancel
               </button>
             </div>
@@ -152,11 +152,11 @@ export default function AddPositionModal({ portfolioId, userId, onClose, onAdded
 
             <div className="flex gap-2 pt-1">
               <button type="submit" disabled={loading}
-                      className="flex-1 py-2 rounded-lg bg-aureus-gold text-aureus-ink font-semibold text-sm hover:opacity-90 disabled:opacity-50">
-                {loading ? "Saving..." : isEditing ? "Save Changes" : "Add Position"}
+                      className="flex-1 py-2 rounded-sm bg-aureus-gold text-aureus-ink font-semibold text-sm hover:opacity-90 disabled:opacity-50">
+                {loading ? "Saving" : isEditing ? "Save Changes" : "Add Position"}
               </button>
               <button type="button" onClick={onClose}
-                      className="px-4 py-2 rounded-lg border border-aureus-rule text-aureus-muted text-sm hover:text-aureus-text">
+                      className="px-4 py-2 rounded-sm border border-aureus-rule text-aureus-muted text-sm hover:text-aureus-text">
                 Cancel
               </button>
             </div>

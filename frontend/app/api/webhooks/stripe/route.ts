@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     // Fail loudly rather than accepting unverified events. An unset
     // secret used to mean every webhook 400'd with a confusing signature
     // error; this says what is actually wrong.
-    console.error("STRIPE_WEBHOOK_SECRET is not configured — refusing webhook");
+    console.error("STRIPE_WEBHOOK_SECRET is not configured: refusing webhook");
     return NextResponse.json({ error: "Webhook secret not configured" }, { status: 500 });
   }
 
@@ -173,7 +173,7 @@ async function notifyBackend(path: string, payload: object): Promise<void> {
     // Refuse rather than call unauthenticated: the backend treats an
     // empty configured secret as "no check required", so sending nothing
     // would work and leave the tier endpoint effectively open.
-    throw new Error("INTERNAL_API_SECRET is not set — refusing to call the backend");
+    throw new Error("INTERNAL_API_SECRET is not set: refusing to call the backend");
   }
   const res = await fetch(`${BACKEND}${path}`, {
     method: "POST",

@@ -1,15 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
-import { X, GraduationCap, ChevronRight } from "lucide-react";
+import { IconClose } from "@/components/ui/icons";
 import { getTodaysLesson, dismissTodaysLesson } from "@/lib/api";
 import type { TodaysLesson } from "@/lib/api";
 
-const TIER_COLORS = ["text-aureus-gold", "text-aureus-verdigris", "text-[#c3a9e8]"];
+const LEVEL_TONE = ["text-aureus-gold", "text-aureus-emerald", "text-aureus-text"];
 
 export default function DailyLesson({ userId }: { userId: string }) {
-  const [data,      setData]      = useState<TodaysLesson | null>(null);
-  const [visible,   setVisible]   = useState(false);
-  const [expanded,  setExpanded]  = useState(false);
+  const [data, setData] = useState<TodaysLesson | null>(null);
+  const [visible, setVisible] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [dismissing, setDismissing] = useState(false);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export default function DailyLesson({ userId }: { userId: string }) {
         setData(res);
         if (!res.already_dismissed_today) setVisible(true);
       })
-      .catch(() => { /* fail quietly — lesson is a nice-to-have, not critical path */ });
+      .catch(() => { /* a daily lesson is optional; never block the dashboard on it */ });
   }, [userId]);
 
   const handleDismiss = async () => {
@@ -34,66 +34,46 @@ export default function DailyLesson({ userId }: { userId: string }) {
   };
 
   if (!visible || !data) return null;
-
-  const tierColor = TIER_COLORS[data.tier] ?? TIER_COLORS[0];
+  const paragraphs = data.lesson.body.split("\n\n");
 
   return (
-    <div className="rounded-lg border border-aureus-rule guilloche-corner overflow-hidden"
-         style={{ background: "var(--panel)" }}>
-      <div className="p-4 space-y-2">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <GraduationCap className={`w-4 h-4 ${tierColor}`} strokeWidth={1.75} />
-            <span className="text-[10px] uppercase tracking-widest text-aureus-muted">
-              Today's Lesson · <span className={tierColor}>{data.tier_label}</span> · {data.lesson.category}
-            </span>
-          </div>
-          <button onClick={handleDismiss} disabled={dismissing}
-                  className="text-aureus-muted hover:text-aureus-text transition-colors disabled:opacity-40"
-                  aria-label="Dismiss lesson">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Title */}
-        <h3 className="font-display text-aureus-text text-lg" style={{ fontWeight: 600 }}>
-          {data.lesson.title}
-        </h3>
-
-        {/* Body — collapsed to first paragraph until expanded */}
-        <div className="text-sm text-aureus-soft leading-relaxed">
-          {expanded ? (
-            data.lesson.body.split("\n\n").map((para, i) => (
-              <p key={i} className={i > 0 ? "mt-2" : ""}>{para}</p>
-            ))
-          ) : (
-            <p>{data.lesson.body.split("\n\n")[0]}</p>
+    <section className="border border-aureus-rule bg-aureus-panel">
+      <div className="grid lg:grid-cols-[14rem_minmax(0,1fr)]">
+        <div className="px-5 py-4 border-b lg:border-b-0 lg:border-r border-aureus-rule">
+          <p className="label-caps">Today’s lesson</p>
+          <p className={`text-[12.5px] mt-2 ${LEVEL_TONE[data.tier] ?? LEVEL_TONE[0]}`}>{data.tier_label}</p>
+          <p className="text-[12px] text-aureus-muted mt-0.5">{data.lesson.category}</p>
+          <p className="font-mono-num text-[11px] text-aureus-muted mt-4">{data.lessons_completed_count} completed</p>
+          {data.lessons_to_next_tier != null && (
+            <p className="font-mono-num text-[11px] text-aureus-muted">{data.lessons_to_next_tier} to the next level</p>
           )}
         </div>
 
-        {!expanded && (
-          <button onClick={() => setExpanded(true)}
-                  className="flex items-center gap-1 text-xs text-aureus-gold hover:underline">
-            Read more <ChevronRight className="w-3 h-3" />
-          </button>
-        )}
-
-        {expanded && (
-          <div className="rounded border border-aureus-gold/20 bg-aureus-gold/5 p-3 mt-2">
-            <span className="text-[10px] uppercase tracking-widest text-aureus-gold">Key takeaway</span>
-            <p className="text-sm text-aureus-text mt-1">{data.lesson.key_takeaway}</p>
+        <div className="px-5 py-4 min-w-0">
+          <div className="flex items-start justify-between gap-4">
+            <h3 className="font-display text-[20px] leading-snug text-aureus-text">{data.lesson.title}</h3>
+            <button onClick={handleDismiss} disabled={dismissing} aria-label="Dismiss today’s lesson"
+                    className="p-1 -mr-1 text-aureus-muted hover:text-aureus-text disabled:opacity-40">
+              <IconClose className="w-4 h-4" />
+            </button>
           </div>
-        )}
 
-        {/* Progress footer */}
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[10px] text-aureus-muted pt-1 font-mono">
-          <span>{data.lessons_completed_count} lessons completed</span>
-          {data.lessons_to_next_tier != null && (
-            <span>{data.lessons_to_next_tier} more to reach the next level</span>
+          <div className="text-[14px] text-aureus-soft leading-relaxed mt-2 max-w-[68ch] space-y-2">
+            {(expanded ? paragraphs : paragraphs.slice(0, 1)).map((para, i) => <p key={i}>{para}</p>)}
+          </div>
+
+          {expanded ? (
+            <div className="mt-4 pt-3 border-t border-aureus-rule max-w-[68ch]">
+              <p className="label-caps text-aureus-gold">Key takeaway</p>
+              <p className="text-[13.5px] text-aureus-text mt-1.5 leading-relaxed">{data.lesson.key_takeaway}</p>
+            </div>
+          ) : (
+            <button onClick={() => setExpanded(true)} className="mt-3 text-[12.5px] text-aureus-gold hover:text-aureus-goldbright">
+              Read the full lesson
+            </button>
           )}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

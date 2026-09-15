@@ -14,7 +14,7 @@ const FIELD_LABEL = "text-xs text-aureus-muted mb-1 block";
 const FIELD_INPUT =
   "w-full rounded-md border border-aureus-rule px-3 py-2 text-sm text-aureus-text placeholder:text-aureus-muted/50 " +
   "focus:outline-none focus:border-aureus-gold transition-colors";
-const FIELD_STYLE = { background: "var(--bg)" };
+const FIELD_STYLE = { background: "var(--ink)" };
 
 export default function StrategyBuilder({ onRun, running }: Props) {
   const [tickers, setTickers] = useState("AAPL");
@@ -79,14 +79,14 @@ export default function StrategyBuilder({ onRun, running }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="rounded-lg border border-aureus-oxblooddim bg-aureus-oxblood/10 p-3 text-aureus-oxblood text-xs">{error}</div>
+        <div className="rounded-sm border border-aureus-crimsondim bg-aureus-crimson/10 p-3 text-aureus-crimson text-xs">{error}</div>
       )}
 
       {/* Assets & timeframe */}
       <div className="space-y-3">
         <h4 className="text-xs font-semibold text-aureus-gold uppercase tracking-wider">Assets &amp; Timeframe</h4>
         <div>
-          <label className={FIELD_LABEL}>Ticker(s) — comma-separated, up to 5</label>
+          <label className={FIELD_LABEL}>Ticker(s): comma-separated, up to 5</label>
           <input value={tickers} onChange={(e) => setTickers(e.target.value)}
                  placeholder="AAPL, MSFT" className={FIELD_INPUT} style={FIELD_STYLE} />
         </div>
@@ -232,7 +232,7 @@ export default function StrategyBuilder({ onRun, running }: Props) {
       </div>
 
       <Button type="submit" disabled={running} size="lg" className="w-full">
-        {running ? "Running Backtest…" : "Run Backtest"}
+        {running ? "Running backtest" : "Run Backtest"}
       </Button>
     </form>
   );

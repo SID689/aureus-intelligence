@@ -3,9 +3,9 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 /**
- * Badges carry a tinted fill and a border of the same hue. The
- * `institutional` variant is the one place purple appears anywhere on the
- * platform — it marks the top tier, and its scarcity is the point.
+ * Badges are typographic: caps, tracked, a hairline border and a faint
+ * wash of their own colour. The top tier inverts to bone on ink, the one
+ * mark of rank in the product, and it needs no extra hue to say so.
  */
 const badgeVariants = cva(
   "inline-flex items-center rounded px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-[0.12em] whitespace-nowrap",
@@ -13,11 +13,11 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:       "bg-aureus-gold/10 text-aureus-gold border border-aureus-gold/30",
-        green:         "bg-aureus-verdigris/10 text-aureus-verdigris border border-aureus-verdigris/30",
-        red:           "bg-aureus-oxblood/10 text-aureus-oxblood border border-aureus-oxblood/30",
+        green:         "bg-aureus-emerald/10 text-aureus-emerald border border-aureus-emerald/30",
+        red:           "bg-aureus-crimson/10 text-aureus-crimson border border-aureus-crimson/30",
         amber:         "bg-aureus-amber/10 text-aureus-amber border border-aureus-amber/30",
         muted:         "bg-aureus-panellift text-aureus-muted border border-aureus-rule",
-        institutional: "bg-[#3a2f52]/50 text-[#c3a9e8] border border-[#c3a9e8]/30",
+        institutional: "bg-aureus-text text-aureus-ink border border-aureus-text",
       },
     },
     defaultVariants: { variant: "default" },

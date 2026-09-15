@@ -18,9 +18,9 @@ import type { Holding, SignalType } from "@/types";
 // ── SignalBadge ────────────────────────────────────────────────────────────
 
 const SIGNAL_STYLES: Record<SignalType, string> = {
-  BUY:  "bg-aureus-verdigris/10 text-aureus-verdigris border-aureus-verdigris/30",
+  BUY:  "bg-aureus-emerald/10 text-aureus-emerald border-aureus-emerald/30",
   HOLD: "bg-aureus-gold/10      text-aureus-gold      border-aureus-gold/30",
-  SELL: "bg-aureus-oxblood/10   text-aureus-oxblood   border-aureus-oxblood/30",
+  SELL: "bg-aureus-crimson/10   text-aureus-crimson   border-aureus-crimson/30",
 };
 
 export function SignalBadge({

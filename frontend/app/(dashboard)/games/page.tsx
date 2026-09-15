@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Flame, Trophy } from "lucide-react";
+import { LoadingRegion, Skeleton, SkeletonChart, SkeletonLines, SkeletonList, SkeletonPageHeader, SkeletonSheet, SkeletonStatColumns } from "@/components/ui/Skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import FinWordle from "@/components/games/FinWordle";
 import PatternGame from "@/components/games/PatternGame";
@@ -35,7 +35,7 @@ export default function GamesPage() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  if (!userId) return <div className="py-20 text-center text-aureus-muted text-sm">Loading…</div>;
+  if (!userId) return <LoadingRegion label="Loading games" className="space-y-6"><SkeletonPageHeader /><SkeletonSheet title={false}><SkeletonStatColumns columns={4} /></SkeletonSheet></LoadingRegion>;
 
   const wordleStats = stats?.by_game?.finwordle;
   const patternStats = stats?.by_game?.pattern_guesser;
@@ -46,7 +46,7 @@ export default function GamesPage() {
       <div>
         <h1 className="text-2xl font-bold text-aureus-text">Games</h1>
         <p className="text-aureus-muted text-sm mt-0.5">
-          Test what you actually know. Every round ends with the concept explained —
+          Test what you actually know. Every round ends with the concept explained:
           the puzzle is the hook, the definition is the point.
         </p>
       </div>
@@ -54,7 +54,7 @@ export default function GamesPage() {
       {/* Stat strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Current Streak", value: String(wordleStats?.current_streak ?? 0), icon: <Flame className="w-3.5 h-3.5 text-aureus-gold" /> },
+          { label: "Current Streak", value: String(wordleStats?.current_streak ?? 0), icon: null },
           { label: "Max Streak", value: String(wordleStats?.max_streak ?? 0) },
           { label: "Knowledge XP", value: (stats?.total_score ?? 0).toLocaleString() },
           { label: "Win Rate", value: active?.win_rate_pct != null ? `${active.win_rate_pct}%` : "—" },
@@ -109,7 +109,6 @@ export default function GamesPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-1.5">
-              <Trophy className="w-3.5 h-3.5" />
               Leaderboard
             </CardTitle>
           </CardHeader>
@@ -134,7 +133,7 @@ export default function GamesPage() {
                     <span className={`flex-1 truncate ${isMe ? "text-aureus-gold" : "text-aureus-text"}`}>
                       {e.display_name}{isMe && " (you)"}
                     </span>
-                    <span className="text-aureus-muted font-mono" title="Max streak">🔥{e.max_streak}</span>
+                    <span className="text-aureus-muted font-mono-num" title="Max streak">max {e.max_streak}</span>
                     <span className="text-aureus-text font-mono w-12 text-right" title="Knowledge XP">
                       {e.total_score}
                     </span>
@@ -144,7 +143,7 @@ export default function GamesPage() {
             )}
             <p className="text-[10px] text-aureus-muted pt-2 border-t border-aureus-rule mt-2">
               Ranked by longest streak, then knowledge XP. Streaks come from the
-              daily word only — practice rounds add XP but can&apos;t inflate a streak.
+              daily word only: practice rounds add XP but can&apos;t inflate a streak.
             </p>
           </CardContent>
         </Card>

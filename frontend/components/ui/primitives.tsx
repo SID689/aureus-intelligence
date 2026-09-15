@@ -11,20 +11,20 @@
  *      that really are discrete objects.
  *   2. Every figure is tabular (`Figure`). Digits must not shift width as
  *      values update.
- *   3. Colour means direction. Verdigris is up, oxblood is down, gold
+ *   3. Colour means direction. Emerald is up, crimson is down, gold
  *      means "you can act on this". Nothing is coloured for decoration.
  */
 import * as React from "react";
-import { useEffect, useId, useRef, useState } from "react";
-import type { LucideIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import type { IconComponent } from "./icons";
 import { cn } from "@/lib/utils";
 import { clockTime, seriesColor, signed, type Tone } from "@/lib/format";
 
 // ── Type ────────────────────────────────────────────────────────────────
 
 const TONE_CLASS: Record<Tone, string> = {
-  up:    "text-aureus-verdigris",
-  down:  "text-aureus-oxblood",
+  up:    "text-aureus-emerald",
+  down:  "text-aureus-crimson",
   flat:  "text-aureus-text",
   muted: "text-aureus-muted",
 };
@@ -136,10 +136,10 @@ export function Field({
   );
 }
 
-/** Inline error, in oxblood rather than a raw red. */
+/** Inline error, in crimson rather than a raw red. */
 export function ErrorNote({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-md border border-aureus-oxblooddim bg-aureus-oxblood/10 px-4 py-3 text-[13px] text-aureus-oxblood leading-relaxed">
+    <div className="rounded-md border border-aureus-crimsondim bg-aureus-crimson/10 px-4 py-3 text-[13px] text-aureus-crimson leading-relaxed">
       {children}
     </div>
   );
@@ -162,9 +162,9 @@ export function Sheet({
   return (
     <div
       className={cn(
-        "rounded-[10px] border border-aureus-rule bg-aureus-panel",
-        lift && "border-t-aureus-golddim shadow-lift",
-        accent && "guilloche-corner",
+        "rounded-sm border border-aureus-rule bg-aureus-panel",
+        lift && "border-t-aureus-golddim",
+        accent && "border-t-aureus-gold",
         className
       )}
       {...rest}
@@ -235,8 +235,8 @@ export function StatusDot({ on, className }: { on: boolean; className?: string }
   return (
     <span
       className={cn(
-        "inline-block w-1.5 h-1.5 rounded-full shrink-0",
-        on ? "bg-aureus-verdigris pulse-gold" : "bg-aureus-muted",
+        "inline-block w-1.5 h-1.5 shrink-0",
+        on ? "bg-aureus-emerald pulse-gold" : "bg-aureus-muted",
         className
       )}
     />
@@ -251,13 +251,13 @@ export function StatusDot({ on, className }: { on: boolean; className?: string }
 export function EmptyState({
   icon: Icon, title, children, action,
 }: {
-  icon?: LucideIcon;
+  icon?: IconComponent;
   title: string; children?: React.ReactNode; action?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col items-center text-center px-6 py-12">
       {Icon && (
-        <span className="mb-3 w-9 h-9 rounded-full border border-aureus-rule flex items-center justify-center">
+        <span className="mb-3 w-9 h-9 border border-aureus-rule flex items-center justify-center">
           <Icon className="w-4 h-4 text-aureus-muted" strokeWidth={1.5} />
         </span>
       )}
@@ -300,7 +300,7 @@ export function SegmentedBar({
         {segments.map((s, i) => (
           <span
             key={s.label}
-            title={`${s.label} — ${s.value.toFixed(1)}%`}
+            title={`${s.label}: ${s.value.toFixed(1)}%`}
             style={{ width: `${(s.value / total) * 100}%`, background: seriesColor(i) }}
           />
         ))}
@@ -308,7 +308,7 @@ export function SegmentedBar({
       <div className="flex flex-wrap gap-x-5 gap-y-1.5">
         {segments.map((s, i) => (
           <span key={s.label} className="flex items-center gap-1.5 text-xs">
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: seriesColor(i) }} />
+            <span className="w-2 h-2 shrink-0" style={{ background: seriesColor(i) }} />
             <span className="text-aureus-soft">{s.label}</span>
             <Figure tone="muted" className="text-[11px]">{s.value.toFixed(1)}%</Figure>
           </span>
@@ -320,7 +320,7 @@ export function SegmentedBar({
 
 /** Horizontal score meter, 0–100, coloured by band. */
 export function ScoreMeter({ score, className }: { score: number; className?: string }) {
-  const tone = score >= 60 ? "bg-aureus-verdigris" : score >= 40 ? "bg-aureus-gold" : "bg-aureus-oxblood";
+  const tone = score >= 60 ? "bg-aureus-emerald" : score >= 40 ? "bg-aureus-gold" : "bg-aureus-crimson";
   return (
     <span className={cn("block h-1.5 rounded-sm overflow-hidden bg-aureus-panelhigh", className)}>
       <span className={cn("block h-full transition-all duration-500", tone)}
@@ -342,8 +342,7 @@ export function Sparkline({
   values: number[]; tone?: "up" | "down" | "gold";
   width?: number; height?: number; fill?: boolean; className?: string;
 }) {
-  const id = useId();
-  const color = tone === "up" ? "var(--verdigris)" : tone === "down" ? "var(--oxblood)" : "var(--gold)";
+  const color = tone === "up" ? "var(--emerald)" : tone === "down" ? "var(--crimson)" : "var(--gold)";
   if (values.length < 2) return <svg width={width} height={height} aria-hidden className={className} />;
 
   const min = Math.min(...values);
@@ -355,14 +354,8 @@ export function Sparkline({
 
   return (
     <svg width={width} height={height} aria-hidden className={className} style={{ display: "block" }}>
-      <defs>
-        <linearGradient id={`sk-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      {fill && <path d={`${line} L${width},${height} L0,${height} Z`} fill={`url(#sk-${id})`} />}
-      <path d={line} fill="none" stroke={color} strokeWidth={1.25} strokeLinejoin="round" strokeLinecap="round" />
+      {fill && <path d={`${line} L${width},${height} L0,${height} Z`} fill={color} fillOpacity={0.08} />}
+      <path d={line} fill="none" stroke={color} strokeWidth={1.25} strokeLinejoin="miter" strokeLinecap="square" />
     </svg>
   );
 }
@@ -446,7 +439,7 @@ export function TickerTape({ items, note }: { items: TapeItem[]; note?: string }
     return (
       <div className="border-b border-aureus-rule bg-aureus-panel">
         <div className="px-6 py-2 text-[11px] text-aureus-muted">
-          {note ?? "Tape is empty — add a position and it starts running."}
+          {note ?? "The tape is empty. Add a position to start it."}
         </div>
       </div>
     );

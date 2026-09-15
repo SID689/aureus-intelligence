@@ -7,7 +7,7 @@
  * is silent has been told why before it happens.
  */
 import { useEffect, useState } from "react";
-import { BellOff, BellRing } from "lucide-react";
+import { IconBell, IconBellOff } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { disablePush, enablePush, getPushState, sendTestPush } from "@/lib/realtime";
@@ -63,14 +63,14 @@ export default function PushToggle({ compact = false }: { compact?: boolean }) {
     : state === "blocked" ? "Notifications are blocked for this site in your browser settings."
     : state === "on" ? "On for this browser."
     : state === "off" ? "Off for this browser. Alerts only arrive while the app is open."
-    : "Checking…";
+    : "Checking";
 
   return (
     <div className={cn(compact ? "space-y-2" : "space-y-3")}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         {state === "on"
-          ? <BellRing className="w-4 h-4 text-aureus-verdigris shrink-0" />
-          : <BellOff className="w-4 h-4 text-aureus-muted shrink-0" />}
+          ? <IconBell className="w-4 h-4 text-aureus-emerald shrink-0" />
+          : <IconBellOff className="w-4 h-4 text-aureus-muted shrink-0" />}
         <div className="min-w-0 flex-1">
           {!compact && <div className="text-[13px] text-aureus-text">Push notifications</div>}
           <div className={cn("text-aureus-muted", compact ? "text-[11.5px]" : "text-[12px]")}>{description}</div>
@@ -81,7 +81,7 @@ export default function PushToggle({ compact = false }: { compact?: boolean }) {
               <Button variant="outline" size="sm" onClick={test} disabled={busy}>Send test</Button>
             )}
             <Button variant={state === "on" ? "outline" : "default"} size="sm" onClick={toggle} disabled={busy}>
-              {busy ? "…" : state === "on" ? "Turn off" : "Turn on"}
+              {busy ? "Working" : state === "on" ? "Turn off" : "Turn on"}
             </Button>
           </div>
         )}

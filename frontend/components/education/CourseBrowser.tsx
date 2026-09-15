@@ -15,9 +15,7 @@
  * curious about teaches them nothing.
  */
 import { useState } from "react";
-import {
-  Calculator, Check, ChevronDown, Circle, Clock, PlayCircle, Sparkles, Zap,
-} from "lucide-react";
+import { IconCheck, IconChevronDown } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { CapsLabel, Figure } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
@@ -31,21 +29,21 @@ interface Props {
 function StatusMark({ status }: { status: LessonSummary["status"] }) {
   if (status === "completed") {
     return (
-      <span className="w-5 h-5 rounded-full bg-aureus-verdigris/15 flex items-center justify-center shrink-0">
-        <Check className="w-3 h-3 text-aureus-verdigris" strokeWidth={3} />
+      <span className="w-5 h-5 bg-aureus-emerald/15 flex items-center justify-center shrink-0">
+        <IconCheck className="w-3 h-3 text-aureus-emerald" strokeWidth={1.75} />
       </span>
     );
   }
   if (status === "in_progress") {
     return (
-      <span className="w-5 h-5 rounded-full bg-aureus-gold/15 flex items-center justify-center shrink-0">
-        <PlayCircle className="w-3 h-3 text-aureus-gold" strokeWidth={2.5} />
+      <span className="w-5 h-5 border border-aureus-gold/60 flex items-center justify-center shrink-0">
+        <span className="w-1.5 h-1.5 bg-aureus-gold" />
       </span>
     );
   }
   return (
-    <span className="w-5 h-5 rounded-full border border-aureus-rule flex items-center justify-center shrink-0">
-      <Circle className="w-1.5 h-1.5 text-aureus-muted/60 fill-current" />
+    <span className="w-5 h-5 border border-aureus-rule flex items-center justify-center shrink-0">
+      <span className="sr-only">Not started</span>
     </span>
   );
 }
@@ -57,8 +55,7 @@ function LessonRow({ lesson, onOpen }: { lesson: LessonSummary; onOpen: () => vo
   return (
     <button
       onClick={onOpen}
-      className="w-full text-left group flex items-start gap-3 pl-3 pr-3 py-2.5 rounded-md
-                 border-l-2 border-transparent hover:border-aureus-gold hover:bg-aureus-panellift transition-colors"
+      className="w-full text-left group flex items-start gap-3 pl-3 pr-3 py-2.5 rounded-md hover:bg-aureus-panellift transition-colors"
     >
       <span className="pt-0.5"><StatusMark status={lesson.status} /></span>
       <span className="flex-1 min-w-0">
@@ -74,16 +71,16 @@ function LessonRow({ lesson, onOpen }: { lesson: LessonSummary; onOpen: () => vo
         <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1 text-[11px] text-aureus-muted">
           <span>{lesson.category}</span>
           {lesson.quiz_question_count > 0 && (
-            <span className={lesson.quiz_passed ? "text-aureus-verdigris" : ""}>
+            <span className={lesson.quiz_passed ? "text-aureus-emerald" : ""}>
               {lesson.quiz_passed ? `quiz ${lesson.quiz_best_score}/${lesson.quiz_total}` : `${lesson.quiz_question_count}q`}
             </span>
           )}
           {drills > 0 && (
-            <span className="flex items-center gap-1"><Calculator className="w-3 h-3" />{drills}</span>
+            <span className="font-mono-num">{drills} drills</span>
           )}
           {interactive && (
-            <span className="flex items-center gap-1 text-aureus-verdigris">
-              <Sparkles className="w-3 h-3" />interactive
+            <span className="flex items-center gap-1 text-aureus-emerald">
+              interactive
             </span>
           )}
           {lesson.xp_earned > 0 && <span className="text-aureus-gold">{lesson.xp_earned} XP</span>}
@@ -117,15 +114,15 @@ function ModuleStation({
       {/* Station marker */}
       <span
         className={cn(
-          "absolute left-0 top-0.5 w-8 h-8 rounded-full flex items-center justify-center",
+          "absolute left-0 top-0.5 w-8 h-8 flex items-center justify-center",
           "font-mono-num text-[12px] border-2 shrink-0",
-          done ? "bg-aureus-verdigris/15 border-aureus-verdigris text-aureus-verdigris"
+          done ? "bg-aureus-emerald/15 border-aureus-emerald text-aureus-emerald"
             : started ? "bg-aureus-gold/10 border-aureus-gold text-aureus-gold"
             : "bg-aureus-panel border-aureus-rule text-aureus-muted",
         )}
         aria-hidden
       >
-        {done ? <Check className="w-4 h-4" strokeWidth={3} /> : module.tier}
+        {done ? <IconCheck className="w-4 h-4" strokeWidth={1.75} /> : module.tier}
       </span>
 
       <div className="pb-8">
@@ -139,7 +136,7 @@ function ModuleStation({
               {module.label}
             </h2>
             <Badge variant={done ? "green" : "muted"}>{module.difficulty_level}</Badge>
-            <ChevronDown className={cn(
+            <IconChevronDown className={cn(
               "w-4 h-4 text-aureus-muted transition-transform ml-auto shrink-0",
               open && "rotate-180",
             )} />
@@ -155,15 +152,15 @@ function ModuleStation({
             <Figure tone={done ? "up" : "muted"} className="text-[11px]">
               {module.lessons_completed}/{module.lesson_count} lessons
             </Figure>
-            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{module.estimated_minutes} min</span>
+            <span className="font-mono-num">{module.estimated_minutes} min</span>
             <span className="flex items-center gap-1 text-aureus-gold">
-              <Zap className="w-3 h-3" />{module.xp_earned}/{module.total_xp_available} XP
+              {module.xp_earned}/{module.total_xp_available} XP
             </span>
             <Figure tone="muted" className="text-[11px] ml-auto">{module.percent_complete}%</Figure>
           </div>
           <div className="h-1 rounded-sm bg-aureus-panelhigh overflow-hidden">
             <div
-              className={cn("h-full transition-all duration-500", done ? "bg-aureus-verdigris" : "bg-aureus-gold")}
+              className={cn("h-full transition-all duration-500", done ? "bg-aureus-emerald" : "bg-aureus-gold")}
               style={{ width: `${module.percent_complete}%` }}
             />
           </div>

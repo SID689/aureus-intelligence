@@ -1,40 +1,38 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Search } from "lucide-react";
 import { usePortfolio } from "@/components/dashboard/PortfolioProvider";
 import { Button } from "@/components/ui/button";
-import {
-  CapsLabel, Figure, Input, PageHeader, RuledLabel, Sheet,
-} from "@/components/ui/primitives";
+import { Figure, Input, PageHeader, RuledLabel } from "@/components/ui/primitives";
+import { IconArrowRight, IconSearch } from "@/components/ui/icons";
+import { cn } from "@/lib/utils";
 import { price, signed } from "@/lib/format";
 
 const POPULAR = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "JPM", "XOM"];
 
 type Horizon = "short_term" | "medium_term" | "long_term";
 
-// The horizon is chosen HERE, before the analysis runs, and travels in the
-// URL. Previously it was component state on the results page, so it reset
-// to medium_term on every navigation and there was no way to ask for a
-// short-term read up front.
-const HORIZONS: { value: Horizon; label: string; sub: string; note: string }[] = [
-  { value: "short_term",  label: "Short",  sub: "1d – 1m",
-    note: "Price action and news lead; a DCF cannot explain a move this fast." },
-  { value: "medium_term", label: "Medium", sub: "1m – 6m",
+/**
+ * The horizon is chosen here, before the analysis runs, and travels in the
+ * URL. Each option shows the pillar weights it applies, straight from the
+ * engine (backend/app/analysis/ensemble.py _HORIZON_WEIGHTS), so choosing a
+ * horizon is choosing a visible weighting, not an opaque mode.
+ */
+const HORIZONS: { value: Horizon; label: string; range: string; weights: [number, number, number]; note: string }[] = [
+  { value: "short_term", label: "Short", range: "1d to 1m", weights: [10, 50, 40],
+    note: "Price action and news lead. A discounted cash flow cannot explain a move this fast." },
+  { value: "medium_term", label: "Medium", range: "1m to 6m", weights: [35, 35, 30],
     note: "The three pillars weighted near evenly." },
-  { value: "long_term",   label: "Long",   sub: "1y+",
-    note: "Business quality leads; this quarter's mood is noise at this range." },
+  { value: "long_term", label: "Long", range: "1y and beyond", weights: [65, 20, 15],
+    note: "Business quality leads. This quarter’s mood carries little information at this range." },
 ];
 
-/**
- * Ticker picker. The analysis itself lives at /analysis/[ticker] so a given
- * stock's dashboard is a shareable, bookmarkable URL rather than transient
- * component state.
- *
- * Your own holdings come first. Someone arriving here almost always wants
- * to analyse something they already own, and making them retype a ticker
- * the platform already knows about is a small insult repeated daily.
- */
+const METHOD: [string, string][] = [
+  ["Fundamental", "Valuation, growth, profitability and balance-sheet strength from filed financials, compared with sector medians."],
+  ["Technical", "Trend, momentum, volatility and support levels computed from daily price bars."],
+  ["Sentiment", "Aspect-based scoring of news wires, SEC filing tone and retail messages, weighted by source authority."],
+];
+
 export default function AnalysisIndexPage() {
   const router = useRouter();
   const { holdings } = usePortfolio();
@@ -45,67 +43,71 @@ export default function AnalysisIndexPage() {
     const clean = t.trim().toUpperCase();
     if (clean) router.push(`/analysis/${clean}?horizon=${horizon}`);
   };
+  const active = HORIZONS.find((h) => h.value === horizon)!;
 
   return (
-    <div className="space-y-7 max-w-4xl">
+    <div className="space-y-9 max-w-4xl">
       <PageHeader
-        title="Deep analysis"
-        lead="Fundamental, technical and sentiment scores combined into one ensemble, re-weighted by
-              your time horizon, with a metric-backed bull and bear case for each side of the trade."
+        title="Analysis"
+        lead="Fundamental, technical and sentiment evidence pooled into one composite, weighted by your holding period, with a bull and bear case built from the figures."
       />
 
-      <Sheet lift accent className="p-5 space-y-4">
-        <form onSubmit={(e) => { e.preventDefault(); go(ticker); }} className="space-y-4">
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-aureus-muted pointer-events-none" />
+      <form onSubmit={(e) => { e.preventDefault(); go(ticker); }} className="border border-aureus-rule bg-aureus-panel">
+        <div className="p-5 flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <IconSearch className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-aureus-muted pointer-events-none" />
             <Input
               value={ticker}
               onChange={(e) => setTicker(e.target.value)}
-              placeholder="Enter a ticker — e.g. AAPL"
-              className="pl-9 py-2.5"
+              placeholder="Ticker, for example AAPL"
+              className="pl-9 h-10 font-mono-num uppercase placeholder:normal-case placeholder:font-sans"
               autoCapitalize="characters"
               spellCheck={false}
+              aria-label="Ticker"
             />
           </div>
+          <Button type="submit" disabled={!ticker.trim()} className="h-10">
+            Analyse {ticker.trim().toUpperCase()} <IconArrowRight className="w-3.5 h-3.5" />
+          </Button>
+        </div>
 
-          <div>
-            <CapsLabel>Holding period</CapsLabel>
-            <div className="grid sm:grid-cols-3 gap-2 mt-2">
-              {HORIZONS.map((h) => (
+        <fieldset className="border-t border-aureus-rule">
+          <legend className="sr-only">Holding period</legend>
+          <div className="grid grid-cols-3">
+            {HORIZONS.map((h, i) => {
+              const on = h.value === horizon;
+              return (
                 <button
                   key={h.value}
                   type="button"
                   onClick={() => setHorizon(h.value)}
-                  aria-pressed={horizon === h.value}
-                  className={`rounded-md border px-3 py-2.5 text-left transition-colors ${
-                    horizon === h.value
-                      ? "border-aureus-gold bg-aureus-gold/[0.08]"
-                      : "border-aureus-rule hover:border-aureus-rulestrong hover:bg-aureus-panellift"
-                  }`}
+                  aria-pressed={on}
+                  className={cn(
+                    "text-left px-4 sm:px-5 py-3.5 transition-colors",
+                    i > 0 && "border-l border-aureus-rule",
+                    on ? "bg-aureus-panelhigh" : "hover:bg-aureus-panellift",
+                  )}
                 >
-                  <div className={`text-[13px] font-medium ${horizon === h.value ? "text-aureus-gold" : "text-aureus-text"}`}>
-                    {h.label}
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className={cn("text-[13.5px]", on ? "text-aureus-gold" : "text-aureus-text")}>{h.label}</span>
+                    <span className="hidden sm:inline font-mono-num text-[10.5px] text-aureus-muted">{h.range}</span>
                   </div>
-                  <Figure tone="muted" className="text-[11px]">{h.sub}</Figure>
+                  <div className="flex gap-3 mt-2 font-mono-num text-[11px] text-aureus-muted">
+                    <span>F {h.weights[0]}</span><span>T {h.weights[1]}</span><span>S {h.weights[2]}</span>
+                  </div>
                 </button>
-              ))}
-            </div>
-            <p className="text-[11px] text-aureus-muted mt-2 leading-relaxed">
-              {HORIZONS.find((h) => h.value === horizon)?.note}
-            </p>
+              );
+            })}
           </div>
-
-          <Button type="submit" disabled={!ticker.trim()} className="w-full sm:w-auto">
-            Analyse {ticker.trim().toUpperCase() || ""} <ArrowRight className="w-4 h-4" />
-          </Button>
-        </form>
-      </Sheet>
+          <p className="px-5 py-2.5 border-t border-aureus-rule text-[12px] text-aureus-muted">{active.note}</p>
+        </fieldset>
+      </form>
 
       {holdings.length > 0 && (
-        <div>
+        <section>
           <RuledLabel>Your positions</RuledLabel>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
-            {holdings.map((h) => {
+          <div className="mt-2">
+            {holdings.map((h, i) => {
               const pct = h.current_price != null && h.average_cost_basis > 0
                 ? ((h.current_price - h.average_cost_basis) / h.average_cost_basis) * 100
                 : null;
@@ -113,57 +115,44 @@ export default function AnalysisIndexPage() {
                 <button
                   key={h.id || h.ticker}
                   onClick={() => go(h.ticker)}
-                  className="group text-left rounded-[10px] border border-aureus-rule bg-aureus-panel px-4 py-3.5
-                             hover:border-aureus-gold hover:bg-aureus-panellift transition-colors"
+                  className={cn("group w-full grid grid-cols-[5rem_1fr_5rem_auto] items-baseline gap-4 px-2 py-2.5 text-left ledger-row", i > 0 && "border-t border-aureus-rulesoft")}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium text-aureus-text">{h.ticker}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-aureus-muted group-hover:text-aureus-gold transition-colors" />
-                  </div>
-                  <div className="flex items-baseline gap-2.5 mt-1.5">
-                    <Figure tone="muted" className="text-[13px]">{price(h.current_price)}</Figure>
-                    {pct != null && (
-                      <Figure tone={pct >= 0 ? "up" : "down"} className="text-[11px]">{signed(pct)}%</Figure>
-                    )}
-                  </div>
+                  <span className="font-mono-num text-[14px] text-aureus-text">{h.ticker}</span>
+                  <Figure tone="muted" className="text-[13px]">{price(h.current_price)}</Figure>
+                  <Figure tone={pct == null ? "muted" : pct >= 0 ? "up" : "down"} className="text-[12px] text-right">
+                    {pct == null ? "" : `${signed(pct)}%`}
+                  </Figure>
+                  <span className="text-[12px] text-aureus-muted group-hover:text-aureus-gold">Analyse</span>
                 </button>
               );
             })}
           </div>
-        </div>
+        </section>
       )}
 
-      <div>
+      <section>
         <RuledLabel>Frequently analysed</RuledLabel>
         <div className="flex flex-wrap gap-1.5 mt-4">
           {POPULAR.map((t) => (
-            <button
-              key={t}
-              onClick={() => go(t)}
-              className="rounded-md border border-aureus-rule px-2.5 py-1.5 text-xs font-mono-num
-                         text-aureus-soft hover:border-aureus-gold hover:text-aureus-gold transition-colors"
-            >
+            <button key={t} onClick={() => go(t)}
+                    className="border border-aureus-rule px-2.5 py-1.5 text-[12px] font-mono-num text-aureus-soft hover:border-aureus-gold hover:text-aureus-gold transition-colors">
               {t}
             </button>
           ))}
         </div>
-      </div>
+      </section>
 
-      <div className="pt-1">
-        <CapsLabel>What you get</CapsLabel>
-        <div className="grid sm:grid-cols-3 gap-x-8 gap-y-4 mt-3">
-          {[
-            { k: "Fundamental", v: "Valuation, growth, profitability and balance-sheet strength from filed financials." },
-            { k: "Technical", v: "Trend, momentum, volatility and support levels computed from real OHLCV bars." },
-            { k: "Sentiment", v: "Aspect-based scoring across news wires, SEC filings and social, weighted by source authority." },
-          ].map((c) => (
-            <div key={c.k} className="border-t border-aureus-rule pt-3">
-              <div className="text-[13px] text-aureus-soft font-medium">{c.k}</div>
-              <p className="text-[12px] text-aureus-muted mt-1 leading-relaxed">{c.v}</p>
+      <section>
+        <RuledLabel>Method</RuledLabel>
+        <dl className="mt-2">
+          {METHOD.map(([k, v], i) => (
+            <div key={k} className={cn("grid sm:grid-cols-[9rem_1fr] gap-x-6 gap-y-1 py-3", i > 0 && "border-t border-aureus-rulesoft")}>
+              <dt className="text-[13px] text-aureus-text">{k}</dt>
+              <dd className="text-[13px] text-aureus-muted leading-relaxed">{v}</dd>
             </div>
           ))}
-        </div>
-      </div>
+        </dl>
+      </section>
     </div>
   );
 }

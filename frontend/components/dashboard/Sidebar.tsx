@@ -1,134 +1,134 @@
 "use client";
+/**
+ * The navigation rail, set as an index rather than an icon list.
+ *
+ * Each destination carries a two-digit number in the figure face, the way
+ * a terminal lists its functions, and a locked destination names the plan
+ * it needs in small caps instead of showing a padlock. The rail reads as
+ * a table of contents for an instrument, which is what it is.
+ */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import {
-  LayoutDashboard, LineChart, Mic, FlaskConical, GraduationCap, Gamepad2,
-  Settings, LogOut, Lock, Sigma, X, Flame,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { IconClose } from "@/components/ui/icons";
 import Logo from "@/components/brand/Logo";
+import { TIER_LABEL, asTier, meetsTier, nextTier } from "@/lib/tiers";
 import type { TierName } from "@/types";
 
-/**
- * Eight flat destinations is a list you read; three labelled groups is a
- * structure you navigate. The grouping also makes the tier gates legible
- * — Voice and Quant Lab sit together under Research, so it's obvious what
- * upgrading actually buys rather than two padlocks scattered down a list.
- */
-const NAV_GROUPS: {
-  label: string;
-  items: { href: string; label: string; icon: LucideIcon; tier?: TierName }[];
-}[] = [
-  {
-    label: "Portfolio",
-    items: [
-      { href: "/",         label: "Dashboard", icon: LayoutDashboard },
-      { href: "/analysis", label: "Analysis",  icon: LineChart },
-    ],
-  },
+type NavItem = { href: string; label: string; tier?: TierName };
+
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  { label: "Portfolio", items: [{ href: "/", label: "Dashboard" }, { href: "/analysis", label: "Analysis" }] },
   {
     label: "Research",
     items: [
-      { href: "/leaderboard", label: "Leaderboard", icon: Flame, tier: "elite" },
-      { href: "/backtest",  label: "Backtest",  icon: FlaskConical },
-      { href: "/quant-lab", label: "Quant Lab", icon: Sigma, tier: "elite" },
-      { href: "/voice",     label: "Voice",     icon: Mic,   tier: "elite" },
+      { href: "/leaderboard", label: "Leaderboard", tier: "elite" },
+      { href: "/backtest", label: "Backtest" },
+      { href: "/quant-lab", label: "Quant Lab", tier: "elite" },
+      { href: "/voice", label: "Voice", tier: "elite" },
     ],
   },
-  {
-    label: "Learn",
-    items: [
-      { href: "/education", label: "Education", icon: GraduationCap },
-      { href: "/games",     label: "Games",     icon: Gamepad2 },
-    ],
-  },
+  { label: "Learn", items: [{ href: "/education", label: "Education" }, { href: "/games", label: "Games" }] },
 ];
 
-const TIER_BADGE: Record<TierName, { label: string; variant: "default" | "green" | "institutional" | "muted" }> = {
-  sovereign:     { label: "Sovereign",     variant: "muted" },
-  elite:         { label: "Elite",         variant: "default" },
-  institutional: { label: "Institutional", variant: "institutional" },
+const TIER_BADGE: Record<TierName, "muted" | "default" | "institutional"> = {
+  sovereign: "muted",
+  plus: "muted",
+  elite: "default",
+  institutional: "institutional",
 };
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const tier = (session?.user?.tier ?? "sovereign") as TierName;
-  const tierBadge = TIER_BADGE[tier];
+  const tier = asTier(session?.user?.tier);
+  let index = 0;
 
-  const link = (
-    { href, label, icon: Icon, tier: requiredTier }:
-    { href: string; label: string; icon: LucideIcon; tier?: TierName }
-  ) => {
-    const isActive = pathname === href;
-    const isLocked = !!requiredTier && tier === "sovereign";
-    return (
-      <Link
-        key={href}
-        href={isLocked ? `/upgrade?feature=${label.toLowerCase()}` : href}
-        onClick={onNavigate}
-        className={cn(
-          "group flex items-center gap-3 pl-3 pr-2.5 py-2 rounded-md text-[13px] transition-colors border-l-2",
-          isActive
-            ? "text-aureus-gold border-aureus-gold bg-aureus-gold/[0.07]"
-            : "text-aureus-muted border-transparent hover:text-aureus-text hover:bg-aureus-panellift"
-        )}
-      >
-        <Icon className="w-4 h-4 shrink-0" strokeWidth={1.75} />
-        <span className="flex-1">{label}</span>
-        {isLocked && <Lock className="w-3 h-3 text-aureus-golddim group-hover:text-aureus-gold" />}
-      </Link>
-    );
-  };
+  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`));
 
   return (
     <aside className="w-56 shrink-0 flex flex-col h-full bg-aureus-panel border-r border-aureus-rule">
       <div className="px-5 py-5 border-b border-aureus-rule flex items-start justify-between">
-        <Logo size={30} withWordmark wordmarkClassName="text-xl" tagline="Intelligence Platform" />
+        <Logo size={28} withWordmark wordmarkClassName="text-xl" tagline="Intelligence" />
         {onNavigate && (
-          <button onClick={onNavigate} className="md:hidden text-aureus-muted hover:text-aureus-text" aria-label="Close navigation">
-            <X className="w-4 h-4" />
+          <button onClick={onNavigate} className="md:hidden p-1 text-aureus-muted hover:text-aureus-text" aria-label="Close navigation">
+            <IconClose className="w-4 h-4" />
           </button>
         )}
       </div>
 
       <div className="px-5 py-3 border-b border-aureus-rule flex items-center gap-2">
-        <Badge variant={tierBadge.variant}>{tierBadge.label}</Badge>
-        {tier === "sovereign" && (
-          <Link href="/upgrade" onClick={onNavigate} className="text-[11px] text-aureus-gold hover:text-aureus-goldbright ml-auto">
-            Upgrade
+        <span className="label-caps">Plan</span>
+        <Badge variant={TIER_BADGE[tier]}>{TIER_LABEL[tier]}</Badge>
+        {tier !== "institutional" && (
+          <Link href="/upgrade" onClick={onNavigate} className="ml-auto text-[11px] text-aureus-gold hover:text-aureus-goldbright">
+            {tier === "sovereign" ? "Upgrade" : `${TIER_LABEL[nextTier(tier)]}`}
           </Link>
         )}
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+      <nav className="flex-1 px-2 py-4 space-y-5 overflow-y-auto" aria-label="Primary">
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
-            <div className="label-caps px-3 pb-2">{group.label}</div>
-            <div className="space-y-0.5">{group.items.map(link)}</div>
+            <div className="label-caps px-3 pb-1.5">{group.label}</div>
+            <ul>
+              {group.items.map((item) => {
+                index += 1;
+                const locked = !!item.tier && !meetsTier(tier, item.tier);
+                const active = isActive(item.href);
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={locked ? `/upgrade?feature=${item.href.slice(1)}&required_tier=${item.tier}` : item.href}
+                      onClick={onNavigate}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "group grid grid-cols-[1.75rem_1fr_auto] items-baseline px-3 py-[7px] text-[13px] transition-colors",
+                        active ? "bg-aureus-panelhigh text-aureus-text" : "text-aureus-soft hover:bg-aureus-panellift hover:text-aureus-text",
+                      )}
+                    >
+                      <span className={cn("font-mono-num text-[10.5px]", active ? "text-aureus-gold" : "text-aureus-muted")}>
+                        {String(index).padStart(2, "0")}
+                      </span>
+                      <span className={cn(locked && "text-aureus-muted")}>{item.label}</span>
+                      {locked && <span className="label-caps text-[9px] text-aureus-golddim group-hover:text-aureus-gold">{TIER_LABEL[item.tier!]}</span>}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         ))}
       </nav>
 
-      <div className="px-3 py-3 border-t border-aureus-rule space-y-0.5">
-        {link({ href: "/settings", label: "Settings", icon: Settings })}
-        <div className="px-3 pt-3 pb-1">
-          <div className="text-aureus-soft text-[13px] font-medium truncate">
-            {session?.user?.name || session?.user?.email || "User"}
-          </div>
-          <div className="text-aureus-muted text-[11px] truncate font-mono">{session?.user?.email}</div>
+      <div className="px-2 py-3 border-t border-aureus-rule">
+        <Link
+          href="/settings"
+          onClick={onNavigate}
+          className={cn(
+            "grid grid-cols-[1.75rem_1fr] items-baseline px-3 py-[7px] text-[13px] transition-colors",
+            isActive("/settings") ? "bg-aureus-panelhigh text-aureus-text" : "text-aureus-soft hover:bg-aureus-panellift hover:text-aureus-text",
+          )}
+        >
+          <span className="font-mono-num text-[10.5px] text-aureus-muted">··</span>
+          Settings
+        </Link>
+        <div className="px-3 pt-3">
+          <div className="text-aureus-soft text-[13px] font-medium truncate">{session?.user?.name || session?.user?.email || "Account"}</div>
+          <div className="text-aureus-muted text-[11px] truncate font-mono-num">{session?.user?.email}</div>
         </div>
         <button
           onClick={() => signOut({ callbackUrl: "/welcome" })}
-          className="flex items-center gap-3 pl-3 pr-2.5 py-2 rounded-md text-[13px] text-aureus-muted
-                     hover:text-aureus-text hover:bg-aureus-panellift transition-colors w-full text-left border-l-2 border-transparent"
+          className="mt-2 w-full text-left px-3 py-[7px] text-[12.5px] text-aureus-muted hover:text-aureus-text hover:bg-aureus-panellift transition-colors"
         >
-          <LogOut className="w-4 h-4 shrink-0" strokeWidth={1.75} />
           Sign out
         </button>
+        <div className="px-3 pt-2 flex gap-3 text-[10.5px] text-aureus-muted">
+          <Link href="/terms" className="hover:text-aureus-text">Terms</Link>
+          <Link href="/privacy" className="hover:text-aureus-text">Privacy</Link>
+        </div>
       </div>
     </aside>
   );

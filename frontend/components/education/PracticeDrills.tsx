@@ -12,7 +12,7 @@
  * the answer.
  */
 import { useState } from "react";
-import { Check, Lightbulb, X } from "lucide-react";
+import { IconCheck, IconClose } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Figure } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
@@ -80,7 +80,7 @@ export default function PracticeDrills({
           </p>
         </div>
         {alreadyPassed && (
-          <span className="text-[11px] text-aureus-verdigris border border-aureus-verdigrisdim/40 bg-aureus-verdigris/10 rounded px-2 py-0.5">
+          <span className="text-[11px] text-aureus-emerald border border-aureus-emeralddim/40 bg-aureus-emerald/10 rounded px-2 py-0.5">
             Passed
           </span>
         )}
@@ -94,10 +94,10 @@ export default function PracticeDrills({
             <div
               key={i}
               className={cn(
-                "rounded-[10px] border p-4",
+                "rounded-sm border p-4",
                 !r && "border-aureus-rule bg-aureus-panel",
-                r?.correct && "border-aureus-verdigrisdim/50 bg-aureus-verdigris/[0.06]",
-                r && !r.correct && "border-aureus-oxblooddim/50 bg-aureus-oxblood/[0.06]",
+                r?.correct && "border-aureus-emeralddim/50 bg-aureus-emerald/[0.06]",
+                r && !r.correct && "border-aureus-crimsondim/50 bg-aureus-crimson/[0.06]",
               )}
             >
               <div className="flex items-start gap-3">
@@ -123,8 +123,8 @@ export default function PracticeDrills({
                           "w-40 rounded-md border bg-aureus-ink px-3 py-2 text-sm font-mono-num text-aureus-text",
                           "placeholder:text-aureus-muted/50 focus:outline-none transition-colors",
                           q.unit ? "pr-10" : "",
-                          r?.correct ? "border-aureus-verdigrisdim"
-                            : r ? "border-aureus-oxblooddim"
+                          r?.correct ? "border-aureus-emeralddim"
+                            : r ? "border-aureus-crimsondim"
                             : "border-aureus-rule focus:border-aureus-gold",
                         )}
                       />
@@ -140,18 +140,18 @@ export default function PracticeDrills({
                         onClick={() => setHintsShown(new Set(hintsShown).add(i))}
                         className="flex items-center gap-1.5 text-[11px] text-aureus-muted hover:text-aureus-gold transition-colors"
                       >
-                        <Lightbulb className="w-3 h-3" /> Hint
+                        Hint
                       </button>
                     )}
 
                     {r && (
                       <span className={cn(
                         "flex items-center gap-1.5 text-[12px]",
-                        r.correct ? "text-aureus-verdigris" : "text-aureus-oxblood",
+                        r.correct ? "text-aureus-emerald" : "text-aureus-crimson",
                       )}>
                         {r.correct
-                          ? <><Check className="w-3.5 h-3.5" strokeWidth={2.5} /> Correct</>
-                          : <><X className="w-3.5 h-3.5" strokeWidth={2.5} /> Answer: {r.correct_answer}{r.unit}</>}
+                          ? <><IconCheck className="w-3.5 h-3.5" /> Correct</>
+                          : <><IconClose className="w-3.5 h-3.5" /> Answer: {r.correct_answer}{r.unit}</>}
                       </span>
                     )}
                   </div>
@@ -172,20 +172,20 @@ export default function PracticeDrills({
         })}
       </div>
 
-      {error && <p className="text-[13px] text-aureus-oxblood">{error}</p>}
+      {error && <p className="text-[13px] text-aureus-crimson">{error}</p>}
 
       {!result ? (
         <Button onClick={submit} disabled={!allAnswered || submitting}>
-          {submitting ? "Checking…" : allAnswered ? "Check my answers" : "Answer every question first"}
+          {submitting ? "Checking" : allAnswered ? "Check my answers" : "Answer every question first"}
         </Button>
       ) : (
         <div className="flex flex-wrap items-center gap-3">
           <span className={cn(
             "text-sm font-medium",
-            result.passed ? "text-aureus-verdigris" : "text-aureus-amber",
+            result.passed ? "text-aureus-emerald" : "text-aureus-amber",
           )}>
             {result.score} of {result.total} correct
-            {result.passed ? " — passed" : ` — ${result.pass_mark} needed`}
+            {result.passed ? ". Passed" : `. ${result.pass_mark} needed to pass`}
           </span>
           <Button variant="outline" size="sm" onClick={retry}>Try again</Button>
         </div>

@@ -14,7 +14,8 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowDownRight, ArrowUpRight, ChevronDown, Flame, Radar } from "lucide-react";
+import { IconArrowDownRight, IconArrowUpRight, IconChevronDown } from "@/components/ui/icons";
+import { LoadingRegion, SkeletonSheet, SkeletonTable } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/button";
 import {
   CapsLabel, EmptyState, ErrorNote, Figure, Note, PageHeader, RuledLabel, ScoreMeter, Segmented, Sheet, StatusDot,
@@ -55,22 +56,19 @@ function daysText(d?: number): string {
 }
 
 function StrongBuyBadge() {
+  // Solid and inverted: the one filled chip on the board, so it reads at a
+  // glance without a glow or a pulse.
   return (
-    <span className="relative inline-flex">
-      <span aria-hidden className="absolute -inset-1 rounded-md bg-aureus-verdigris/25 blur-md pulse-gold" />
-      <span className="relative rounded border border-aureus-verdigris/60 bg-aureus-verdigris/15 px-1.5 py-0.5
-                       text-[9.5px] font-mono font-semibold uppercase tracking-[0.14em] text-aureus-verdigris whitespace-nowrap
-                       shadow-[0_0_14px_rgba(131,189,162,0.35)]">
-        Strong Buy
-      </span>
+    <span className="inline-flex items-center border border-aureus-emerald bg-aureus-emerald px-1.5 py-[3px] font-mono-num text-[9.5px] font-medium uppercase tracking-[0.14em] text-aureus-ink whitespace-nowrap">
+      Strong Buy
     </span>
   );
 }
 
 function CatalystCell({ c }: { c: BoardCatalyst | null }) {
   if (!c) return <span className="text-[12px] text-aureus-muted">No dated event</span>;
-  const dot = c.direction === "positive" ? "bg-aureus-verdigris"
-    : c.direction === "negative" ? "bg-aureus-oxblood"
+  const dot = c.direction === "positive" ? "bg-aureus-emerald"
+    : c.direction === "negative" ? "bg-aureus-crimson"
     : c.impact === "high" ? "bg-aureus-gold" : "bg-aureus-muted";
   const soon = c.relation === "upcoming" && c.impact === "high" && (c.days_until ?? 99) <= 14;
   return (
@@ -282,7 +280,9 @@ export default function LeaderboardView() {
       )}
 
       {loading && !board && (
-        <Sheet className="py-20 text-center text-sm text-aureus-muted">Loading the {horizon.replace("_", "-")} board…</Sheet>
+        <LoadingRegion label="Loading the board">
+          <SkeletonSheet><SkeletonTable rows={7} columns={[1, 4, 2, 3, 4, 2]} /></SkeletonSheet>
+        </LoadingRegion>
       )}
 
       {board && (
@@ -305,13 +305,13 @@ export default function LeaderboardView() {
 
             {members.length === 0 ? (
               board.coverage.scored === 0 ? (
-                <EmptyState icon={Radar} title="The scanner is building coverage">
+                <EmptyState title="The scanner is building coverage">
                   The first passes score prices for the whole index at once, then add fundamentals and sentiment a few
                   dozen names at a time within the data providers&apos; rate limits. Full coverage takes about a day.
                   Nothing is shown until it is verified.
                 </EmptyState>
               ) : (
-                <EmptyState icon={Flame} title="No stock clears the bar right now">
+                <EmptyState title="No stock clears the bar right now">
                   Of {board.coverage.scored} stocks scored, none currently has a verified composite of{" "}
                   {board.rules.entry.composite} or more with its pillars in agreement. That is the board doing its job:
                   most stocks, most of the time, are not Strong Buys.
@@ -325,7 +325,7 @@ export default function LeaderboardView() {
                   the composite column, the one figure the board is about. */}
               <ul className="lg:hidden border-t border-aureus-rule divide-y divide-aureus-rulesoft">
                 {members.map((m, i) => (
-                  <li key={m.ticker} className={cn(flash === m.ticker && "bg-aureus-verdigris/[0.09] rise-in")}>
+                  <li key={m.ticker} className={cn(flash === m.ticker && "bg-aureus-emerald/[0.09] rise-in")}>
                     <div className="flex items-stretch">
                       <button onClick={() => openTicker(m.ticker)}
                               className="flex-1 min-w-0 text-left px-4 py-3.5 hover:bg-aureus-panellift transition-colors">
@@ -354,7 +354,7 @@ export default function LeaderboardView() {
                         aria-label={`${expanded === m.ticker ? "Hide" : "Show"} detail for ${m.ticker}`}
                         aria-expanded={expanded === m.ticker}
                       >
-                        <ChevronDown className={cn("w-4 h-4 transition-transform", expanded === m.ticker && "rotate-180")} />
+                        <IconChevronDown className={cn("w-4 h-4 transition-transform", expanded === m.ticker && "rotate-180")} />
                       </button>
                     </div>
                     {expanded === m.ticker && (
@@ -379,7 +379,7 @@ export default function LeaderboardView() {
                           onClick={() => openTicker(m.ticker)}
                           className={cn(
                             "group border-b border-aureus-rulesoft cursor-pointer transition-colors hover:bg-aureus-panellift",
-                            flash === m.ticker && "bg-aureus-verdigris/[0.09] rise-in",
+                            flash === m.ticker && "bg-aureus-emerald/[0.09] rise-in",
                           )}
                         >
                           <td className="px-4 py-3.5 w-10"><Figure tone="muted" className="text-[12px]">{i + 1}</Figure></td>
@@ -410,7 +410,7 @@ export default function LeaderboardView() {
                               aria-label={`${expanded === m.ticker ? "Hide" : "Show"} detail for ${m.ticker}`}
                               aria-expanded={expanded === m.ticker}
                             >
-                              <ChevronDown className={cn("w-4 h-4 transition-transform", expanded === m.ticker && "rotate-180")} />
+                              <IconChevronDown className={cn("w-4 h-4 transition-transform", expanded === m.ticker && "rotate-180")} />
                             </button>
                           </td>
                         </tr>
@@ -496,8 +496,8 @@ export default function LeaderboardView() {
                   {events.map((e) => (
                     <li key={e.id} className="flex items-start gap-3 py-2.5 border-b border-aureus-rulesoft last:border-0">
                       {e.event === "entered"
-                        ? <ArrowUpRight className="w-4 h-4 text-aureus-verdigris shrink-0 mt-0.5" />
-                        : <ArrowDownRight className="w-4 h-4 text-aureus-oxblood shrink-0 mt-0.5" />}
+                        ? <IconArrowUpRight className="w-4 h-4 text-aureus-emerald shrink-0 mt-0.5" />
+                        : <IconArrowDownRight className="w-4 h-4 text-aureus-crimson shrink-0 mt-0.5" />}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-baseline justify-between gap-3">
                           <span className="text-[13px] text-aureus-text">

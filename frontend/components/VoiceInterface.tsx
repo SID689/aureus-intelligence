@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Mic } from "lucide-react";
+import { IconMic } from "@/components/ui/icons";
 import { VoiceWebSocket, speakText, stopSpeaking, startBrowserSTT } from "@/lib/websocket";
 import type { VoiceMessage } from "@/lib/websocket";
 
@@ -83,17 +83,17 @@ export default function VoiceInterface({ userId, tier }: Props) {
 
   const statusLabel: Record<Status, string> = {
     disconnected: "Disconnected",
-    connecting:   "Connecting...",
-    ready:        "Ready — hold to speak",
-    listening:    "Listening...",
-    thinking:     "Thinking...",
-    speaking:     "Speaking...",
+    connecting:   "Connecting",
+    ready:        "Ready. Hold to speak",
+    listening:    "Listening",
+    thinking:     "Thinking",
+    speaking:     "Speaking",
   };
 
   const statusColor: Record<Status, string> = {
     disconnected: "text-aureus-muted",
     connecting:   "text-aureus-muted",
-    ready:        "text-aureus-verdigris",
+    ready:        "text-aureus-emerald",
     listening:    "text-aureus-gold",
     thinking:     "text-aureus-amber",
     speaking:     "text-aureus-goldbright",
@@ -102,11 +102,11 @@ export default function VoiceInterface({ userId, tier }: Props) {
   return (
     <div className="space-y-4">
       {/* Status bar */}
-      <div className="flex items-center justify-between rounded-lg p-3 border border-aureus-rule"
+      <div className="flex items-center justify-between rounded-sm p-3 border border-aureus-rule"
            style={{ background: "var(--panel)" }}>
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${
-            status === "ready" ? "bg-aureus-verdigris pulse-gold" :
+            status === "ready" ? "bg-aureus-emerald pulse-gold" :
             status === "listening" ? "bg-aureus-gold pulse-gold" :
             "bg-aureus-muted"
           }`} />
@@ -118,7 +118,7 @@ export default function VoiceInterface({ userId, tier }: Props) {
       </div>
 
       {/* Conversation history */}
-      <div className="rounded-lg border border-aureus-rule overflow-hidden"
+      <div className="rounded-sm border border-aureus-rule overflow-hidden"
            style={{ background: "var(--panel)" }}>
         <div className="h-80 overflow-y-auto p-4 space-y-3">
           {turns.length === 0 && (
@@ -129,15 +129,15 @@ export default function VoiceInterface({ userId, tier }: Props) {
           {turns.map((turn, i) => (
             <div key={i} className={`flex gap-2 ${turn.role === "user" ? "justify-end" : "justify-start"}`}>
               {turn.role === "assistant" && (
-                <div className="w-6 h-6 rounded-full bg-aureus-gold text-aureus-ink font-semibold flex items-center justify-center text-[11px] shrink-0">
+                <div className="w-6 h-6 bg-aureus-gold text-aureus-ink font-mono-num font-medium flex items-center justify-center text-[11px] shrink-0">
                   A
                 </div>
               )}
-              <div className={`max-w-xs rounded-lg px-3 py-2 text-sm ${
+              <div className={`max-w-xs rounded-sm px-3 py-2 text-sm ${
                 turn.role === "user"
                   ? "bg-aureus-gold text-aureus-ink"
                   : "border border-aureus-rule text-aureus-text"
-              }`} style={turn.role === "assistant" ? { background: "var(--bg)" } : {}}>
+              }`} style={turn.role === "assistant" ? { background: "var(--ink)" } : {}}>
                 {turn.text}
                 <div className={`text-xs mt-1 ${turn.role === "user" ? "text-aureus-ink/60" : "text-aureus-muted"}`}>
                   {turn.timestamp}
@@ -148,7 +148,7 @@ export default function VoiceInterface({ userId, tier }: Props) {
           {interim && (
             <div className="flex justify-end">
               <div className="bg-aureus-gold/30 text-aureus-gold border border-aureus-gold/50
-                              rounded-lg px-3 py-2 text-sm italic max-w-xs">
+                              rounded-sm px-3 py-2 text-sm italic max-w-xs">
                 {interim}
               </div>
             </div>
@@ -161,7 +161,7 @@ export default function VoiceInterface({ userId, tier }: Props) {
       {status === "listening" && (
         <div className="flex items-center justify-center gap-1 h-8">
           {[1,2,3,4,5].map((i) => (
-            <div key={i} className="voice-bar w-1 h-6 rounded-full bg-aureus-gold" />
+            <div key={i} className="voice-bar w-1 h-6 bg-aureus-gold" />
           ))}
         </div>
       )}
@@ -179,15 +179,15 @@ export default function VoiceInterface({ userId, tier }: Props) {
           onTouchEnd={stopListening}
           disabled={status === "disconnected" || status === "connecting" || status === "thinking"}
           aria-label="Hold to speak"
-          className={`w-20 h-20 rounded-full flex items-center justify-center
+          className={`w-20 h-20 rounded-sm flex items-center justify-center
                       transition-all duration-150 select-none
                       ${status === "listening"
-                        ? "bg-aureus-gold text-aureus-ink scale-105 shadow-lift2"
+                        ? "bg-aureus-gold text-aureus-ink scale-105"
                         : "bg-aureus-panel border border-aureus-rulestrong text-aureus-soft hover:border-aureus-gold hover:text-aureus-gold"
                       }
                       disabled:opacity-40 disabled:cursor-not-allowed`}
         >
-          <Mic className="w-7 h-7" strokeWidth={1.75} />
+          <IconMic className="w-7 h-7" strokeWidth={1.25} />
         </button>
         <span className="text-[11px] text-aureus-muted">
           {status === "listening" ? "Release to send" : "Hold to speak"}

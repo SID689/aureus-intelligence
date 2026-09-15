@@ -12,7 +12,8 @@
  * below as dated evidence and dated tests.
  */
 import { useEffect, useMemo, useState } from "react";
-import { CalendarClock, ExternalLink } from "lucide-react";
+import { IconCalendar, IconExternal } from "@/components/ui/icons";
+import { LoadingRegion, Skeleton, SkeletonList } from "@/components/ui/Skeleton";
 import { Badge } from "@/components/ui/badge";
 import { CapsLabel, Figure, RuledLabel, Sheet } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
@@ -70,8 +71,8 @@ function position(days: number, lookback: number, forward: number): number {
 }
 
 function dotTone(c: CatalystItem): string {
-  if (c.direction === "positive") return "bg-aureus-verdigris border-aureus-verdigris";
-  if (c.direction === "negative") return "bg-aureus-oxblood border-aureus-oxblood";
+  if (c.direction === "positive") return "bg-aureus-emerald border-aureus-emerald";
+  if (c.direction === "negative") return "bg-aureus-crimson border-aureus-crimson";
   if (c.timing === "upcoming") {
     return c.impact === "high" ? "bg-aureus-gold border-aureus-goldbright" : "bg-aureus-golddim border-aureus-gold";
   }
@@ -145,7 +146,7 @@ function EventDetail({ c }: { c: CatalystItem }) {
       {c.source_url && (
         <a href={c.source_url} target="_blank" rel="noopener noreferrer"
            className="inline-flex items-center gap-1 text-[11.5px] text-aureus-gold hover:text-aureus-goldbright mt-2.5">
-          Source <ExternalLink className="w-3 h-3" />
+          Source <IconExternal className="w-3 h-3" />
         </a>
       )}
     </div>
@@ -173,8 +174,8 @@ function EventList({
               <button
                 onClick={() => onSelect(c.id)}
                 className={cn(
-                  "w-full text-left flex items-start gap-3 py-2 pl-2.5 pr-2 border-l-2 transition-colors",
-                  c.id === selectedId ? "border-aureus-gold bg-aureus-gold/[0.06]" : "border-transparent hover:bg-aureus-panellift",
+                  "w-full text-left flex items-start gap-3 py-2 px-2.5 transition-colors",
+                  c.id === selectedId ? "bg-aureus-panelhigh" : "hover:bg-aureus-panellift",
                 )}
               >
                 <Figure tone="muted" className="text-[11.5px] w-12 shrink-0 pt-px">{dayLabel(c.date)}</Figure>
@@ -279,7 +280,11 @@ export default function CatalystTimeline({ ticker, horizon, userId, initial }: P
     return (
       <Sheet className="p-5">
         <RuledLabel>Catalysts</RuledLabel>
-        <p className="text-[13px] text-aureus-muted py-8 text-center">Loading dated events for {ticker}…</p>
+        <LoadingRegion label={`Loading catalysts for ${ticker}`} className="mt-4 space-y-4">
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-[104px] w-full opacity-50" delay={120} />
+          <SkeletonList rows={3} />
+        </LoadingRegion>
       </Sheet>
     );
   }
@@ -316,11 +321,11 @@ export default function CatalystTimeline({ ticker, horizon, userId, initial }: P
         )}
         style={{ left: `${position(lead.days_until, lookback, forward)}%` }}
         aria-label={`${lead.title}, ${dayLabel(lead.date)}${cluster.length > 1 ? `, and ${cluster.length - 1} more` : ""}`}
-        title={cluster.map((c) => `${dayLabel(c.date)} — ${c.title}`).join("\n")}
+        title={cluster.map((c) => `${dayLabel(c.date)} · ${c.title}`).join("\n")}
       >
-        {urgent && <span aria-hidden className="absolute inset-0 rounded-full bg-aureus-gold/35 pulse-gold" />}
+        {urgent && <span aria-hidden className="absolute inset-0 bg-aureus-gold/35 pulse-gold" />}
         {lane === "company" ? (
-          <span className={cn("relative block rounded-full border", DOT_SIZE[lead.impact], dotTone(lead),
+          <span className={cn("relative block border", DOT_SIZE[lead.impact], dotTone(lead),
             isSelected && "ring-2 ring-aureus-text ring-offset-2 ring-offset-aureus-panel")} />
         ) : (
           <span className={cn("relative block w-2 h-2 rotate-45",
@@ -351,9 +356,9 @@ export default function CatalystTimeline({ ticker, horizon, userId, initial }: P
       {primary && (
         <div className={cn(
           "flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border px-4 py-3",
-          primaryUrgent ? "border-aureus-gold/50 bg-aureus-gold/[0.06] shadow-[0_0_24px_rgba(217,180,120,0.08)]" : "border-aureus-rule bg-aureus-panellift",
+          primaryUrgent ? "border-aureus-gold/50 bg-aureus-gold/[0.06]" : "border-aureus-rule bg-aureus-panellift",
         )}>
-          <CalendarClock className={cn("w-4 h-4 shrink-0", primaryUrgent ? "text-aureus-gold" : "text-aureus-muted")} />
+          <IconCalendar className={cn("w-4 h-4 shrink-0", primaryUrgent ? "text-aureus-gold" : "text-aureus-muted")} />
           <div className="min-w-0 flex-1">
             <CapsLabel className={primaryUrgent ? "text-aureus-gold" : undefined}>
               {primary.relation === "upcoming"

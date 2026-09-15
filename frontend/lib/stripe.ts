@@ -9,12 +9,14 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 // Map Stripe price IDs → tier names. Set these in .env.local
 export const PRICE_TO_TIER: Record<string, TierName> = {
+  [process.env.STRIPE_PRICE_PLUS          || "price_plus"]:          "plus",
   [process.env.STRIPE_PRICE_ELITE         || "price_elite"]:         "elite",
   [process.env.STRIPE_PRICE_INSTITUTIONAL || "price_institutional"]: "institutional",
 };
 
 export const TIER_TO_PRICE: Record<TierName, string | null> = {
   sovereign:     null,
+  plus:          process.env.STRIPE_PRICE_PLUS          || "",
   elite:         process.env.STRIPE_PRICE_ELITE         || "",
   institutional: process.env.STRIPE_PRICE_INSTITUTIONAL || "",
 };

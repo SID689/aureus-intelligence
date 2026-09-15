@@ -22,10 +22,10 @@ const pct = (v: number | null | undefined, d = 2) =>
 function Stat({ label, value, hint, tone }: {
   label: string; value: string; hint?: string; tone?: "good" | "bad" | "neutral";
 }) {
-  const color = tone === "good" ? "text-aureus-verdigris"
-              : tone === "bad" ? "text-aureus-oxblood" : "text-aureus-text";
+  const color = tone === "good" ? "text-aureus-emerald"
+              : tone === "bad" ? "text-aureus-crimson" : "text-aureus-text";
   return (
-    <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
+    <div className="rounded-sm border border-aureus-rule p-3" style={{ background: "var(--ink)" }}>
       <div className="text-[10px] uppercase tracking-wider text-aureus-muted">{label}</div>
       <div className={`text-base font-semibold font-mono mt-0.5 ${color}`}>{value}</div>
       {hint && <div className="text-[10px] text-aureus-muted mt-0.5">{hint}</div>}
@@ -38,9 +38,9 @@ function VarBlock({ v, label }: { v: VarResult | null; label: string }) {
     return <Stat label={label} value="—" hint="Insufficient history" />;
   }
   return (
-    <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
+    <div className="rounded-sm border border-aureus-rule p-3" style={{ background: "var(--ink)" }}>
       <div className="text-[10px] uppercase tracking-wider text-aureus-muted">{label}</div>
-      <div className="text-base font-semibold font-mono mt-0.5 text-aureus-oxblood">
+      <div className="text-base font-semibold font-mono mt-0.5 text-aureus-crimson">
         −{pct(v.var_pct)}
       </div>
       <div className="text-[10px] text-aureus-muted mt-0.5">
@@ -57,7 +57,7 @@ function MonteCarloChart({ mc }: { mc: MonteCarloResult }) {
   const data = mc.histogram.map((h) => ({
     mid: h.mid * 100,
     count: h.count,
-    fill: h.mid < 0 ? "var(--oxblood-dim)" : "var(--verdigris-dim)",
+    fill: h.mid < 0 ? "var(--crimson-dim)" : "var(--emerald-dim)",
   }));
   return (
     <div>
@@ -89,10 +89,10 @@ function MonteCarloChart({ mc }: { mc: MonteCarloResult }) {
       <div className="grid grid-cols-5 gap-1.5 mt-2">
         {(["p5", "p25", "p50", "p75", "p95"] as const).map((k) => (
           <div key={k} className="text-center rounded border border-aureus-rule py-1.5"
-               style={{ background: "var(--bg)" }}>
+               style={{ background: "var(--ink)" }}>
             <div className="text-[9px] uppercase text-aureus-muted">{k}</div>
             <div className={`text-[11px] font-mono ${
-              mc.percentiles[k] >= 0 ? "text-aureus-verdigris" : "text-aureus-oxblood"}`}>
+              mc.percentiles[k] >= 0 ? "text-aureus-emerald" : "text-aureus-crimson"}`}>
               {(mc.percentiles[k] * 100).toFixed(1)}%
             </div>
           </div>
@@ -100,7 +100,7 @@ function MonteCarloChart({ mc }: { mc: MonteCarloResult }) {
       </div>
       <p className="text-[10px] text-aureus-muted mt-2 leading-relaxed">
         {mc.method}. Historical returns are resampled rather than drawn from a normal
-        distribution — equity returns are fat-tailed, and a Gaussian simulation understates
+        distribution: equity returns are fat-tailed, and a Gaussian simulation understates
         precisely the tail this chart exists to show.
       </p>
     </div>
@@ -131,13 +131,13 @@ function BetaChart({ b }: { b: BetaStability }) {
             {b.full_sample_beta != null && (
               <ReferenceLine y={b.full_sample_beta} stroke="var(--gold)" strokeDasharray="4 4" />
             )}
-            <Line type="monotone" dataKey="beta" stroke="var(--verdigris)" strokeWidth={1.75} dot={false} />
+            <Line type="monotone" dataKey="beta" stroke="var(--emerald)" strokeWidth={1.75} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
       <p className="text-[10px] text-aureus-muted mt-2 leading-relaxed">
         The gold line is the full-sample beta. Where the rolling estimate ranges widely around it,
-        that single number describes no actual period — and any hedge ratio derived from it will be
+        that single number describes no actual period, and any hedge ratio derived from it will be
         wrong most of the time.
       </p>
     </div>
@@ -188,7 +188,7 @@ export default function RiskPanel({ report }: { report: QuantLabReport }) {
             . Expected shortfall (CVaR) is the average loss on those days, which is the number that
             describes what the tail actually costs
             {report.var_1d?.worst_observed_pct != null && (
-              <> — the worst single day in this sample was {pct(report.var_1d.worst_observed_pct)}</>
+              <>: the worst single day in this sample was {pct(report.var_1d.worst_observed_pct)}</>
             )}
             .
           </p>

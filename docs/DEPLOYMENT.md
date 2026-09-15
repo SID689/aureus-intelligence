@@ -246,3 +246,17 @@ docker compose exec -T frontend sh -c 'rm -rf /app/.next/* /app/.next/.[!.]*' &&
       alerts authenticate with tokens signed by it, and fail closed
       (401/503) when the two disagree or it is unset.
 - [ ] Confirm the proxy passes WebSocket upgrades for `/api/v1/ws/`.
+- [ ] Have counsel complete and review the Terms of Service and Privacy
+      Policy. The legal entity name, registered address, governing law and
+      arbitration seat are bracketed placeholders in `frontend/lib/legal.ts`,
+      and the contact addresses there assume the `aureusintelligence.com`
+      domain. The pages state that the company is not a registered
+      investment adviser; confirm that is true before publishing it.
+- [ ] Deleting an account is handled by email today (the Privacy Policy
+      promises deletion or de-identification within 30 days). Put an owner
+      and a process behind that promise before launch.
+- [ ] Create the $12/month Plus price in Stripe and set `STRIPE_PRICE_PLUS`
+      in `frontend/.env.local` beside the Elite and Institutional prices.
+      Until it is set, choosing Plus returns a clear "no price configured"
+      error instead of opening checkout. Migration `014_plus_tier.sql` adds
+      the plan itself.

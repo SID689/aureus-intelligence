@@ -2,10 +2,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { Infinity as InfinityIcon, Lock, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getCredits, getEntitlements } from "@/lib/api";
+import { SkeletonLines, SkeletonSheet } from "@/components/ui/Skeleton";
+import { TIER_LABEL, nextTier } from "@/lib/tiers";
 import type { AccountEntitlements, CreditBalance, UsageBlock } from "@/lib/api";
 
 /**
@@ -20,7 +21,7 @@ import type { AccountEntitlements, CreditBalance, UsageBlock } from "@/lib/api";
 
 function UsageBar({ label, u }: { label: string; u: UsageBlock }) {
   const pct = u.unlimited || !u.limit ? 0 : Math.min(100, (u.used / u.limit) * 100);
-  const tone = u.exceeded ? "var(--oxblood)" : pct >= 80 ? "var(--gold)" : "var(--verdigris)";
+  const tone = u.exceeded ? "var(--crimson)" : pct >= 80 ? "var(--gold)" : "var(--emerald)";
 
   return (
     <div className="space-y-1.5">
@@ -28,12 +29,10 @@ function UsageBar({ label, u }: { label: string; u: UsageBlock }) {
         <span className="text-xs text-aureus-text">{label}</span>
         <span className="text-[11px] font-mono text-aureus-muted">
           {u.unlimited ? (
-            <span className="flex items-center gap-1 text-aureus-verdigris">
-              <InfinityIcon className="w-3 h-3" /> unlimited
-            </span>
+            <span className="text-aureus-emerald">Unlimited</span>
           ) : (
             <>
-              <span className={u.exceeded ? "text-aureus-oxblood" : "text-aureus-text"}>
+              <span className={u.exceeded ? "text-aureus-crimson" : "text-aureus-text"}>
                 {u.used % 1 === 0 ? u.used.toFixed(0) : u.used.toFixed(1)}
               </span>
               {" / "}{u.limit} {u.unit}
@@ -42,8 +41,8 @@ function UsageBar({ label, u }: { label: string; u: UsageBlock }) {
         </span>
       </div>
       {!u.unlimited && (
-        <div className="h-1.5 rounded-full bg-aureus-rule overflow-hidden">
-          <div className="h-full rounded-full transition-all"
+        <div className="h-1.5 bg-aureus-rule overflow-hidden">
+          <div className="h-full transition-all"
                style={{ width: `${pct}%`, background: tone }} />
         </div>
       )}
@@ -82,24 +81,24 @@ export default function PlanUsageCard() {
 
   if (error) {
     return (
-      <Card><CardContent className="p-4 text-xs text-aureus-oxblood">{error}</CardContent></Card>
+      <Card><CardContent className="p-4 text-xs text-aureus-crimson">{error}</CardContent></Card>
     );
   }
   if (!data) {
     return (
-      <Card><CardContent className="p-4 text-xs text-aureus-muted">Loading plan…</CardContent></Card>
+      <SkeletonSheet><SkeletonLines lines={6} /></SkeletonSheet>
     );
   }
 
   const f = data.features;
   const l = data.limits;
-  const isFree = data.tier === "sovereign";
+  const upgradeTo = data.tier === "institutional" ? null : nextTier(data.tier);
 
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between gap-2">
         <CardTitle>Plan &amp; Usage</CardTitle>
-        <span className="rounded px-2 py-0.5 text-[10px] font-bold tracking-wider
+        <span className="rounded-sm px-2 py-0.5 text-[10px] font-semibold tracking-[0.12em] font-mono-num
                          border border-aureus-gold/40 bg-aureus-gold/10 text-aureus-gold">
           {data.display_name.toUpperCase()}
           {data.price_cents > 0 && ` · $${(data.price_cents / 100).toFixed(0)}/mo`}
@@ -110,8 +109,8 @@ export default function PlanUsageCard() {
         {/* Credits are the real spend ceiling — the request counters below
             are a secondary abuse guard. Shown first for that reason. */}
         {credits && l.monthly_credits > 0 && (
-          <div className="rounded-lg border border-aureus-gold/30 p-3 space-y-1.5"
-               style={{ background: "var(--bg)" }}>
+          <div className="rounded-sm border border-aureus-gold/30 p-3 space-y-1.5"
+               style={{ background: "var(--ink)" }}>
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-xs text-aureus-gold font-medium">AI Credits</span>
               <span className="text-[11px] font-mono text-aureus-text">
@@ -119,11 +118,11 @@ export default function PlanUsageCard() {
                 <span className="text-aureus-muted"> / {l.monthly_credits.toLocaleString()}</span>
               </span>
             </div>
-            <div className="h-1.5 rounded-full bg-aureus-rule overflow-hidden">
-              <div className="h-full rounded-full"
+            <div className="h-1.5 bg-aureus-rule overflow-hidden">
+              <div className="h-full"
                    style={{
                      width: `${Math.max(0, Math.min(100, (credits.remaining / l.monthly_credits) * 100))}%`,
-                     background: credits.remaining / l.monthly_credits < 0.15 ? "var(--oxblood)" : "var(--gold)",
+                     background: credits.remaining / l.monthly_credits < 0.15 ? "var(--crimson)" : "var(--gold)",
                    }} />
             </div>
             <div className="text-[10px] text-aureus-muted">
@@ -161,7 +160,7 @@ export default function PlanUsageCard() {
                  value={l.news_feed_delay_seconds === 0 ? null : l.news_feed_delay_seconds / 60}
                  suffix=" min" />
           {l.news_feed_delay_seconds === 0 && (
-            <p className="text-[10px] text-aureus-verdigris -mt-1">Real-time — no delay</p>
+            <p className="text-[10px] text-aureus-emerald -mt-1">Real-time, no delay</p>
           )}
           {f.quant_lab && (
             <>
@@ -184,18 +183,18 @@ export default function PlanUsageCard() {
             ["Custom peer sets", !!f.quant_custom_peers],
             ["Voice interface", (l.voice_minutes_per_month ?? 1) !== 0],
           ].map(([label, on]) => (
-            <div key={String(label)} className="flex items-center gap-2 text-[11px]">
-              {on
-                ? <Check className="w-3 h-3 text-aureus-verdigris flex-shrink-0" />
-                : <Lock className="w-3 h-3 text-aureus-muted flex-shrink-0" />}
-              <span className={on ? "text-aureus-text" : "text-aureus-muted/60"}>{label}</span>
+            <div key={String(label)} className="flex items-baseline justify-between gap-2 text-[11px] py-0.5">
+              <span className={on ? "text-aureus-text" : "text-aureus-muted"}>{label}</span>
+              <span className={on ? "label-caps text-[9px] text-aureus-emerald" : "label-caps text-[9px]"}>{on ? "Included" : "Not in plan"}</span>
             </div>
           ))}
         </div>
 
-        {isFree && (
+        {upgradeTo && (
           <Link href="/upgrade" className="block">
-            <Button className="w-full" size="sm">Upgrade to Elite</Button>
+            <Button className="w-full" size="sm" variant={data.tier === "sovereign" ? "default" : "outline"}>
+              Compare with {TIER_LABEL[upgradeTo]}
+            </Button>
           </Link>
         )}
       </CardContent>

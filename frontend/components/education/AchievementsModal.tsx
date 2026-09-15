@@ -1,5 +1,5 @@
 "use client";
-import { X } from "lucide-react";
+import { IconClose } from "@/components/ui/icons";
 import type { EducationProgress } from "@/lib/api";
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
+    <div className="rounded-sm border border-aureus-rule p-3" style={{ background: "var(--ink)" }}>
       <div className="text-[10px] uppercase tracking-wider text-aureus-muted mb-1">{label}</div>
       <div className="text-lg font-semibold text-aureus-text">{value}</div>
       {sub && <div className="text-xs text-aureus-muted mt-0.5">{sub}</div>}
@@ -22,9 +22,9 @@ export default function AchievementsModal({ progress, onClose }: Props) {
   const locked = progress.badges.filter((b) => !b.earned);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
          onClick={onClose}>
-      <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-aureus-rule p-6 space-y-5"
+      <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-sm border border-aureus-rule p-6 space-y-5 shadow-overlay"
            style={{ background: "var(--panel)" }}
            onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between">
@@ -35,7 +35,7 @@ export default function AchievementsModal({ progress, onClose }: Props) {
             </p>
           </div>
           <button onClick={onClose} className="text-aureus-muted hover:text-aureus-text transition-colors">
-            <X className="w-5 h-5" />
+            <IconClose className="w-4 h-4" />
           </button>
         </div>
 
@@ -63,7 +63,7 @@ export default function AchievementsModal({ progress, onClose }: Props) {
                   <span className="text-aureus-text">{t.label}</span>
                   <span className="text-aureus-muted font-mono">{t.completed}/{t.total}</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-aureus-rule/40 overflow-hidden">
+                <div className="h-1.5 bg-aureus-rule/40 overflow-hidden">
                   <div className="h-full bg-aureus-gold transition-all" style={{ width: `${pct}%` }} />
                 </div>
               </div>
@@ -78,8 +78,8 @@ export default function AchievementsModal({ progress, onClose }: Props) {
           {earned.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {earned.map((b) => (
-                <div key={b.id} className="flex items-start gap-3 rounded-lg border border-aureus-gold/40 bg-aureus-gold/[0.06] p-3">
-                  <span className="text-2xl leading-none">{b.icon}</span>
+                <div key={b.id} className="flex items-start gap-3 rounded-sm border border-aureus-gold/40 bg-aureus-gold/[0.06] p-3">
+                  <span className="w-10 h-10 shrink-0 border border-aureus-gold/40 bg-aureus-gold/[0.06] flex items-center justify-center font-mono-num text-[13px] text-aureus-gold">{b.icon}</span>
                   <div>
                     <p className="text-sm text-aureus-gold font-medium">{b.name}</p>
                     <p className="text-xs text-aureus-muted mt-0.5">{b.description}</p>
@@ -94,13 +94,13 @@ export default function AchievementsModal({ progress, onClose }: Props) {
               {locked.map((b) => {
                 const pct = b.progress_target ? Math.round((b.progress_current / b.progress_target) * 100) : 0;
                 return (
-                  <div key={b.id} className="flex items-start gap-3 rounded-lg border border-aureus-rule p-3 opacity-60">
-                    <span className="text-2xl leading-none grayscale">{b.icon}</span>
+                  <div key={b.id} className="flex items-start gap-3 rounded-sm border border-aureus-rule p-3 opacity-60">
+                    <span className="w-10 h-10 shrink-0 border border-aureus-rule flex items-center justify-center font-mono-num text-[13px] text-aureus-muted">{b.icon}</span>
                     <div className="flex-1">
                       <p className="text-sm text-aureus-text font-medium">{b.name}</p>
                       <p className="text-xs text-aureus-muted mt-0.5">{b.description}</p>
                       <div className="mt-1.5 flex items-center gap-2">
-                        <div className="flex-1 h-1 rounded-full bg-aureus-rule/40 overflow-hidden">
+                        <div className="flex-1 h-1 bg-aureus-rule/40 overflow-hidden">
                           <div className="h-full bg-aureus-muted" style={{ width: `${pct}%` }} />
                         </div>
                         <span className="text-[10px] text-aureus-muted font-mono">

@@ -8,7 +8,7 @@
  * on every page and still always visible — it just sits in the rail with
  * the other standing metadata, where a status bar belongs.
  */
-import { Menu } from "lucide-react";
+import { IconMenu } from "@/components/ui/icons";
 import { usePortfolio } from "./PortfolioProvider";
 import { TickerTape, StatusDot, useClock, useMounted } from "@/components/ui/primitives";
 import { marketPhase } from "@/lib/format";
@@ -33,17 +33,17 @@ export default function TopChrome({ onOpenNav }: { onOpenNav?: () => void }) {
     <div className="sticky top-0 z-20">
       <TickerTape
         items={tape}
-        note={loading ? "Loading your positions…" : "Tape is empty — add a position and it starts running."}
+        note={loading ? "Loading positions" : "Tape is empty, add a position and it starts running."}
       />
 
-      <div className="flex items-center gap-3 px-4 sm:px-6 py-1.5 bg-aureus-ink/95 backdrop-blur border-b border-aureus-rule">
+      <div className="flex items-center gap-3 px-4 sm:px-6 py-1.5 bg-aureus-ink border-b border-aureus-rule">
         {onOpenNav && (
           <button
             onClick={onOpenNav}
             className="md:hidden -ml-1 p-1 text-aureus-muted hover:text-aureus-text"
             aria-label="Open navigation"
           >
-            <Menu className="w-4 h-4" />
+            <IconMenu className="w-4 h-4" />
           </button>
         )}
 

@@ -3,7 +3,8 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { FlaskConical, Lock, Search } from "lucide-react";
+import { IconLock, IconSearch } from "@/components/ui/icons";
+import { LoadingRegion, Skeleton, SkeletonChart, SkeletonLines, SkeletonList, SkeletonPageHeader, SkeletonSheet, SkeletonStatColumns } from "@/components/ui/Skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,8 +39,8 @@ function UpgradePrompt({ tier }: { tier: string }) {
   return (
     <Card>
       <CardContent className="p-10 text-center space-y-4 max-w-xl mx-auto">
-        <div className="w-12 h-12 rounded-full bg-aureus-gold/10 flex items-center justify-center mx-auto">
-          <Lock className="w-5 h-5 text-aureus-gold" />
+        <div className="w-10 h-10 border border-aureus-gold/40 flex items-center justify-center mx-auto">
+          <IconLock className="w-4 h-4 text-aureus-gold" />
         </div>
         <div>
           <h2 className="font-display text-xl text-aureus-text">The Quant Lab is an Elite feature</h2>
@@ -72,7 +73,7 @@ function UpgradePrompt({ tier }: { tier: string }) {
           </Link>
         </div>
         <p className="text-[10px] text-aureus-muted">
-          The three-pillar analysis — Fundamental, Technical and Sentiment — stays available on
+          The three-pillar analysis (Fundamental, Technical and Sentiment) stays available on
           every plan, including yours.
         </p>
       </CardContent>
@@ -126,9 +127,7 @@ function QuantLabInner() {
   }
   if (access === null) {
     return (
-      <Card flat><CardContent className="py-16 text-center text-sm text-aureus-muted">
-        Checking access…
-      </CardContent></Card>
+      <LoadingRegion label="Checking access" className="space-y-6"><SkeletonPageHeader /><SkeletonSheet><SkeletonLines lines={5} /></SkeletonSheet></LoadingRegion>
     );
   }
   if (!access.has) return <UpgradePrompt tier={access.tier} />;
@@ -138,7 +137,6 @@ function QuantLabInner() {
       <PageHeader
         title={
           <span className="flex items-center gap-2.5">
-            <FlaskConical className="w-5 h-5 text-aureus-gold" strokeWidth={1.75} />
             Quant Lab
             <Badge>{access.tier}</Badge>
           </span>
@@ -158,7 +156,7 @@ function QuantLabInner() {
             className="flex gap-2"
           >
             <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-aureus-muted pointer-events-none" />
+              <IconSearch className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-aureus-muted pointer-events-none" />
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -194,9 +192,7 @@ function QuantLabInner() {
       </div>
 
       {loading && (
-        <Card flat><CardContent className="py-16 text-center text-sm text-aureus-muted">
-          Running factor regressions and simulations for {ticker}…
-        </CardContent></Card>
+        <LoadingRegion label={`Running factor regressions and simulations for ${ticker}`} className="space-y-5"><SkeletonSheet><SkeletonStatColumns columns={3} /></SkeletonSheet><SkeletonSheet><SkeletonChart height={240} /></SkeletonSheet></LoadingRegion>
       )}
 
       {error && !loading && (
@@ -209,7 +205,7 @@ function QuantLabInner() {
       {report && !loading && (
         <>
           {report.notes.length > 0 && (
-            <Sheet className="px-4 py-3 border-l-2 border-l-aureus-amber space-y-1">
+            <Sheet className="px-4 py-3 border-aureus-amberdim space-y-1">
               {report.notes.map((n) => (
                 <p key={n} className="text-[12px] text-aureus-amber leading-relaxed">{n}</p>
               ))}
@@ -237,9 +233,7 @@ export default function QuantLabPage() {
   // whole route opts out of static rendering and Next fails the build.
   return (
     <Suspense fallback={
-      <Card><CardContent className="p-16 text-center text-sm text-aureus-muted">
-        Loading Quant Lab…
-      </CardContent></Card>
+      <LoadingRegion label="Loading the Quant Lab" className="space-y-6"><SkeletonPageHeader /><SkeletonSheet><SkeletonLines lines={5} /></SkeletonSheet></LoadingRegion>
     }>
       <QuantLabInner />
     </Suspense>

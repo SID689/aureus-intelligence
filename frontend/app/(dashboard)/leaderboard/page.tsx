@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { mintRealtimeToken } from "@/lib/realtime-server";
 import LeaderboardView from "@/components/leaderboard/LeaderboardView";
+import { LoadingRegion, SkeletonPageHeader, SkeletonSheet, SkeletonTable } from "@/components/ui/Skeleton";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,12 @@ export default async function LeaderboardPage() {
   }
 
   return (
-    <Suspense fallback={<div className="py-20 text-center text-sm text-aureus-muted">Loading the board…</div>}>
+    <Suspense fallback={
+      <LoadingRegion label="Loading the board" className="space-y-6">
+        <SkeletonPageHeader />
+        <SkeletonSheet><SkeletonTable rows={7} columns={[1, 4, 2, 3, 4, 2]} /></SkeletonSheet>
+      </LoadingRegion>
+    }>
       <LeaderboardView />
     </Suspense>
   );

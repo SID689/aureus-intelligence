@@ -14,9 +14,8 @@
  * scroll position rather than a step count.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ArrowLeft, BookOpen, Check, ChevronRight, Clock, Sparkles, Zap,
-} from "lucide-react";
+import { IconArrowLeft, IconCheck, IconChevronRight } from "@/components/ui/icons";
+import { LoadingRegion, Skeleton, SkeletonLines } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CapsLabel, ErrorNote, Figure, RuledLabel } from "@/components/ui/primitives";
@@ -30,10 +29,10 @@ import {
 import type { LessonCallout, LessonDetail, PracticeResult, QuizResult } from "@/lib/api";
 
 const CALLOUT_STYLE: Record<LessonCallout["kind"], { label: string; accent: string; text: string; bg: string }> = {
-  key_idea:       { label: "Key idea",       accent: "border-l-aureus-gold",      text: "text-aureus-gold",      bg: "bg-aureus-gold/[0.05]" },
-  why_it_matters: { label: "Why it matters", accent: "border-l-aureus-verdigris", text: "text-aureus-verdigris", bg: "bg-aureus-verdigris/[0.07]" },
-  common_mistake: { label: "Common mistake", accent: "border-l-aureus-oxblood",   text: "text-aureus-oxblood",   bg: "bg-aureus-oxblood/[0.07]" },
-  example:        { label: "Worked example", accent: "border-l-aureus-amber",     text: "text-aureus-amber",     bg: "bg-aureus-amber/[0.07]" },
+  key_idea:       { label: "Key idea",       accent: "border-aureus-gold/30",      text: "text-aureus-gold",      bg: "bg-aureus-gold/[0.05]" },
+  why_it_matters: { label: "Why it matters", accent: "border-aureus-emerald/30", text: "text-aureus-emerald", bg: "bg-aureus-emerald/[0.07]" },
+  common_mistake: { label: "Common mistake", accent: "border-aureus-crimson/30",   text: "text-aureus-crimson",   bg: "bg-aureus-crimson/[0.07]" },
+  example:        { label: "Worked example", accent: "border-aureus-amber/30",     text: "text-aureus-amber",     bg: "bg-aureus-amber/[0.07]" },
 };
 
 interface Props {
@@ -110,7 +109,14 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
   };
 
   if (loading) {
-    return <div className="py-20 text-center text-sm text-aureus-muted">Loading lesson…</div>;
+    return (
+      <LoadingRegion label="Loading the lesson" className="space-y-5 max-w-3xl pt-6">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-9 w-3/4" delay={80} />
+        <Skeleton className="h-3 w-56" delay={140} />
+        <SkeletonLines lines={12} className="pt-6" />
+      </LoadingRegion>
+    );
   }
   if (error || !data) {
     return (
@@ -131,7 +137,7 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
     <div className="relative">
       {/* Reading progress. Sits under the app chrome, above the content. */}
       <div className="sticky top-0 z-10 -mt-6 pt-6 bg-aureus-ink">
-        <div className="h-0.5 bg-aureus-panelhigh rounded-full overflow-hidden">
+        <div className="h-0.5 bg-aureus-panelhigh overflow-hidden">
           <div className="h-full bg-aureus-gold transition-[width] duration-150" style={{ width: `${readPct}%` }} />
         </div>
       </div>
@@ -140,7 +146,7 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
         onClick={onBack}
         className="flex items-center gap-1.5 text-[13px] text-aureus-muted hover:text-aureus-gold transition-colors mt-5"
       >
-        <ArrowLeft className="w-3.5 h-3.5" /> Curriculum
+        <IconArrowLeft className="w-3.5 h-3.5" /> Curriculum
       </button>
 
       {/* ── Header ─────────────────────────────────────────────────── */}
@@ -149,8 +155,8 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
           <Badge variant={done ? "green" : "muted"}>{lesson.difficulty_level}</Badge>
           <span className="text-[11px] text-aureus-muted">{lesson.category}</span>
           {done && (
-            <span className="flex items-center gap-1 text-[11px] text-aureus-verdigris">
-              <Check className="w-3 h-3" strokeWidth={2.5} /> Completed
+            <span className="flex items-center gap-1 text-[11px] text-aureus-emerald">
+              <IconCheck className="w-3 h-3" /> Completed
             </span>
           )}
         </div>
@@ -158,13 +164,13 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
           {lesson.title}
         </h1>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-3.5 text-[11px] text-aureus-muted">
-          <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{lesson.estimated_read_time_minutes} min</span>
-          <span className="flex items-center gap-1.5 text-aureus-gold"><Zap className="w-3.5 h-3.5" />{lesson.max_xp} XP available</span>
+          <span className="font-mono-num">{lesson.estimated_read_time_minutes} min</span>
+          <span className="font-mono-num text-aureus-gold">{lesson.max_xp} XP available</span>
           {lesson.quiz.length > 0 && <span>{lesson.quiz.length}-question check</span>}
           {practice.length > 0 && <span>{practice.length} calculation{practice.length === 1 ? "" : "s"}</span>}
           {exercises.length > 0 && (
-            <span className="flex items-center gap-1.5 text-aureus-verdigris">
-              <Sparkles className="w-3.5 h-3.5" />{exercises.length} interactive
+            <span className="flex items-center gap-1.5 text-aureus-emerald">
+              {exercises.length} interactive
             </span>
           )}
         </div>
@@ -180,7 +186,7 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
               {lesson.callouts.map((c, i) => {
                 const st = CALLOUT_STYLE[c.kind];
                 return (
-                  <div key={i} className={`rounded-r-md border-l-2 ${st.accent} ${st.bg} px-4 py-3.5`}>
+                  <div key={i} className={`rounded-sm border ${st.accent} ${st.bg} px-4 py-3.5`}>
                     <span className={`label-caps ${st.text}`}>{st.label}</span>
                     <h4 className="text-[14px] text-aureus-text font-medium mt-1.5">{c.title}</h4>
                     <p className="text-[13px] text-aureus-soft leading-relaxed mt-1">{c.body}</p>
@@ -230,8 +236,8 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
             {done ? (
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-full bg-aureus-verdigris/15 flex items-center justify-center">
-                    <Check className="w-4 h-4 text-aureus-verdigris" strokeWidth={2.5} />
+                  <span className="w-8 h-8 border border-aureus-emerald/50 flex items-center justify-center">
+                    <IconCheck className="w-4 h-4 text-aureus-emerald" />
                   </span>
                   <div>
                     <p className="text-[14px] text-aureus-text">Lesson complete</p>
@@ -239,7 +245,7 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
                   </div>
                 </div>
                 <Button variant="outline" onClick={onBack}>
-                  Next lesson <ChevronRight className="w-4 h-4" />
+                  Next lesson <IconChevronRight className="w-3.5 h-3.5" />
                 </Button>
               </div>
             ) : (
@@ -248,7 +254,7 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
                   {justCompleted ? "Saved." : `Mark this complete to bank ${lesson.xp_points} XP. The quiz and drills are worth more on top.`}
                 </p>
                 <Button onClick={handleComplete} disabled={completing}>
-                  {completing ? "Saving…" : "Mark complete"}
+                  {completing ? "Saving" : "Mark complete"}
                 </Button>
               </div>
             )}
@@ -258,7 +264,7 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
         {/* Reference rail — what you want available WHILE reading. */}
         <aside className="hidden lg:block">
           <div className="sticky top-16 space-y-6">
-            <div className="rounded-[10px] border border-aureus-rule border-t-aureus-golddim bg-aureus-panel p-4">
+            <div className="rounded-sm border border-aureus-rule border-t-aureus-golddim bg-aureus-panel p-4">
               <CapsLabel>The one thing</CapsLabel>
               <p className="text-[13px] text-aureus-soft leading-relaxed mt-2">{lesson.key_takeaway}</p>
             </div>
@@ -278,7 +284,6 @@ export default function LessonViewer({ lessonId, userId, onBack, onProgressChang
             )}
 
             <div className="flex items-center gap-2 text-[11px] text-aureus-muted">
-              <BookOpen className="w-3.5 h-3.5" />
               <span>{Math.round(readPct)}% read</span>
             </div>
           </div>

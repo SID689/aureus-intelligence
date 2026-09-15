@@ -28,7 +28,7 @@ export default function MeanReversionPanel({ report }: { report: QuantLabReport 
           {z ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
+                <div className="rounded-sm border border-aureus-rule p-3" style={{ background: "var(--ink)" }}>
                   <div className="text-[10px] uppercase tracking-wider text-aureus-muted">Z-Score</div>
                   <div className={`text-lg font-semibold font-mono mt-0.5 ${
                     Math.abs(z.z_score) >= 2 ? "text-aureus-gold" : "text-aureus-text"}`}>
@@ -36,24 +36,24 @@ export default function MeanReversionPanel({ report }: { report: QuantLabReport 
                   </div>
                   <div className="text-[10px] text-aureus-muted mt-0.5">{z.window_days}-day window</div>
                 </div>
-                <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
+                <div className="rounded-sm border border-aureus-rule p-3" style={{ background: "var(--ink)" }}>
                   <div className="text-[10px] uppercase tracking-wider text-aureus-muted">Percentile</div>
                   <div className="text-lg font-semibold text-aureus-text font-mono mt-0.5">
                     {z.percentile_in_window.toFixed(0)}
                   </div>
                   <div className="text-[10px] text-aureus-muted mt-0.5">within its window</div>
                 </div>
-                <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
+                <div className="rounded-sm border border-aureus-rule p-3" style={{ background: "var(--ink)" }}>
                   <div className="text-[10px] uppercase tracking-wider text-aureus-muted">Rolling Mean</div>
                   <div className="text-lg font-semibold text-aureus-text font-mono mt-0.5">
                     ${z.rolling_mean.toFixed(2)}
                   </div>
                   <div className="text-[10px] text-aureus-muted mt-0.5">vs ${z.current_price.toFixed(2)} now</div>
                 </div>
-                <div className="rounded-lg border border-aureus-rule p-3" style={{ background: "var(--bg)" }}>
+                <div className="rounded-sm border border-aureus-rule p-3" style={{ background: "var(--ink)" }}>
                   <div className="text-[10px] uppercase tracking-wider text-aureus-muted">Half-Life</div>
                   <div className={`text-lg font-semibold font-mono mt-0.5 ${
-                    hl?.reverting ? "text-aureus-verdigris" : "text-aureus-muted"}`}>
+                    hl?.reverting ? "text-aureus-emerald" : "text-aureus-muted"}`}>
                     {hl?.half_life_days != null ? `${hl.half_life_days}d` : "None"}
                   </div>
                   <div className="text-[10px] text-aureus-muted mt-0.5">
@@ -80,9 +80,9 @@ export default function MeanReversionPanel({ report }: { report: QuantLabReport 
                     <YAxis tick={{ fontSize: 10, fill: "var(--text-muted)" }} domain={[-3.5, 3.5]}
                            ticks={[-3, -2, -1, 0, 1, 2, 3]} />
                     <Tooltip contentStyle={{ background: "var(--panel-lift)", border: "1px solid var(--rule)", borderRadius: 6, fontSize: 11 }} />
-                    <ReferenceLine y={2} stroke="var(--oxblood)" strokeDasharray="4 4" />
+                    <ReferenceLine y={2} stroke="var(--crimson)" strokeDasharray="4 4" />
                     <ReferenceLine y={0} stroke="var(--text-muted)" />
-                    <ReferenceLine y={-2} stroke="var(--verdigris)" strokeDasharray="4 4" />
+                    <ReferenceLine y={-2} stroke="var(--emerald)" strokeDasharray="4 4" />
                     <Area type="monotone" dataKey="z" stroke="var(--gold)" strokeWidth={1.75} fill="url(#zfill)" />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -107,8 +107,8 @@ export default function MeanReversionPanel({ report }: { report: QuantLabReport 
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-2">
               {Object.entries(vts.windows).map(([w, v]) => (
-                <div key={w} className="rounded-lg border border-aureus-rule px-3 py-2 flex-1 min-w-[74px]"
-                     style={{ background: "var(--bg)" }}>
+                <div key={w} className="rounded-sm border border-aureus-rule px-3 py-2 flex-1 min-w-[74px]"
+                     style={{ background: "var(--ink)" }}>
                   <div className="text-[10px] uppercase text-aureus-muted">{w}</div>
                   <div className="text-sm font-mono text-aureus-text">{(v * 100).toFixed(1)}%</div>
                 </div>
@@ -117,8 +117,8 @@ export default function MeanReversionPanel({ report }: { report: QuantLabReport 
             {vts.regime && (
               <div className="flex items-start gap-2">
                 <span className={`rounded px-2 py-0.5 text-[10px] font-bold tracking-wider flex-shrink-0 ${
-                  vts.regime === "Elevated" ? "bg-aureus-oxblood/10 text-aureus-oxblood"
-                  : vts.regime === "Compressed" ? "bg-aureus-verdigris/10 text-aureus-verdigris"
+                  vts.regime === "Elevated" ? "bg-aureus-crimson/10 text-aureus-crimson"
+                  : vts.regime === "Compressed" ? "bg-aureus-emerald/10 text-aureus-emerald"
                   : "bg-aureus-rule/40 text-aureus-gold"}`}>
                   {vts.regime.toUpperCase()}
                 </span>
@@ -127,7 +127,7 @@ export default function MeanReversionPanel({ report }: { report: QuantLabReport 
             )}
             <p className="text-[10px] text-aureus-muted leading-relaxed pt-2 border-t border-aureus-rule">
               This is <em>realised</em> volatility across lookbacks, not implied volatility skew across
-              option strikes — no free data source provides an options chain, so the realised term
+              option strikes: no free data source provides an options chain, so the realised term
               structure is shown instead of a number that would be labelled skew without being it.
             </p>
           </CardContent>
@@ -170,8 +170,8 @@ export default function MeanReversionPanel({ report }: { report: QuantLabReport 
             </div>
             <p className="text-[10px] text-aureus-muted mt-3 leading-relaxed">
               Correlation is computed on daily <strong>returns</strong>, never on prices. Two trending
-              price series correlate near 1.0 almost regardless of any real relationship — the classic
-              spurious regression — which would rank every large-cap as a perfect pair. Spread Z is the
+              price series correlate near 1.0 almost regardless of any real relationship: the classic
+              spurious regression, which would rank every large-cap as a perfect pair. Spread Z is the
               log price ratio versus its own 60-day mean.
             </p>
           </CardContent>

@@ -1,7 +1,8 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ArrowRight, Calculator, Sparkles, Trophy, Zap } from "lucide-react";
+import { IconArrowRight } from "@/components/ui/icons";
+import { LoadingRegion, Skeleton, SkeletonChart, SkeletonLines, SkeletonList, SkeletonPageHeader, SkeletonSheet, SkeletonStatColumns } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/button";
 import {
   CapsLabel, ErrorNote, Figure, PageHeader, Sheet, StatColumns,
@@ -65,7 +66,13 @@ export default function EducationPage() {
   }, [catalog]);
 
   if (!userId || loading) {
-    return <div className="py-20 text-center text-aureus-muted text-sm">Loading curriculum…</div>;
+    return (
+      <LoadingRegion label="Loading the curriculum" className="space-y-7">
+        <SkeletonPageHeader />
+        <SkeletonSheet title={false}><SkeletonStatColumns columns={3} /></SkeletonSheet>
+        <SkeletonList rows={6} />
+      </LoadingRegion>
+    );
   }
 
   if (error || !catalog || !progress) {
@@ -112,11 +119,11 @@ export default function EducationPage() {
       <PageHeader
         title="Education"
         lead="Sixty lessons from never-bought-a-stock to institutional risk modelling. Work through
-              it in order or dip in anywhere — nothing is locked, and the dashboard's daily lesson
+              it in order or dip in anywhere: nothing is locked, and the dashboard's daily lesson
               draws from the same material."
         actions={
           <Button variant="outline" onClick={() => setShowAchievements(true)}>
-            <Trophy className="w-4 h-4" /> Achievements ({earnedBadges})
+            Achievements ({earnedBadges})
           </Button>
         }
       />
@@ -136,7 +143,7 @@ export default function EducationPage() {
               </p>
             </div>
             <Button onClick={() => setActiveLessonId(nextUp.lesson.id)}>
-              {nextUp.resuming ? "Continue" : "Begin"} <ArrowRight className="w-4 h-4" />
+              {nextUp.resuming ? "Continue" : "Begin"} <IconArrowRight className="w-3.5 h-3.5" />
             </Button>
           </div>
 
@@ -179,15 +186,12 @@ export default function EducationPage() {
       {/* What is actually in here, beyond reading */}
       <div className="flex flex-wrap gap-x-6 gap-y-2">
         <span className="flex items-center gap-2 text-[12px] text-aureus-muted">
-          <Sparkles className="w-3.5 h-3.5 text-aureus-verdigris" />
           <Figure tone="muted" className="text-[12px]">{interactiveCount}</Figure> lessons with interactive models
         </span>
         <span className="flex items-center gap-2 text-[12px] text-aureus-muted">
-          <Calculator className="w-3.5 h-3.5 text-aureus-gold" />
           <Figure tone="muted" className="text-[12px]">{drillCount}</Figure> calculations to work through
         </span>
         <span className="flex items-center gap-2 text-[12px] text-aureus-muted">
-          <Zap className="w-3.5 h-3.5 text-aureus-gold" />
           <Figure tone="muted" className="text-[12px]">{totals.xp_available.toLocaleString()}</Figure> XP in total
         </span>
       </div>

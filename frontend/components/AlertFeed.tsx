@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Radio, RefreshCw, Rss } from "lucide-react";
+import { IconRefresh } from "@/components/ui/icons";
+import { SkeletonList } from "@/components/ui/Skeleton";
 import { connectAlertStream } from "@/lib/websocket";
 import type { AlertMessage } from "@/lib/websocket";
 import { getRecentNews, refreshNews } from "@/lib/api";
@@ -23,13 +24,13 @@ interface Alert {
 /**
  * Severity is the one place a fourth colour is justified: an alert has a
  * magnitude that is orthogonal to direction, so it can't borrow the
- * up/down pair. Amber sits between muted and oxblood.
+ * up/down pair. Amber sits between muted and crimson.
  */
 const SEVERITY: Record<NonNullable<Alert["severity"]>, { label: string; cls: string }> = {
   low:      { label: "low",      cls: "text-aureus-muted   border-aureus-rule" },
   medium:   { label: "medium",   cls: "text-aureus-gold    border-aureus-gold/40" },
   high:     { label: "high",     cls: "text-aureus-amber   border-aureus-amber/40" },
-  critical: { label: "critical", cls: "text-aureus-oxblood border-aureus-oxblood/50" },
+  critical: { label: "critical", cls: "text-aureus-crimson border-aureus-crimson/50" },
 };
 
 export default function AlertFeed({ userId }: { userId: string }) {
@@ -100,13 +101,13 @@ export default function AlertFeed({ userId }: { userId: string }) {
       const found = finnhub + rss;
       setRefreshNote(
         found === 0
-          ? "No new articles. Sources may have been polled recently, or a feed is unreachable — check the backend logs."
+          ? "No new articles. Sources may have been polled recently, or a feed may be unreachable. Check the backend logs."
           : `${found} new article${found === 1 ? "" : "s"} (${finnhub} Finnhub, ${rss} RSS); ${forwarded} passed the sentiment filter.`
       );
       await new Promise((r) => setTimeout(r, 1500)); // let preprocessing land in the DB
       await loadMarketNews();
     } catch (e: unknown) {
-      setNewsError(e instanceof Error ? e.message : "Refresh failed — is the backend reachable?");
+      setNewsError(e instanceof Error ? e.message : "Refresh failed. Check that the backend is reachable.");
     } finally {
       setRefreshing(false);
     }
@@ -134,7 +135,7 @@ export default function AlertFeed({ userId }: { userId: string }) {
         {tab === "market" ? (
           <button onClick={handleManualRefresh} disabled={refreshing}
                   className="flex items-center gap-1.5 text-[11px] text-aureus-muted hover:text-aureus-text transition-colors disabled:opacity-50">
-            <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
+            <IconRefresh className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
             {refreshing ? "Refreshing" : "Refresh"}
           </button>
         ) : (
@@ -147,7 +148,7 @@ export default function AlertFeed({ userId }: { userId: string }) {
 
       {tab === "portfolio" && (
         alerts.length === 0 ? (
-          <EmptyState icon={Radio} title="Nothing on your positions yet">
+          <EmptyState title="Nothing on your positions yet">
             When the pipeline finds news that touches something you hold, it lands here.
             The Market tab shows everything it is currently picking up.
           </EmptyState>
@@ -181,7 +182,7 @@ export default function AlertFeed({ userId }: { userId: string }) {
       {tab === "market" && (
         <>
           {newsError && (
-            <div className="rounded-md border border-aureus-oxblooddim bg-aureus-oxblood/10 px-3 py-2 text-[12px] text-aureus-oxblood">
+            <div className="rounded-md border border-aureus-crimsondim bg-aureus-crimson/10 px-3 py-2 text-[12px] text-aureus-crimson">
               {newsError}
             </div>
           )}
@@ -191,16 +192,16 @@ export default function AlertFeed({ userId }: { userId: string }) {
             </div>
           )}
           {newsLoading ? (
-            <p className="py-8 text-center text-[13px] text-aureus-muted">Loading recent coverage…</p>
+            <SkeletonList rows={6} />
           ) : (
             <Wire
               items={newsItems}
               empty={
-                <EmptyState icon={Rss} title="No processed articles yet"
+                <EmptyState title="No processed articles yet"
                             action={
                               <button onClick={handleManualRefresh} disabled={refreshing}
                                       className="text-[11px] bg-aureus-gold text-aureus-ink font-semibold px-3 py-1.5 rounded disabled:opacity-50">
-                                {refreshing ? "Refreshing…" : "Run one cycle now"}
+                                {refreshing ? "Refreshing" : "Run one cycle now"}
                               </button>
                             }>
                   The pipeline polls sources on a schedule. Refresh to run a cycle immediately.

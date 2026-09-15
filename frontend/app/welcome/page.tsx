@@ -1,496 +1,381 @@
 import Link from "next/link";
-import {
-  ArrowRight, Brain, LineChart, Mic, ShieldCheck, Sigma, FlaskConical,
-  GraduationCap, Gamepad2, Newspaper, ScrollText, Check,
-} from "lucide-react";
+import type { Metadata } from "next";
 import Logo from "@/components/brand/Logo";
+import SiteFooter from "@/components/site/SiteFooter";
+import PricingMatrix from "@/components/billing/PricingMatrix";
+import type { Plan } from "@/lib/api";
 
 /**
- * The public landing page.
+ * The public landing page, set as an editorial document.
  *
- * Two decisions drive the layout:
- *
- * 1. SHOW THE PRODUCT, DON'T DESCRIBE IT. The previous version was a
- *    headline plus three paragraphs of adjectives. The hero now carries a
- *    real replica of an analysis card — the same pillars, gauges and
- *    weighting a signed-in user sees — because the single most persuasive
- *    thing about this product is that it shows its working, and that is
- *    impossible to convey in prose.
- *
- * 2. LEAD WITH THE ACTUAL DIFFERENTIATOR. Every analysis tool claims
- *    "AI-powered insights". Almost none of them de-weight a pillar when
- *    its data is thin, which is the one genuinely unusual thing here, so
- *    it gets its own section with a worked example rather than a bullet.
- *
- * Server component on purpose — everything is static, so there is no
- * reason to ship JavaScript for it. Motion is CSS-only.
+ * It shows the product’s working instead of describing it: a specimen tear
+ * sheet, the actual horizon weights, the three figures printed beside every
+ * score, a ledger of what ships, and the plan matrix read from the database.
+ * Server component: static markup, no client JavaScript beyond the matrix.
  */
 
-export const metadata = {
-  title: "Analysis that shows its work",
+export const metadata: Metadata = {
+  title: "Equity research that shows its working",
   description:
-    "Fundamental, technical and sentiment analysis unified into one score — with the reasoning, the data completeness, and the weighting behind every number.",
+    "Fundamental, technical and sentiment analysis of US equities, with the weighting, data completeness and reasoning behind every score.",
 };
 
-const PILLARS = [
+export const revalidate = 300;
+
+const API = process.env.NEXTAUTH_API_URL || "http://backend:8000";
+
+async function loadPlans(): Promise<Plan[]> {
+  try {
+    const res = await fetch(`${API}/api/v1/account/plans`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return [];
+    return ((await res.json()) as { plans?: Plan[] }).plans ?? [];
+  } catch {
+    return [];
+  }
+}
+
+const FACTS: [string, string][] = [
+  ["Coverage", "S&P 500"],
+  ["Rescored", "Every 15 min in session"],
+  ["Pillars", "Fundamental · Technical · Sentiment"],
+  ["Curriculum", "60 lessons"],
+];
+
+const WEIGHTS: { horizon: string; range: string; w: [number, number, number] }[] = [
+  { horizon: "Short", range: "1 day to 1 month", w: [10, 50, 40] },
+  { horizon: "Medium", range: "1 to 6 months", w: [35, 35, 30] },
+  { horizon: "Long", range: "1 year and beyond", w: [65, 20, 15] },
+];
+
+const PILLARS: { name: string; reads: string; blind: string }[] = [
   {
     name: "Fundamental",
-    question: "Is the business worth what the market says?",
-    detail: "Discounted cash flow, margins, returns on capital, balance-sheet durability — read from SEC filings, not summarised from a headline.",
-    weight: "65%",
-    horizon: "Dominates over years",
-    icon: ScrollText,
+    reads: "Discounted cash flow, margins, returns on capital and balance-sheet durability, read from SEC filings and compared with sector medians.",
+    blind: "Cannot explain a six percent move on an earnings surprise.",
   },
   {
     name: "Technical",
-    question: "What is the price itself telling you?",
-    detail: "RSI, MACD, moving-average structure, support and resistance drawn from actual swing pivots rather than eyeballed lines.",
-    weight: "50%",
-    horizon: "Dominates over weeks",
-    icon: LineChart,
+    reads: "Trend structure, momentum and volatility, with support and resistance drawn from actual swing pivots.",
+    blind: "Says nothing about what the business is worth.",
   },
   {
     name: "Sentiment",
-    question: "What does the market believe right now?",
-    detail: "News wires scored by a finance-specific model, SEC filing tone versus the prior quarter, and retail positioning — weighted by publisher authority.",
-    weight: "40%",
-    horizon: "Dominates over days",
-    icon: Newspaper,
+    reads: "News scored by a finance-specific model, filing tone against the prior quarter, and retail positioning weighted by source authority.",
+    blind: "The easiest pillar to manipulate, so social input is capped at a minority share.",
   },
 ];
 
-const FEATURES = [
-  {
-    icon: Brain,
-    title: "Three-Pillar Analysis",
-    desc: "Every score decomposes into the sub-signals that produced it, each with the real number attached. No black box.",
-    tag: "All plans",
-  },
-  {
-    icon: Sigma,
-    title: "The Quant Lab",
-    desc: "Fama-French 3 and 5-factor exposures with significance testing, bootstrap Monte Carlo, VaR and expected shortfall, rolling beta stability.",
-    tag: "Elite",
-  },
-  {
-    icon: FlaskConical,
-    title: "Strategy Backtesting",
-    desc: "Replay RSI and moving-average strategies bar by bar with commission, slippage, stop-loss and take-profit modelled honestly.",
-    tag: "All plans",
-  },
-  {
-    icon: Newspaper,
-    title: "Sentiment Engine",
-    desc: "Aspect-based scoring so one article about two companies gives each the right verdict — not a meaningless average of both.",
-    tag: "All plans",
-  },
-  {
-    icon: GraduationCap,
-    title: "Built-In Education",
-    desc: "Forty-four lessons from market basics to factor mechanics, with quizzes, XP and a difficulty level that rises as you do.",
-    tag: "Free forever",
-  },
-  {
-    icon: Gamepad2,
-    title: "Daily Practice",
-    desc: "FinWordle and a chart-pattern guesser built on fourteen classical formations detected geometrically, not hand-labelled.",
-    tag: "Free forever",
-  },
+const DISCLOSURES: [string, string][] = [
+  ["Conviction", "How far the evidence leans, discounted when the pillars disagree or the data is thin."],
+  ["Pillar agreement", "Whether the three pillars point the same way. A 50 reached by consensus and a 50 reached by cancellation are different findings, and the page says which one you are looking at."],
+  ["Data completeness", "How much of each pillar actually computed. A pillar with missing inputs loses weight; it is never padded with a neutral guess."],
 ];
 
-const PLANS = [
-  { name: "Sovereign", price: "0", note: "Free forever", points: ["15 analyses a day", "Full education & games", "Backtesting"] },
-  { name: "Elite", price: "99", note: "per month", featured: true, points: ["Claude-powered synthesis", "The Quant Lab", "Real-time market data"] },
-  { name: "Institutional", price: "499", note: "per month", points: ["Everything uncapped", "Every premium data source", "Opus on deep analysis"] },
+const MODULES: [string, string, string][] = [
+  ["Three-pillar analysis", "Composite score with every sub-signal, its figure, and the weight it carried.", "Sovereign"],
+  ["Catalyst timeline", "Earnings dates, SEC 8-K events, dividends, FOMC meetings and FDA calendars around each stock.", "Sovereign"],
+  ["Strategy backtesting", "RSI and moving-average strategies replayed bar by bar with commission, slippage and stops.", "Sovereign"],
+  ["Curriculum and daily games", "Sixty lessons from first principles to factor mechanics, with calculations to work through.", "Sovereign"],
+  ["Written synthesis", "Bull and bear cases edited by a language model, and SEC filing tone against the prior quarter.", "Plus"],
+  ["The Quant Lab", "Fama-French factor exposures, bootstrap Monte Carlo, value at risk and expected shortfall.", "Elite"],
+  ["Hottest Stocks leaderboard", "Verified Strong Buy entries across the S&P 500, with in-app and push alerts.", "Elite"],
+  ["Voice", "Talk through a position with the session carried as context.", "Elite"],
 ];
 
-export default function WelcomePage() {
+export default async function WelcomePage() {
+  const plans = await loadPlans();
+
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ background: "var(--bg)" }}>
-      {/* CSS-only motion. A server component ships no JS, so any animation
-          has to live in the stylesheet rather than in an effect. */}
-      <style>{`
-        @keyframes floatUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-        .rise { animation: floatUp .7s cubic-bezier(.22,1,.36,1) both; }
-        .rise-1 { animation-delay: .05s } .rise-2 { animation-delay: .15s }
-        .rise-3 { animation-delay: .25s } .rise-4 { animation-delay: .35s }
-        @keyframes sheen { 0%,100% { opacity: .25 } 50% { opacity: .5 } }
-        .sheen { animation: sheen 6s ease-in-out infinite; }
-        @media (prefers-reduced-motion: reduce) {
-          .rise, .sheen { animation: none; opacity: 1; transform: none; }
-        }
-      `}</style>
-
-      {/* Ambient light — warm, off-centre, so the page has a source */}
-      <div className="pointer-events-none absolute inset-0 sheen"
-           style={{ background: "radial-gradient(ellipse 70% 45% at 50% -8%, rgb(var(--gold-rgb) / 0.16), transparent)" }} />
-      <div className="pointer-events-none absolute top-[30rem] -left-40 w-[28rem] h-[28rem] rounded-full blur-3xl opacity-[0.07]"
-           style={{ background: "radial-gradient(circle, rgb(var(--verdigris-rgb)), transparent)" }} />
-
-      <div className="relative z-10">
-        {/* ── Nav ──────────────────────────────────────────────── */}
-        <nav className="flex items-center justify-between gap-4 px-5 sm:px-8 py-6 max-w-6xl mx-auto">
-          {/* Two marks rather than one: Logo takes a numeric size, so a
-              responsive scale cannot be expressed as a Tailwind class. At
-              375px the 44px version plus both nav actions overflowed and
-              the wordmark collided with "Sign in". */}
-          <span className="sm:hidden">
-            <Logo size={30} withWordmark wordmarkClassName="text-lg" />
-          </span>
-          <span className="hidden sm:block">
-            <Logo size={44} withWordmark wordmarkClassName="text-2xl" />
-          </span>
-          <div className="flex items-center gap-3 sm:gap-5 flex-shrink-0">
-            <Link href="/sign-in"
-                  className="hidden sm:block text-sm text-aureus-muted hover:text-aureus-text transition-colors">
-              Sign in
-            </Link>
-            <Link href="/sign-up"
-                  className="text-sm bg-aureus-gold text-aureus-ink font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap">
-              Get started
+    <div className="min-h-screen bg-aureus-ink text-aureus-text">
+      <header className="border-b border-aureus-rule">
+        <nav className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between gap-6" aria-label="Main">
+          <Link href="/welcome" aria-label="Aureus Intelligence home"><Logo size={28} withWordmark wordmarkClassName="text-xl" /></Link>
+          <div className="hidden md:flex items-center gap-7 text-[13px] text-aureus-muted">
+            <a href="#method" className="hover:text-aureus-text">Method</a>
+            <a href="#disclosure" className="hover:text-aureus-text">Disclosure</a>
+            <a href="#modules" className="hover:text-aureus-text">Modules</a>
+            <a href="#plans" className="hover:text-aureus-text">Plans</a>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link href="/sign-in" className="hidden sm:inline text-[13px] text-aureus-muted hover:text-aureus-text">Sign in</Link>
+            <Link href="/sign-up" className="h-9 px-4 inline-flex items-center bg-aureus-gold text-aureus-ink text-[13px] font-semibold rounded-sm hover:bg-aureus-goldbright transition-colors">
+              Create account
             </Link>
           </div>
         </nav>
-
-        {/* ── Hero ─────────────────────────────────────────────── */}
-        <section className="max-w-6xl mx-auto px-5 sm:px-8 pt-10 sm:pt-16 pb-8 grid lg:grid-cols-[1.05fr_1fr] gap-12 lg:gap-14 items-center">
-          <div className="rise rise-1">
-            <div className="inline-flex items-center gap-2 text-[11px] text-aureus-gold border border-aureus-gold/30 rounded-full px-3 py-1 mb-6 tracking-wide"
-                 style={{ background: "rgb(var(--gold-rgb) / 0.07)" }}>
-              <span className="w-1.5 h-1.5 rounded-full bg-aureus-gold" />
-              Fundamental · Technical · Sentiment — unified
-            </div>
-
-            <h1 className="font-display text-aureus-text tracking-tight leading-[1.05] mb-6 text-5xl lg:text-6xl"
-                style={{ fontWeight: 600 }}>
-              Analysis that shows<span className="hidden sm:inline"><br /></span>{" "}
-              its work,{" "}
-              <span className="text-aureus-gold">
-                not just<span className="hidden sm:inline"><br /></span> a number
-              </span>
-            </h1>
-
-            <p className="text-[17px] text-aureus-muted max-w-xl leading-relaxed mb-4">
-              Most tools hand you a score and ask you to trust it. Aureus hands you the score,
-              every sub-signal that produced it, the real figure behind each one, and an honest
-              note where the data ran out.
-            </p>
-            <p className="text-[15px] text-aureus-muted/80 max-w-xl leading-relaxed mb-9">
-              Three analytical disciplines, weighted differently depending on whether you are
-              holding for days or for years.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-4">
-              <Link href="/sign-up"
-                    className="flex items-center gap-2 bg-aureus-gold text-aureus-ink font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition-opacity">
-                Start free <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link href="/sign-in"
-                    className="px-6 py-3 rounded-lg border border-aureus-rule text-aureus-text hover:border-aureus-gold transition-colors">
-                I have an account
-              </Link>
-            </div>
-            <p className="text-xs text-aureus-muted mt-4">
-              No card required · 15 full analyses a day on the free plan
-            </p>
-          </div>
-
-          {/* Product replica. Static markup, but the same structure, gauges
-              and weighting language the real dashboard renders — the point
-              is to show the reasoning, not to fake a screenshot. */}
-          <div className="rise rise-2">
-            <MockAnalysisCard />
-          </div>
-        </section>
-
-        {/* ── Proof strip ────────────────────────────────────────
-            Divided by hairlines rather than rendered as four separate
-            tiles, matching how the app itself presents a row of figures.
-            The landing page should look like the product, not like a
-            different template that happens to share a logo. */}
-        <section className="max-w-5xl mx-auto px-8 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 border-y border-aureus-rule">
-            {[
-              ["3", "analytical pillars"],
-              ["14", "chart patterns detected"],
-              ["44", "lessons built in"],
-              ["5", "factor exposures"],
-            ].map(([n, label], i) => (
-              <div
-                key={label}
-                className={`px-5 py-7 ${i % 2 === 1 ? "border-l border-aureus-rule" : ""} ${i >= 2 ? "border-t md:border-t-0 border-aureus-rule" : ""} ${i === 2 ? "md:border-l md:border-aureus-rule" : ""}`}
-              >
-                <div className="font-display text-[2rem] leading-none text-aureus-gold" style={{ fontWeight: 600 }}>{n}</div>
-                <div className="text-[11px] text-aureus-muted mt-2 tracking-wide">{label}</div>
+        <div className="border-t border-aureus-rule bg-aureus-panel">
+          <dl className="max-w-6xl mx-auto px-5 sm:px-8 flex flex-wrap gap-x-10 gap-y-1 py-2.5 text-[11.5px]">
+            {FACTS.map(([k, v]) => (
+              <div key={k} className="flex gap-2">
+                <dt className="label-caps pt-px">{k}</dt>
+                <dd className="font-mono-num text-aureus-soft">{v}</dd>
               </div>
             ))}
-          </div>
-        </section>
+          </dl>
+        </div>
+      </header>
 
-        {/* ── The three pillars ────────────────────────────────── */}
-        <section className="max-w-6xl mx-auto px-8 py-16">
-          <SectionHeading
-            eyebrow="The method"
-            title="Three questions, asked separately"
-            sub="Each pillar answers something the other two cannot, and each has a blind spot the others cover. The weighting shifts with your time horizon — because a DCF cannot explain a 6% move on an earnings surprise, and this quarter's mood tells you nothing about 2030."
-          />
-          <div className="grid md:grid-cols-3 gap-5 mt-10">
-            {PILLARS.map((p, i) => (
-              <div key={p.name}
-                   className={`rise rise-${i + 1} rounded-xl border border-aureus-rule p-6 relative overflow-hidden group hover:border-aureus-gold/40 transition-colors`}
-                   style={{ background: "var(--panel)" }}>
-                <div className="absolute -top-16 -right-16 w-40 h-40 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                     style={{ background: "radial-gradient(circle, rgb(var(--gold-rgb) / 0.14), transparent)" }} />
-                <div className="relative">
-                  <p.icon className="w-6 h-6 text-aureus-gold mb-4" strokeWidth={1.5} />
-                  <h3 className="font-display text-xl text-aureus-text mb-1" style={{ fontWeight: 600 }}>{p.name}</h3>
-                  <p className="text-aureus-gold text-[13px] mb-4 leading-snug">{p.question}</p>
-                  <p className="text-sm text-aureus-muted leading-relaxed mb-5">{p.detail}</p>
-                  <div className="pt-4 border-t border-aureus-rule flex items-baseline justify-between">
-                    <span className="text-[11px] text-aureus-muted">{p.horizon}</span>
-                    <span className="font-mono-num text-aureus-gold text-sm">up to {p.weight}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Feature grid ─────────────────────────────────────── */}
-        <section className="max-w-6xl mx-auto px-8 py-16">
-          <SectionHeading
-            eyebrow="What's inside"
-            title="A research desk, not a stock ticker"
-            sub="Everything below ships today. Nothing here is a roadmap item."
-          />
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mt-10">
-            {FEATURES.map(({ icon: Icon, title, desc, tag }) => (
-              <div key={title}
-                   className="rounded-xl border border-aureus-rule p-6 hover:border-aureus-gold/40 transition-colors"
-                   style={{ background: "var(--panel)" }}>
-                <div className="flex items-start justify-between gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg border border-aureus-gold/30 flex items-center justify-center flex-shrink-0"
-                       style={{ background: "rgb(var(--gold-rgb) / 0.08)" }}>
-                    <Icon className="w-5 h-5 text-aureus-gold" strokeWidth={1.5} />
-                  </div>
-                  <span className="text-[10px] text-aureus-muted border border-aureus-rule rounded px-2 py-0.5 flex-shrink-0">
-                    {tag}
-                  </span>
-                </div>
-                <h3 className="text-aureus-text font-semibold mb-2">{title}</h3>
-                <p className="text-[13px] text-aureus-muted leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Voice, called out separately ─────────────────────── */}
-        <section className="max-w-6xl mx-auto px-8 pb-8">
-          <div className="rounded-xl border border-aureus-rule p-8 flex flex-col md:flex-row items-center gap-7"
-               style={{ background: "var(--panel)" }}>
-            <div className="w-14 h-14 rounded-xl border border-aureus-gold/30 flex items-center justify-center flex-shrink-0"
-                 style={{ background: "rgb(var(--gold-rgb) / 0.08)" }}>
-              <Mic className="w-6 h-6 text-aureus-gold" strokeWidth={1.5} />
-            </div>
-            <div className="flex-1 text-center md:text-left">
-              <h3 className="font-display text-xl text-aureus-text mb-1.5" style={{ fontWeight: 600 }}>
-                Talk through a position out loud
-              </h3>
-              <p className="text-sm text-aureus-muted leading-relaxed">
-                Ask why a score moved, what the bear case rests on, or how a holding changes your
-                exposure — conversationally, with the full session carried as context.
+      <main>
+        {/* ── Hero ─────────────────────────────────────────────────── */}
+        <section className="ruled-field border-b border-aureus-rule">
+          <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16 lg:py-24 grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] gap-x-16 gap-y-14 items-center">
+            <div>
+              <p className="label-caps text-aureus-gold">Equity research</p>
+              <h1 className="font-display text-[48px] sm:text-[64px] leading-[0.98] tracking-[-0.02em] text-aureus-text mt-5">
+                Every score, with its working.
+              </h1>
+              <p className="text-[17px] text-aureus-soft leading-relaxed mt-7 max-w-xl">
+                Aureus scores stocks on fundamental, technical and sentiment evidence, then prints what produced the number:
+                each signal and its figure, the weight every pillar carried for your holding period, and how much data stood
+                behind it.
               </p>
-            </div>
-            <span className="text-[11px] text-aureus-gold border border-aureus-gold/40 rounded-full px-3 py-1 flex-shrink-0">
-              Elite and above
-            </span>
-          </div>
-        </section>
-
-        {/* ── Pricing ──────────────────────────────────────────── */}
-        <section className="max-w-5xl mx-auto px-8 py-16">
-          <SectionHeading
-            eyebrow="Plans"
-            title="Start free, upgrade when the ceiling matters"
-            sub="Education and the daily games stay free on every plan — permanently. Paid tiers buy analysis depth, model quality and data freshness."
-          />
-          <div className="grid md:grid-cols-3 gap-5 mt-10">
-            {PLANS.map((p) => (
-              <div key={p.name}
-                   className={`rounded-xl border p-6 flex flex-col ${
-                     p.featured ? "border-aureus-gold/60" : "border-aureus-rule"
-                   }`}
-                   style={{ background: p.featured ? "rgb(var(--gold-rgb) / 0.04)" : "var(--panel)" }}>
-                {p.featured && (
-                  <div className="text-[10px] uppercase tracking-widest text-aureus-gold mb-3">Most popular</div>
-                )}
-                <div className="font-display text-lg text-aureus-text" style={{ fontWeight: 600 }}>{p.name}</div>
-                <div className="flex items-baseline gap-1.5 mt-2 mb-1">
-                  <span className="font-display text-4xl text-aureus-gold" style={{ fontWeight: 600 }}>${p.price}</span>
-                  <span className="text-[11px] text-aureus-muted">{p.note}</span>
-                </div>
-                <ul className="space-y-2 mt-5 mb-6 flex-1">
-                  {p.points.map((pt) => (
-                    <li key={pt} className="flex items-start gap-2 text-[13px] text-aureus-muted">
-                      <Check className="w-3.5 h-3.5 text-aureus-verdigris mt-0.5 flex-shrink-0" />
-                      {pt}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/sign-up"
-                      className={`text-center text-sm font-semibold px-4 py-2.5 rounded-lg transition-opacity ${
-                        p.featured
-                          ? "bg-aureus-gold text-aureus-ink hover:opacity-90"
-                          : "border border-aureus-rule text-aureus-text hover:border-aureus-gold"
-                      }`}>
-                  {p.price === "0" ? "Start free" : `Choose ${p.name}`}
+              <div className="flex flex-wrap items-center gap-3 mt-10">
+                <Link href="/sign-up" className="h-11 px-6 inline-flex items-center bg-aureus-gold text-aureus-ink text-[14px] font-semibold rounded-sm hover:bg-aureus-goldbright transition-colors">
+                  Create a free account
+                </Link>
+                <Link href="/sign-in" className="h-11 px-6 inline-flex items-center border border-aureus-rulestrong text-aureus-text text-[14px] rounded-sm hover:border-aureus-gold transition-colors">
+                  Sign in
                 </Link>
               </div>
-            ))}
+              <p className="font-mono-num text-[12px] text-aureus-muted mt-5">Free plan: 15 full analyses a day. No card required.</p>
+            </div>
+            <TearSheet />
           </div>
         </section>
 
-        {/* ── Closing CTA ──────────────────────────────────────── */}
-        <section className="max-w-3xl mx-auto px-8 py-16 text-center">
-          <h2 className="font-display text-4xl text-aureus-text leading-tight mb-5" style={{ fontWeight: 600 }}>
-            See the reasoning behind your next position
-          </h2>
-          <p className="text-aureus-muted leading-relaxed mb-8 max-w-xl mx-auto">
-            Free to start, no card, and the four-minute walkthrough explains exactly what each number
-            can and cannot tell you before you rely on one.
-          </p>
-          <Link href="/sign-up"
-                className="inline-flex items-center gap-2 bg-aureus-gold text-aureus-ink font-semibold px-7 py-3.5 rounded-lg hover:opacity-90 transition-opacity">
-            Create your account <ArrowRight className="w-4 h-4" />
-          </Link>
-        </section>
+        {/* ── Method ───────────────────────────────────────────────── */}
+        <section id="method" className="scroll-mt-4 border-b border-aureus-rule">
+          <div className="max-w-6xl mx-auto px-5 sm:px-8 py-20 grid lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-x-16 gap-y-10">
+            <div className="lg:sticky lg:top-8 self-start">
+              <p className="label-caps text-aureus-gold">Method</p>
+              <h2 className="font-display text-[36px] leading-[1.08] mt-4">Three kinds of evidence, weighted by how long you hold.</h2>
+              <p className="text-[15px] text-aureus-soft leading-relaxed mt-5 max-w-md">
+                Each pillar answers a question the other two cannot, and each has a blind spot the others cover. Over weeks, price
+                and news carry the information. Over years, the business does.
+              </p>
+            </div>
 
-        {/* ── Footer ───────────────────────────────────────────── */}
-        <footer className="border-t border-aureus-rule">
-          <div className="max-w-6xl mx-auto px-8 py-10 flex flex-col md:flex-row items-center justify-between gap-5">
-            <Logo size={26} withWordmark wordmarkClassName="text-base" />
-            <div className="flex items-start gap-2 text-[11px] text-aureus-muted max-w-lg text-center md:text-right leading-relaxed">
-              <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>
-                Informational analysis only. Nothing here is investment, legal or tax advice, nor a
-                recommendation to buy or sell any security. Past performance is not indicative of
-                future results.
-              </span>
+            <div className="space-y-12">
+              <div className="border border-aureus-rule bg-aureus-panel overflow-x-auto">
+                <table className="w-full min-w-[520px] text-left">
+                  <caption className="sr-only">Pillar weights by holding period</caption>
+                  <thead>
+                    <tr className="border-b border-aureus-rule">
+                      <th className="px-5 py-3 label-caps font-normal">Holding period</th>
+                      {["Fundamental", "Technical", "Sentiment"].map((h) => <th key={h} className="px-5 py-3 label-caps font-normal">{h}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {WEIGHTS.map((row) => (
+                      <tr key={row.horizon} className="border-t border-aureus-rulesoft first:border-t-0">
+                        <th scope="row" className="px-5 py-4 font-normal">
+                          <div className="text-[14px] text-aureus-text">{row.horizon}</div>
+                          <div className="text-[11.5px] text-aureus-muted">{row.range}</div>
+                        </th>
+                        {row.w.map((w, i) => (
+                          <td key={i} className="px-5 py-4 align-middle">
+                            <div className="flex items-center gap-3">
+                              <span className="font-mono-num text-[15px] w-9">{w}%</span>
+                              <span className="flex-1 h-1 bg-aureus-panelhigh"><span className="block h-full bg-aureus-gold" style={{ width: `${w}%` }} /></span>
+                            </div>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <dl className="border-t border-aureus-rule">
+                {PILLARS.map((p) => (
+                  <div key={p.name} className="grid sm:grid-cols-[9rem_minmax(0,1fr)] gap-x-8 gap-y-2 py-6 border-b border-aureus-rule">
+                    <dt className="font-display text-[22px] leading-none">{p.name}</dt>
+                    <dd>
+                      <p className="text-[14.5px] text-aureus-soft leading-relaxed">{p.reads}</p>
+                      <p className="text-[12.5px] text-aureus-muted mt-2"><span className="label-caps mr-2">Blind spot</span>{p.blind}</p>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
             </div>
           </div>
-        </footer>
+        </section>
+
+        {/* ── Disclosure ───────────────────────────────────────────── */}
+        <section id="disclosure" className="scroll-mt-4 border-b border-aureus-rule bg-aureus-panel">
+          <div className="max-w-6xl mx-auto px-5 sm:px-8 py-20">
+            <div className="max-w-2xl">
+              <p className="label-caps text-aureus-gold">Disclosure</p>
+              <h2 className="font-display text-[36px] leading-[1.08] mt-4">Three figures sit beside every composite.</h2>
+              <p className="text-[15px] text-aureus-soft leading-relaxed mt-5">
+                A score alone invites blind trust or dismissal. These say how much the score deserves.
+              </p>
+            </div>
+            <ol className="mt-12 border-t border-aureus-rule">
+              {DISCLOSURES.map(([title, body], i) => (
+                <li key={title} className="grid md:grid-cols-[6rem_16rem_minmax(0,1fr)] gap-x-8 gap-y-2 py-7 border-b border-aureus-rule">
+                  <span className="font-mono-num text-[40px] leading-none text-aureus-golddim">{String(i + 1).padStart(2, "0")}</span>
+                  <h3 className="font-display text-[24px] leading-tight">{title}</h3>
+                  <p className="text-[15px] text-aureus-soft leading-relaxed max-w-2xl">{body}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* ── Modules ──────────────────────────────────────────────── */}
+        <section id="modules" className="scroll-mt-4 border-b border-aureus-rule">
+          <div className="max-w-6xl mx-auto px-5 sm:px-8 py-20 grid lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)] gap-x-16 gap-y-10">
+            <div>
+              <p className="label-caps text-aureus-gold">Modules</p>
+              <h2 className="font-display text-[36px] leading-[1.08] mt-4">What ships today.</h2>
+              <p className="text-[15px] text-aureus-soft leading-relaxed mt-5 max-w-sm">
+                Everything listed is live. The right-hand column names the first plan that includes it.
+              </p>
+            </div>
+            <div className="border-t border-aureus-rule">
+              {MODULES.map(([name, detail, plan]) => (
+                <div key={name} className="grid grid-cols-[minmax(0,1fr)_5.5rem] sm:grid-cols-[13rem_minmax(0,1fr)_6rem] gap-x-6 gap-y-1 py-4 border-b border-aureus-rulesoft">
+                  <div className="text-[14.5px] text-aureus-text">{name}</div>
+                  <div className="col-span-2 sm:col-span-1 row-start-2 sm:row-start-auto text-[13px] text-aureus-muted leading-relaxed">{detail}</div>
+                  <div className="col-start-2 row-start-1 sm:col-start-auto sm:row-start-auto text-right label-caps pt-1 text-aureus-soft">{plan}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Plans ────────────────────────────────────────────────── */}
+        <section id="plans" className="scroll-mt-4 border-b border-aureus-rule">
+          <div className="max-w-6xl mx-auto px-5 sm:px-8 py-20">
+            <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4 mb-10">
+              <div className="max-w-2xl">
+                <p className="label-caps text-aureus-gold">Plans</p>
+                <h2 className="font-display text-[36px] leading-[1.08] mt-4">Four plans. One method.</h2>
+              </div>
+              <p className="text-[14px] text-aureus-soft leading-relaxed max-w-md">
+                Scoring is identical on every plan. Paid plans raise the ceilings and add depth: written synthesis from $12, then the
+                Quant Lab, the leaderboard and voice.
+              </p>
+            </div>
+            <PricingMatrix plans={plans} mode="public" highlight="plus" />
+          </div>
+        </section>
+
+        {/* ── Close ────────────────────────────────────────────────── */}
+        <section>
+          <div className="max-w-6xl mx-auto px-5 sm:px-8 py-20 grid md:grid-cols-[minmax(0,1fr)_auto] gap-8 items-end">
+            <p className="font-display text-[34px] sm:text-[42px] leading-[1.1] max-w-2xl">
+              Open an account and read your first analysis in under a minute.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/sign-up" className="h-11 px-6 inline-flex items-center bg-aureus-gold text-aureus-ink text-[14px] font-semibold rounded-sm hover:bg-aureus-goldbright transition-colors">
+                Create a free account
+              </Link>
+              <Link href="#plans" className="h-11 px-6 inline-flex items-center border border-aureus-rulestrong text-aureus-text text-[14px] rounded-sm hover:border-aureus-gold transition-colors">
+                Compare plans
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <SiteFooter />
+    </div>
+  );
+}
+
+/**
+ * A specimen of the analysis output, set as a printed tear sheet. Marked as a
+ * specimen with illustrative figures, because a public page must never
+ * present a rating that could be read as current advice on a real stock.
+ */
+function TearSheet() {
+  const pillars: [string, number, number, number][] = [
+    ["Fundamental", 81, 35, 96],
+    ["Technical", 54, 35, 100],
+    ["Sentiment", 52, 30, 68],
+  ];
+  const evidence: [string, string, string, "up" | "flat"][] = [
+    ["Operating margin", "31.8%", "Top decile for the sector", "up"],
+    ["Revenue growth", "+9.6%", "Against a 4.1% sector median", "up"],
+    ["RSI (14)", "58", "No momentum edge either way", "flat"],
+    ["News tone", "132 articles", "Authority-weighted, balanced", "flat"],
+  ];
+  return (
+    <figure className="border border-aureus-rulestrong bg-aureus-panel" aria-label="Specimen analysis output with illustrative figures">
+      <div className="flex items-center justify-between px-5 py-2.5 border-b border-aureus-rule bg-aureus-panellift">
+        <span className="label-caps">Specimen · illustrative figures</span>
+        <span className="font-mono-num text-[11px] text-aureus-muted">Medium term</span>
       </div>
-    </div>
-  );
-}
 
-// ── Pieces ────────────────────────────────────────────────────────────
-
-function SectionHeading({ eyebrow, title, sub }: { eyebrow: string; title: string; sub: string }) {
-  return (
-    <div className="max-w-2xl">
-      <div className="text-[11px] uppercase tracking-widest text-aureus-gold mb-3">{eyebrow}</div>
-      <h2 className="font-display text-3xl md:text-4xl text-aureus-text leading-tight mb-4" style={{ fontWeight: 600 }}>
-        {title}
-      </h2>
-      <p className="text-sm text-aureus-muted leading-relaxed">{sub}</p>
-    </div>
-  );
-}
-
-/** Circular pillar gauge, matching the one on the real analysis page. */
-function Gauge({ score, label }: { score: number; label: string }) {
-  const r = 26;
-  const c = 2 * Math.PI * r;
-  const tone = score >= 65 ? "var(--verdigris)" : score < 35 ? "var(--oxblood)" : "var(--gold)";
-  return (
-    <div className="text-center">
-      <div className="relative w-[68px] h-[68px] mx-auto">
-        <svg width="68" height="68" viewBox="0 0 68 68" className="-rotate-90">
-          <circle cx="34" cy="34" r={r} fill="none" stroke="var(--rule)" strokeWidth="5" />
-          <circle cx="34" cy="34" r={r} fill="none" stroke={tone} strokeWidth="5"
-                  strokeLinecap="round" strokeDasharray={`${c * (score / 100)} ${c}`} />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-mono-num text-[15px]" style={{ color: tone }}>{score}</span>
-        </div>
-      </div>
-      <div className="text-[10px] text-aureus-muted mt-1.5 tracking-wide">{label}</div>
-    </div>
-  );
-}
-
-function MockAnalysisCard() {
-  return (
-    <div className="rounded-2xl border border-aureus-rule overflow-hidden shadow-2xl"
-         style={{ background: "var(--panel)", boxShadow: "0 24px 70px -20px rgb(0 0 0 / 0.7)" }}>
-      {/* Header */}
-      <div className="px-6 py-5 border-b border-aureus-rule flex items-start justify-between gap-4">
+      <div className="px-5 pt-5 pb-4 flex items-end justify-between gap-6">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="font-display text-2xl text-aureus-text" style={{ fontWeight: 600 }}>AAPL</span>
-            <span className="rounded px-2 py-0.5 text-[10px] font-bold tracking-wider border border-aureus-gold/40 text-aureus-gold"
-                  style={{ background: "rgb(var(--gold-rgb) / 0.08)" }}>
-              HOLD
-            </span>
+            <span className="font-mono-num text-[26px] leading-none">AAPL</span>
+            <span className="border border-aureus-gold/60 px-1.5 py-0.5 font-mono-num text-[10px] uppercase tracking-[0.14em] text-aureus-gold">Hold</span>
           </div>
-          <div className="text-[11px] text-aureus-muted mt-1">
-            Medium term · fundamentals via Finnhub + SEC EDGAR
-          </div>
+          <p className="text-[11.5px] text-aureus-muted mt-2">Fundamentals via Finnhub and SEC EDGAR</p>
         </div>
         <div className="text-right">
-          <div className="font-mono-num text-xl text-aureus-text">62.8</div>
-          <div className="text-[10px] text-aureus-muted">confidence</div>
+          <div className="font-mono-num text-[34px] leading-none text-aureus-gold">62.8</div>
+          <div className="label-caps mt-1.5">Composite</div>
         </div>
       </div>
 
-      {/* Pillars */}
-      <div className="px-6 py-5 grid grid-cols-3 gap-3 border-b border-aureus-rule">
-        <Gauge score={81} label="FUNDAMENTAL" />
-        <Gauge score={54} label="TECHNICAL" />
-        <Gauge score={52} label="SENTIMENT" />
+      <div className="px-5 pb-4">
+        <div className="relative h-1.5 bg-aureus-panelhigh">
+          <div className="absolute inset-y-0 left-0 bg-aureus-gold" style={{ width: "62.8%" }} />
+          <span className="absolute -top-1 -bottom-1 w-px bg-aureus-rulestrong" style={{ left: "35%" }} />
+          <span className="absolute -top-1 -bottom-1 w-px bg-aureus-rulestrong" style={{ left: "65%" }} />
+        </div>
+        <div className="grid grid-cols-3 mt-4 border-t border-aureus-rule pt-3 font-mono-num text-[12px]">
+          <div><span className="label-caps block">Conviction</span>41</div>
+          <div><span className="label-caps block">Agreement</span>67%</div>
+          <div><span className="label-caps block">Data</span>88%</div>
+        </div>
       </div>
 
-      {/* Sub-signals — the part that makes the score legible */}
-      <div className="px-6 py-5 space-y-2.5 border-b border-aureus-rule">
-        {[
-          ["Operating margin", 100, "31.8% — top decile for the sector"],
-          ["Revenue growth (YoY)", 88, "+9.6% against a 4.1% sector median"],
-          ["RSI (14)", 34, "58 — no momentum edge either way"],
-          ["News sentiment", 51, "132 articles, authority-weighted"],
-        ].map(([label, val, detail]) => (
-          <div key={label as string}>
-            <div className="flex items-center gap-2 text-[11px]">
-              <span className="flex-1 text-aureus-text">{label}</span>
-              <div className="w-20 h-1 rounded-full bg-aureus-rule overflow-hidden">
-                <div className="h-full rounded-full"
-                     style={{
-                       width: `${val}%`,
-                       background: (val as number) >= 65 ? "var(--verdigris)"
-                                 : (val as number) < 35 ? "var(--oxblood)" : "var(--gold)",
-                     }} />
-              </div>
-              <span className="w-6 text-right font-mono-num text-aureus-muted">{val}</span>
-            </div>
-            <div className="text-[10px] text-aureus-muted/70 mt-0.5">{detail}</div>
-          </div>
-        ))}
+      <table className="w-full border-t border-aureus-rule text-left">
+        <thead>
+          <tr className="border-b border-aureus-rule">
+            {["Pillar", "Score", "Weight", "Data"].map((h, i) => (
+              <th key={h} className={`px-5 py-2 label-caps font-normal ${i > 0 ? "text-right" : ""}`}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="font-mono-num text-[12.5px]">
+          {pillars.map(([name, score, weight, data]) => (
+            <tr key={name} className="border-t border-aureus-rulesoft first:border-t-0">
+              <td className="px-5 py-2 font-sans text-[13px] text-aureus-soft">{name}</td>
+              <td className={`px-5 py-2 text-right ${score >= 65 ? "text-aureus-emerald" : "text-aureus-gold"}`}>{score}</td>
+              <td className="px-5 py-2 text-right text-aureus-soft">{weight}%</td>
+              <td className="px-5 py-2 text-right text-aureus-muted">{data}%</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="border-t border-aureus-rule px-5 py-3">
+        <p className="label-caps">Evidence</p>
+        <ul className="mt-2">
+          {evidence.map(([label, figure, note, tone]) => (
+            <li key={label} className="grid grid-cols-[7.5rem_5.5rem_minmax(0,1fr)] gap-3 py-1.5 text-[12px] border-t border-aureus-rulesoft first:border-t-0">
+              <span className="text-aureus-soft">{label}</span>
+              <span className={`font-mono-num ${tone === "up" ? "text-aureus-emerald" : "text-aureus-text"}`}>{figure}</span>
+              <span className="text-aureus-muted truncate">{note}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      {/* Weighting honesty — the thing no competitor shows */}
-      <div className="px-6 py-4" style={{ background: "var(--bg)" }}>
-        <div className="text-[10px] uppercase tracking-widest text-aureus-muted mb-2">
-          Weighting used
-        </div>
-        <div className="flex h-2 rounded-full overflow-hidden mb-2">
-          <div style={{ width: "35%", background: "var(--gold)" }} />
-          <div style={{ width: "35%", background: "var(--verdigris)" }} />
-          <div style={{ width: "30%", background: "var(--oxblood)" }} />
-        </div>
-        <div className="flex justify-between text-[10px] text-aureus-muted font-mono-num">
-          <span>35% fundamental</span><span>35% technical</span><span>30% sentiment</span>
-        </div>
+      <div className="border-t border-aureus-rule px-5 py-3 bg-aureus-ink">
+        <p className="label-caps">What would change this view</p>
+        <p className="text-[12px] text-aureus-soft leading-relaxed mt-1.5">
+          <span className="font-mono-num text-aureus-golddim mr-2">1.</span>
+          The next earnings report: a miss against consensus would test the case sooner than any slower evidence.
+        </p>
       </div>
-    </div>
+    </figure>
   );
 }

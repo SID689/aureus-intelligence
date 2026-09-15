@@ -2,14 +2,12 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * A card is a raised sheet: warm panel surface, hairline border, a gold
- * top edge and a soft cast shadow, so the page reads as physical layers
- * rather than outlined rectangles on a flat plane.
+ * A card is a sheet: panel surface and a hairline, with a gold top rule
+ * when it is the primary object on the page. It separates from the ground
+ * by luminance, never by a cast shadow.
  *
- * Prefer `RuledLabel` from ui/primitives when the content isn't really a
- * discrete object — a heading with a hairline to the edge divides space
- * without adding another border to the page. Reserve Card for things that
- * genuinely are objects: a table, a chart, a panel of controls.
+ * Prefer `RuledLabel` from ui/primitives when the content is not really a
+ * discrete object. Reserve Card for tables, charts and control panels.
  */
 const Card = React.forwardRef<
   HTMLDivElement,
@@ -18,9 +16,9 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-[10px] border border-aureus-rule bg-aureus-panel",
-      !flat && "border-t-aureus-golddim shadow-lift",
-      accent && "guilloche-corner",
+      "rounded-sm border border-aureus-rule bg-aureus-panel",
+      !flat && "border-t-aureus-golddim",
+      accent && "border-t-aureus-gold",
       className
     )}
     {...props}
