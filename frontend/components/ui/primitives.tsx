@@ -97,7 +97,10 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
     <input
       ref={ref}
       className={cn(
-        "w-full rounded-md border border-aureus-rule bg-aureus-ink px-3 py-2 text-sm text-aureus-text",
+        // touch:min-h-[44px] — a 34px field is comfortable with a mouse and
+        // fiddly with a thumb, and a mis-tap on a form field costs the user
+        // the keyboard as well as the tap.
+        "w-full rounded-md border border-aureus-rule bg-aureus-ink px-3 py-2 touch:min-h-[44px] text-sm text-aureus-text",
         "placeholder:text-aureus-muted/60 focus:outline-none focus:border-aureus-gold transition-colors",
         className
       )}
@@ -112,7 +115,7 @@ export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttrib
     <select
       ref={ref}
       className={cn(
-        "w-full rounded-md border border-aureus-rule bg-aureus-ink px-3 py-2 text-sm text-aureus-text",
+        "w-full rounded-md border border-aureus-rule bg-aureus-ink px-3 py-2 touch:min-h-[44px] text-sm text-aureus-text",
         "focus:outline-none focus:border-aureus-gold transition-colors",
         className
       )}
@@ -483,8 +486,13 @@ export function Segmented<T extends string>({
           key={o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded font-mono-num transition-colors",
-            size === "sm" ? "px-2 py-1 text-[11px]" : "px-3 py-1.5 text-xs",
+            // Below `sm` every segment is at least 40px tall and 44 wide.
+            // These sit in dense headers, so the desktop sizing is kept
+            // from `sm` up rather than coarsening the whole interface for
+            // a constraint that only applies to thumbs.
+            "rounded font-mono-num transition-colors inline-flex items-center justify-center",
+            "min-h-[40px] min-w-[44px] sm:min-h-0 sm:min-w-0",
+            size === "sm" ? "px-3 py-1 sm:px-2 text-[11px]" : "px-3 py-1.5 text-xs",
             o.value === value
               ? "bg-aureus-gold text-aureus-ink font-semibold"
               : "text-aureus-muted hover:text-aureus-text"

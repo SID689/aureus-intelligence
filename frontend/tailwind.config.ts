@@ -29,6 +29,13 @@ const config: Config = {
       full: "9999px",
     },
     extend: {
+      screens: {
+        // A media variant, not a breakpoint. `touch:h-11` raises a control
+        // to thumb height wherever the pointer is coarse, which gets a
+        // touchscreen laptop right and leaves a narrow desktop window
+        // alone — neither of which a width breakpoint can tell apart.
+        touch: { raw: "(pointer: coarse)" },
+      },
       colors: {
         aureus: {
           // Ground and surfaces: near-black, stepped by luminance only.

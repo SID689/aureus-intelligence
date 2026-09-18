@@ -53,7 +53,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       <div className="px-5 py-5 border-b border-aureus-rule flex items-start justify-between">
         <Logo size={28} withWordmark wordmarkClassName="text-xl" tagline="Intelligence" />
         {onNavigate && (
-          <button onClick={onNavigate} className="md:hidden p-1 text-aureus-muted hover:text-aureus-text" aria-label="Close navigation">
+          <button onClick={onNavigate} className="tap-target md:hidden p-1 text-aureus-muted hover:text-aureus-text" aria-label="Close navigation">
             <IconClose className="w-4 h-4" />
           </button>
         )}
@@ -85,7 +85,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                       onClick={onNavigate}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "group grid grid-cols-[1.75rem_1fr_auto] items-baseline px-3 py-[7px] text-[13px] transition-colors",
+                        "group grid grid-cols-[1.75rem_1fr_auto] items-baseline px-3 py-3 md:py-[7px] text-[13px] transition-colors",
                         active ? "bg-aureus-panelhigh text-aureus-text" : "text-aureus-soft hover:bg-aureus-panellift hover:text-aureus-text",
                       )}
                     >
@@ -108,7 +108,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           href="/settings"
           onClick={onNavigate}
           className={cn(
-            "grid grid-cols-[1.75rem_1fr] items-baseline px-3 py-[7px] text-[13px] transition-colors",
+            "grid grid-cols-[1.75rem_1fr] items-baseline px-3 py-3 md:py-[7px] text-[13px] transition-colors",
             isActive("/settings") ? "bg-aureus-panelhigh text-aureus-text" : "text-aureus-soft hover:bg-aureus-panellift hover:text-aureus-text",
           )}
         >
@@ -121,13 +121,13 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </div>
         <button
           onClick={() => signOut({ callbackUrl: "/welcome" })}
-          className="mt-2 w-full text-left px-3 py-[7px] text-[12.5px] text-aureus-muted hover:text-aureus-text hover:bg-aureus-panellift transition-colors"
+          className="mt-2 w-full text-left px-3 py-3 md:py-[7px] text-[12.5px] text-aureus-muted hover:text-aureus-text hover:bg-aureus-panellift transition-colors"
         >
           Sign out
         </button>
-        <div className="px-3 pt-2 flex gap-3 text-[10.5px] text-aureus-muted">
-          <Link href="/terms" className="hover:text-aureus-text">Terms</Link>
-          <Link href="/privacy" className="hover:text-aureus-text">Privacy</Link>
+        <div className="px-3 pt-2 flex gap-4 text-[10.5px] text-aureus-muted">
+          <Link href="/terms" className="py-2 md:py-0 hover:text-aureus-text">Terms</Link>
+          <Link href="/privacy" className="py-2 md:py-0 hover:text-aureus-text">Privacy</Link>
         </div>
       </div>
     </aside>

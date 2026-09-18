@@ -80,6 +80,12 @@ export default function DashboardPage() {
 
   const up = totals.pnl >= 0;
   const priced = holdings.filter((h) => h.current_price != null).length;
+  // Positions on file that nobody could price yet. Their value and return
+  // are UNKNOWN, not zero, and the arithmetic does not know the
+  // difference: it renders a fully-invested book as $0 and a 100% loss,
+  // which is the single most alarming thing this page can say and it is
+  // not true. Quotes arrive on the next refresh.
+  const unpriced = !loading && holdings.length > 0 && priced === 0;
 
   const onEdit = (h: Holding) => setEditing(apiHoldings.find((a) => a.id === h.id) ?? null);
 
@@ -122,21 +128,28 @@ export default function DashboardPage() {
         <div className="grid lg:grid-cols-[1.35fr_2fr]">
           <div className="p-6 flex flex-col min-w-0 border-b lg:border-b-0 lg:border-r border-aureus-rule">
             <CapsLabel>Portfolio value</CapsLabel>
-            <Figure className="mt-2.5 leading-none" style={{ fontSize: "clamp(2.25rem,4.5vw,3.25rem)", letterSpacing: "-0.03em" }}>
-              {loading ? <Skeleton className="h-11 w-56" /> : money(totals.totalValue)}
+            <Figure tone={unpriced ? "muted" : "flat"} className="mt-2.5 leading-none" style={{ fontSize: "clamp(2.25rem,4.5vw,3.25rem)", letterSpacing: "-0.03em" }}>
+              {loading ? <Skeleton className="h-11 w-56" /> : unpriced ? "—" : money(totals.totalValue)}
             </Figure>
-            <div className="flex items-center gap-3 mt-3">
-              <Figure tone={up ? "up" : "down"} className="text-lg">
-                {loading ? <Skeleton className="h-5 w-28" /> : signedMoney(totals.pnl)}
-              </Figure>
-              {!loading && (
-                <span className={`font-mono-num text-[12px] px-1.5 py-0.5 rounded ${
-                  up ? "bg-aureus-emerald/15 text-aureus-emerald" : "bg-aureus-crimson/15 text-aureus-crimson"
-                }`}>
-                  {signed(totals.pnlPct)}%
-                </span>
-              )}
-            </div>
+            {unpriced ? (
+              <p className="text-[12px] text-aureus-muted mt-3 leading-relaxed">
+                No quote has arrived for any position yet. Cost basis is below; value and
+                return appear on the next refresh.
+              </p>
+            ) : (
+              <div className="flex items-center gap-3 mt-3">
+                <Figure tone={up ? "up" : "down"} className="text-lg">
+                  {loading ? <Skeleton className="h-5 w-28" /> : signedMoney(totals.pnl)}
+                </Figure>
+                {!loading && (
+                  <span className={`font-mono-num text-[12px] px-1.5 py-0.5 rounded ${
+                    up ? "bg-aureus-emerald/15 text-aureus-emerald" : "bg-aureus-crimson/15 text-aureus-crimson"
+                  }`}>
+                    {signed(totals.pnlPct)}%
+                  </span>
+                )}
+              </div>
+            )}
 
             {sparkStats && charted && (
               <div className="mt-auto pt-5 border-t border-aureus-rulesoft">
@@ -163,9 +176,9 @@ export default function DashboardPage() {
                 { label: "Positions", value: loading ? <Skeleton className="h-5 w-10" /> : String(holdings.length), sub: `${priced} priced` },
                 {
                   label: "Return on cost",
-                  value: loading ? <Skeleton className="h-5 w-16" /> : `${signed(totals.pnlPct)}%`,
-                  sub: "all-time",
-                  tone: up ? "up" : "down",
+                  value: loading ? <Skeleton className="h-5 w-16" /> : unpriced ? "—" : `${signed(totals.pnlPct)}%`,
+                  sub: unpriced ? "awaiting a quote" : "all-time",
+                  tone: unpriced ? "muted" : up ? "up" : "down",
                 },
               ]}
             />

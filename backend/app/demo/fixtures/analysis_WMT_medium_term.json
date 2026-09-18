@@ -1,0 +1,900 @@
+{
+ "agreement": 1.0,
+ "bear_case": {
+  "points": [
+   {
+    "category": "Overstretched Valuation",
+    "detail": "At 38.5x earnings, a large share of future growth is in today's price. That leaves no cushion for a miss: the same earnings on a de-rated multiple is a loss even if the business performs exactly as expected.",
+    "headline": "The multiple already discounts successful execution",
+    "metric_label": "P/E",
+    "metric_value": "38.5x"
+   },
+   {
+    "category": "Overstretched Valuation",
+    "detail": "The DCF implies roughly $29.89 against a $106.79 price: a 257.2% premium. Justifying it requires growth or margins above what the model already assumes.",
+    "headline": "Price sits above the model's intrinsic estimate",
+    "metric_label": "DCF Premium",
+    "metric_value": "257.2%"
+   },
+   {
+    "category": "Overstretched Valuation",
+    "detail": "A 9.9x price-to-book means the valuation rests almost entirely on intangible and future earnings power. Those are the first assumptions repriced when sentiment turns.",
+    "headline": "Very little of the price is backed by book value",
+    "metric_label": "P/B",
+    "metric_value": "9.9x"
+   },
+   {
+    "category": "Margin & Balance-Sheet Headwinds",
+    "detail": "A current ratio of 0.79 means current liabilities are not fully covered by current assets. That is survivable for a business with reliable cash generation, but it removes the buffer if collections or credit conditions tighten.",
+    "headline": "Near-term liabilities exceed near-term assets",
+    "metric_label": "Current Ratio",
+    "metric_value": "0.79"
+   },
+   {
+    "category": "Catalysts & Event Risk",
+    "detail": "The Morning Risk Report: Senators Ask FTC to Probe Walmart and Amazon Over Bots\u2019 \u2018Made in America\u2019 Data. Dated Sep 18 (today); source: The Wall Street Journal.",
+    "headline": "Legal or regulatory action reported",
+    "metric_label": "Legal / regulatory",
+    "metric_value": "Sep 18"
+   },
+   {
+    "category": "Catalysts & Event Risk",
+    "detail": "Senators Ask FTC to Probe Walmart and Amazon Over Bots\u2019 \u2018Made in America\u2019 Data. Dated Sep 17 (1 day ago); source: The Wall Street Journal.",
+    "headline": "Legal or regulatory action reported",
+    "metric_label": "Legal / regulatory",
+    "metric_value": "Sep 17"
+   }
+  ],
+  "source": "deterministic",
+  "stance": "bear",
+  "summary": "Over the next one to six months, the evidence that argues against WMT rests on Overstretched Valuation, Margin & Balance-Sheet Headwinds and Catalysts & Event Risk. Each point below is derived from a metric that actually computed for this ticker, or from a dated event with its source; nothing is asserted without a number behind it.",
+  "what_would_change_this": [
+   "The Q3 2027 earnings report on Nov 19 (in 62 days, per the consensus calendar): a clear beat against consensus EPS of 0.64 would challenge the bearish read directly.",
+   "Earnings growing into the 38.5x multiple, rather than the multiple de-rating: would defuse the valuation objection.",
+   "Operating margin expanding from 4.4% would remove the cost-absorption concern.",
+   "A reclaim of the 50-day moving average on expanding volume would break the technical deterioration argument."
+  ]
+ },
+ "bull_case": {
+  "points": [
+   {
+    "category": "Growth & Profitability",
+    "detail": "ROE of 22.7% means retained earnings compound internally at a rate most alternative uses of that capital cannot match: the mechanical driver of long-run per-share value.",
+    "headline": "Capital is being reinvested at a high return",
+    "metric_label": "ROE",
+    "metric_value": "22.7%"
+   },
+   {
+    "category": "Balance Sheet & Durability",
+    "detail": "Debt-to-equity of 0.38 means the balance sheet is not the binding constraint. The company can fund itself through a downturn instead of refinancing into one, and retains the option to lever up opportunistically.",
+    "headline": "Leverage is low enough to be optional",
+    "metric_label": "Debt/Equity",
+    "metric_value": "0.38"
+   },
+   {
+    "category": "Balance Sheet & Durability",
+    "detail": "Trailing free cash flow of $14.9B is a 1.7% yield on the current market cap. Cash generation at that level pays for buybacks, dividends and reinvestment simultaneously rather than forcing a choice between them.",
+    "headline": "The business self-funds from real cash flow",
+    "metric_label": "FCF Yield",
+    "metric_value": "1.7%"
+   },
+   {
+    "category": "Catalysts & Event Risk",
+    "detail": "Reported Aug 20 (29 days ago): EPS of 0.81 against a 0.75 estimate. Prices have historically tended to keep drifting in the direction of a surprise for weeks afterwards, though the effect is weaker in large, heavily covered companies.",
+    "headline": "Beat consensus EPS by 8.2% in Q2 2027 earnings reported",
+    "metric_label": "EPS surprise",
+    "metric_value": "+8.2%"
+   }
+  ],
+  "source": "deterministic",
+  "stance": "bull",
+  "summary": "Over the next one to six months, the evidence that supports WMT rests on Growth & Profitability, Balance Sheet & Durability and Catalysts & Event Risk. Each point below is derived from a metric that actually computed for this ticker, or from a dated event with its source; nothing is asserted without a number behind it.",
+  "what_would_change_this": [
+   "The Q3 2027 earnings report on Nov 19 (in 62 days, per the consensus calendar): a miss against consensus EPS of 0.64 would test this case sooner than any of the slower-moving evidence.",
+   "Revenue growth decelerating below 1.2% would undercut the compounding argument.",
+   "Gross margin compressing more than 300bps from 25.2% would signal the pricing power is not durable.",
+   "A close below the 200-day moving average would invalidate the trend-structure case regardless of the fundamentals."
+  ]
+ },
+ "catalysts": {
+  "as_of": "2026-09-18",
+  "counts": {
+   "high_impact_upcoming": 2,
+   "recent": 5,
+   "upcoming": 6
+  },
+  "horizon": "medium_term",
+  "primary": {
+   "date": "2026-08-20",
+   "date_confirmed": true,
+   "days_until": -29,
+   "description": "EPS 0.81 vs 0.75 consensus (+8.2%) \u00b7 revenue $187.94B",
+   "details": {
+    "eps_actual": 0.81,
+    "eps_estimate": 0.7487,
+    "quarter": 2,
+    "revenue_actual": 187937000000.0,
+    "revenue_estimate": 188636274344.0,
+    "surprise_pct": 8.19,
+    "year": 2027
+   },
+   "direction": "positive",
+   "group": "earnings",
+   "id": "2fa50462-0781-4d4c-b4a3-354a6915e845",
+   "impact": "high",
+   "relation": "recent",
+   "scope": "company",
+   "sector": null,
+   "source": "finnhub_earnings_calendar",
+   "source_url": null,
+   "ticker": "WMT",
+   "time": "bmo",
+   "timing": "recent",
+   "title": "Q2 2027 earnings reported",
+   "type": "earnings",
+   "type_label": "Earnings"
+  },
+  "recent": [
+   {
+    "date": "2026-09-18",
+    "date_confirmed": null,
+    "days_until": 0,
+    "description": "The Morning Risk Report: Senators Ask FTC to Probe Walmart and Amazon Over Bots\u2019 \u2018Made in America\u2019 Data",
+    "details": {
+     "article_polarity": -0.58,
+     "headline": "The Morning Risk Report: Senators Ask FTC to Probe Walmart and Amazon Over Bots\u2019 \u2018Made in America\u2019 Data",
+     "publisher_authority": 0.97,
+     "speculative": false
+    },
+    "direction": "negative",
+    "group": "regulatory",
+    "id": "2ac9bdcf-0b12-42ea-a71d-95c2f406d76d",
+    "impact": "medium",
+    "scope": "company",
+    "sector": null,
+    "source": "news:The Wall Street Journal",
+    "source_url": "https://www.wsj.com/risk-compliance-journal/the-morning-risk-report-senators-ask-ftc-to-probe-walmart-and-amazon-over-bots-made-in-america-data-e84cf6e7?siteid=yhoof2&yptr=yahoo",
+    "ticker": "WMT",
+    "time": null,
+    "timing": "recent",
+    "title": "Legal or regulatory action reported",
+    "type": "legal_regulatory",
+    "type_label": "Legal / regulatory"
+   },
+   {
+    "date": "2026-09-17",
+    "date_confirmed": null,
+    "days_until": -1,
+    "description": "Senators Ask FTC to Probe Walmart and Amazon Over Bots\u2019 \u2018Made in America\u2019 Data",
+    "details": {
+     "article_polarity": null,
+     "headline": "Senators Ask FTC to Probe Walmart and Amazon Over Bots\u2019 \u2018Made in America\u2019 Data",
+     "publisher_authority": null,
+     "report_count": 2,
+     "speculative": false
+    },
+    "direction": "negative",
+    "group": "regulatory",
+    "id": "d0293d4a-6967-4b53-94ff-adbd8de021b0",
+    "impact": "medium",
+    "scope": "company",
+    "sector": null,
+    "source": "news:The Wall Street Journal",
+    "source_url": "https://www.wsj.com/cmo-today/senators-ask-ftc-to-probe-walmart-and-amazon-over-bots-made-in-america-data-f239ebca?siteid=yhoof2&yptr=yahoo",
+    "ticker": "WMT",
+    "time": null,
+    "timing": "recent",
+    "title": "Legal or regulatory action reported",
+    "type": "legal_regulatory",
+    "type_label": "Legal / regulatory"
+   },
+   {
+    "date": "2026-09-16",
+    "date_confirmed": true,
+    "days_until": -2,
+    "description": "Policy statement at 2:00 p.m. ET, with the Summary of Economic Projections",
+    "details": {
+     "summary_of_economic_projections": true
+    },
+    "direction": "unknown",
+    "group": "macro",
+    "id": "8379c76d-7a3d-4e70-babb-2cec8f156d9f",
+    "impact": "high",
+    "scope": "macro",
+    "sector": null,
+    "source": "federal_reserve",
+    "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+    "ticker": null,
+    "time": "14:00 ET",
+    "timing": "recent",
+    "title": "FOMC rate decision + economic projections",
+    "type": "fomc",
+    "type_label": "FOMC"
+   },
+   {
+    "date": "2026-08-20",
+    "date_confirmed": true,
+    "days_until": -29,
+    "description": "EPS 0.81 vs 0.75 consensus (+8.2%) \u00b7 revenue $187.94B",
+    "details": {
+     "eps_actual": 0.81,
+     "eps_estimate": 0.7487,
+     "quarter": 2,
+     "revenue_actual": 187937000000.0,
+     "revenue_estimate": 188636274344.0,
+     "surprise_pct": 8.19,
+     "year": 2027
+    },
+    "direction": "positive",
+    "group": "earnings",
+    "id": "2fa50462-0781-4d4c-b4a3-354a6915e845",
+    "impact": "high",
+    "scope": "company",
+    "sector": null,
+    "source": "finnhub_earnings_calendar",
+    "source_url": null,
+    "ticker": "WMT",
+    "time": "bmo",
+    "timing": "recent",
+    "title": "Q2 2027 earnings reported",
+    "type": "earnings",
+    "type_label": "Earnings"
+   },
+   {
+    "date": "2026-07-29",
+    "date_confirmed": true,
+    "days_until": -51,
+    "description": "Policy statement at 2:00 p.m. ET",
+    "details": {
+     "summary_of_economic_projections": false
+    },
+    "direction": "unknown",
+    "group": "macro",
+    "id": "21401b58-2009-4605-a355-7b2d3bb31de0",
+    "impact": "high",
+    "scope": "macro",
+    "sector": null,
+    "source": "federal_reserve",
+    "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+    "ticker": null,
+    "time": "14:00 ET",
+    "timing": "recent",
+    "title": "FOMC rate decision",
+    "type": "fomc",
+    "type_label": "FOMC"
+   }
+  ],
+  "sector": "Consumer Staples",
+  "sources": {
+   "dividends": "unavailable: Polygon minute budget in use by price data (retrying shortly)",
+   "earnings": "cached",
+   "sec_8k": "cached"
+  },
+  "ticker": "WMT",
+  "unavailable": [
+   {
+    "name": "Economic data releases (CPI, payrolls, GDP)",
+    "reason": "Finnhub's economic calendar is a paid endpoint on this plan, and the Bureau of Labor Statistics prohibits automated retrieval of its release schedule.",
+    "to_enable": "A paid Finnhub plan or a licensed macro calendar feed."
+   },
+   {
+    "name": "Dedicated M&A deal database",
+    "reason": "There is no free structured deal feed. Deals appear here from SEC 8-K Items 1.01, 2.01 and 5.01 and from classified news coverage instead.",
+    "to_enable": "A licensed deals dataset."
+   },
+   {
+    "name": "Company-specific FDA advisory meetings",
+    "reason": "The free FDA calendar names the committee, not the sponsoring company, so a meeting cannot be tied to a ticker without guessing. Meetings are shown as sector events on Health Care names; company FDA decisions come through news.",
+    "to_enable": "A biotech catalyst dataset with sponsor attribution."
+   }
+  ],
+  "upcoming": [
+   {
+    "date": "2026-10-28",
+    "date_confirmed": true,
+    "days_until": 40,
+    "description": "Policy statement at 2:00 p.m. ET",
+    "details": {
+     "summary_of_economic_projections": false
+    },
+    "direction": "unknown",
+    "group": "macro",
+    "id": "48e92ca2-4e31-4f37-b41a-2b1d95df36ef",
+    "impact": "high",
+    "scope": "macro",
+    "sector": null,
+    "source": "federal_reserve",
+    "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+    "ticker": null,
+    "time": "14:00 ET",
+    "timing": "upcoming",
+    "title": "FOMC rate decision",
+    "type": "fomc",
+    "type_label": "FOMC"
+   },
+   {
+    "date": "2026-11-19",
+    "date_confirmed": null,
+    "days_until": 62,
+    "description": "Consensus EPS 0.64 \u00b7 revenue est. $189.19B",
+    "details": {
+     "eps_actual": null,
+     "eps_estimate": 0.6438,
+     "quarter": 3,
+     "revenue_actual": null,
+     "revenue_estimate": 189188688542.0,
+     "surprise_pct": null,
+     "year": 2027
+    },
+    "direction": "unknown",
+    "group": "earnings",
+    "id": "de089450-afad-43c8-9b66-f3359f20c2f7",
+    "impact": "high",
+    "scope": "company",
+    "sector": null,
+    "source": "finnhub_earnings_calendar",
+    "source_url": null,
+    "ticker": "WMT",
+    "time": null,
+    "timing": "upcoming",
+    "title": "Q3 2027 earnings",
+    "type": "earnings",
+    "type_label": "Earnings"
+   },
+   {
+    "date": "2026-12-09",
+    "date_confirmed": true,
+    "days_until": 82,
+    "description": "Policy statement at 2:00 p.m. ET, with the Summary of Economic Projections",
+    "details": {
+     "summary_of_economic_projections": true
+    },
+    "direction": "unknown",
+    "group": "macro",
+    "id": "42fbdc63-d437-4af7-94b6-04597509fcde",
+    "impact": "high",
+    "scope": "macro",
+    "sector": null,
+    "source": "federal_reserve",
+    "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+    "ticker": null,
+    "time": "14:00 ET",
+    "timing": "upcoming",
+    "title": "FOMC rate decision + economic projections",
+    "type": "fomc",
+    "type_label": "FOMC"
+   },
+   {
+    "date": "2027-01-27",
+    "date_confirmed": true,
+    "days_until": 131,
+    "description": "Policy statement at 2:00 p.m. ET",
+    "details": {
+     "summary_of_economic_projections": false
+    },
+    "direction": "unknown",
+    "group": "macro",
+    "id": "a80268d9-9b01-47f8-a3e4-0807b75b3f23",
+    "impact": "high",
+    "scope": "macro",
+    "sector": null,
+    "source": "federal_reserve",
+    "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+    "ticker": null,
+    "time": "14:00 ET",
+    "timing": "upcoming",
+    "title": "FOMC rate decision",
+    "type": "fomc",
+    "type_label": "FOMC"
+   },
+   {
+    "date": "2027-02-18",
+    "date_confirmed": null,
+    "days_until": 153,
+    "description": "Consensus EPS 0.79 \u00b7 revenue est. $202.35B",
+    "details": {
+     "eps_actual": null,
+     "eps_estimate": 0.7941,
+     "quarter": 4,
+     "revenue_actual": null,
+     "revenue_estimate": 202349124316.0,
+     "surprise_pct": null,
+     "year": 2027
+    },
+    "direction": "unknown",
+    "group": "earnings",
+    "id": "9eb9f177-a1a1-4f48-a0d0-569db28ee951",
+    "impact": "high",
+    "scope": "company",
+    "sector": null,
+    "source": "finnhub_earnings_calendar",
+    "source_url": null,
+    "ticker": "WMT",
+    "time": "amc",
+    "timing": "upcoming",
+    "title": "Q4 2027 earnings",
+    "type": "earnings",
+    "type_label": "Earnings"
+   },
+   {
+    "date": "2027-03-17",
+    "date_confirmed": true,
+    "days_until": 180,
+    "description": "Policy statement at 2:00 p.m. ET, with the Summary of Economic Projections",
+    "details": {
+     "summary_of_economic_projections": true
+    },
+    "direction": "unknown",
+    "group": "macro",
+    "id": "28aceb04-634d-4a7b-a367-0c1f2e1ccdd6",
+    "impact": "high",
+    "scope": "macro",
+    "sector": null,
+    "source": "federal_reserve",
+    "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+    "ticker": null,
+    "time": "14:00 ET",
+    "timing": "upcoming",
+    "title": "FOMC rate decision + economic projections",
+    "type": "fomc",
+    "type_label": "FOMC"
+   }
+  ],
+  "window": {
+   "forward_days": 180,
+   "lookback_days": 90
+  }
+ },
+ "confidence_index": 20.11,
+ "conviction": 41.9,
+ "disclaimer": "Aureus Intelligence provides software-generated informational analysis only. Nothing presented constitutes investment, legal, or tax advice, nor a recommendation to buy, hold, or sell any security. Past performance is not indicative of future results. All probabilistic outputs carry inherent uncertainty and should not be interpreted as guarantees of any outcome.",
+ "evidence_z": -0.8377,
+ "fundamental": {
+  "agreement": 0.75,
+  "analysis_notes": [
+   "DCF intrinsic value $29.89 vs current $106.79 (-257.2% margin of safety) \u2192 DCF component 0/100",
+   "Debt/Equity 0.38 \u2192 safety component 87/100",
+   "Current ratio 0.79 \u2192 liquidity component 0/100",
+   "Operating margin 4.4% \u2192 efficiency component 38/100",
+   "Revenue growth YoY 6.2% \u2192 growth component 65/100",
+   "4-yr revenue CAGR 5.6% \u2192 trend component 69/100",
+   "Gross margin 25.2% \u2192 moat component 70/100",
+   "ROE 22.7% \u2192 durability component 100/100"
+  ],
+  "conviction": 56.3,
+  "current_ratio": 0.7898,
+  "data_completeness": 1.0,
+  "dcf_detail": {
+   "current_price": 106.79000091552734,
+   "discount_rate": 0.1,
+   "intrinsic_value_per_share": 29.89,
+   "margin_of_safety": -2.5722,
+   "near_term_growth_rate": 0.0616,
+   "projection_years": 5,
+   "terminal_growth_rate": 0.025
+  },
+  "dcf_signal": 0.0,
+  "dcf_skip_reason": null,
+  "debt_to_equity": 0.38312737785719303,
+  "effective_weights": {
+   "4-Year Revenue CAGR": 0.0885,
+   "Current Ratio": 0.0885,
+   "DCF Margin of Safety": 0.3982,
+   "Debt-to-Equity": 0.0885,
+   "Gross Margin": 0.0796,
+   "Operating Margin": 0.0885,
+   "Return on Equity": 0.0796,
+   "Revenue Growth (YoY)": 0.0885
+  },
+  "ev_to_ebitda": 22.506520257758684,
+  "evidence_z": -1.2681,
+  "fcf_yield": 0.01687849920226103,
+  "free_cash_flow": 14923000000.0,
+  "fundamental_data_provider": "Finnhub + SEC EDGAR",
+  "gross_margin": 0.2523,
+  "growth_score": 78.06,
+  "interest_coverage": null,
+  "market_cap": 884142590000.0,
+  "moat_score": 83.23,
+  "operating_margin": 0.043899999999999995,
+  "pb_ratio": 9.9258,
+  "pe_ratio": 38.5079,
+  "price_to_sales": 1.2045500521010983,
+  "revenue_growth_yoy": 0.0616,
+  "roe": 0.2274,
+  "roic": 0.1767344296316602,
+  "safety_score": 41.6,
+  "score": 10.24,
+  "signal_breakdown": [
+   {
+    "detail": "Trading 257.2% above estimated intrinsic value of $29.89",
+    "label": "DCF Margin of Safety",
+    "score": 0.0
+   },
+   {
+    "detail": "D/E ratio of 0.38 is conservative",
+    "label": "Debt-to-Equity",
+    "score": 87.22908740476024
+   },
+   {
+    "detail": "Current ratio of 0.79 shows tight near-term liquidity",
+    "label": "Current Ratio",
+    "score": 0.0
+   },
+   {
+    "detail": "Operating margin of 4.4% is thin",
+    "label": "Operating Margin",
+    "score": 37.56
+   },
+   {
+    "detail": "Revenue grew +6.2% year-over-year",
+    "label": "Revenue Growth (YoY)",
+    "score": 65.4
+   },
+   {
+    "detail": "Revenue compounded at +5.6% annually over 4 years",
+    "label": "4-Year Revenue CAGR",
+    "score": 68.78116972143506
+   },
+   {
+    "detail": "Gross margin of 25.2%",
+    "label": "Gross Margin",
+    "score": 70.46000000000001
+   },
+   {
+    "detail": "ROE of 22.7% reflects strong capital efficiency",
+    "label": "Return on Equity",
+    "score": 100.0
+   }
+  ],
+  "ticker": "WMT"
+ },
+ "fundamental_data_provider": "Finnhub + SEC EDGAR",
+ "fundamental_score": 10.24,
+ "generated_at": "2026-09-18T22:53:56.729731",
+ "market_data_provider": "YFinance",
+ "module_weights_used": {
+  "fundamental": 0.35,
+  "sentiment": 0.3,
+  "technical": 0.35
+ },
+ "overall_data_completeness": 0.996,
+ "reasoning": "Over a Medium Term (1-6 months) horizon, WMT scores 20.1/100 (SELL, moderate conviction). What's helping the score: Return on Equity (Fundamental): ROE of 22.7% reflects strong capital efficiency; Debt-to-Equity (Fundamental): D/E ratio of 0.38 is conservative; Gross Margin (Fundamental): Gross margin of 25.2%. What's dragging on the score: DCF Margin of Safety (Fundamental): Trading 257.2% above estimated intrinsic value of $29.89; Current Ratio (Fundamental): Current ratio of 0.79 shows tight near-term liquidity; MA Alignment (20/50/200) (Technical): Price $106.79 against SMA200 118.72 > SMA50 110.02 > SMA20 105.91: a bearish stack with shorter averages below longer ones. The discounted cash flow model estimates intrinsic value at $29.89 per share versus a current price of $106.79: trading above the model's estimate by 257.2%. Module scores: fundamental 10/100 (based on complete data), technical 46/100 (based on complete data), sentiment 38/100 (based on complete data).",
+ "reasoning_source": "deterministic",
+ "sector": "Retail",
+ "sector_comparison": {},
+ "sentiment": {
+  "agreement": 0.518,
+  "analysis_notes": [
+   "57 of 131 retrieved items never named WMT and were excluded, so competitor and sector-wide news doesn't leak into this score.",
+   "News sub-score from 47 articles over 7 days, weighted by publisher authority and recency (48-hour half-life).",
+   "Coverage over the last 24 hours is running at 3.2x the prior period's daily rate, with tone -0.01 versus that baseline (volume spike, mixed tone).",
+   "Social sub-score from 27 StockTwits messages. StockTwits serves only a snapshot of the newest posts, so social velocity is accumulated across runs and needs a few days of history before it reports.",
+   "MD&A language leans constructive on results and outlook."
+  ],
+  "catalysts": [
+   {
+    "authority": 0.97,
+    "direction": "negative",
+    "evidence": [
+     "probe (-0.58)"
+    ],
+    "headline": "The Morning Risk Report: Senators Ask FTC to Probe Walmart and Amazon Over Bots\u2019 \u2018Made in America\u2019 Data",
+    "polarity": -0.58,
+    "published_at": "2026-09-18T11:16:00+00:00",
+    "source": "The Wall Street Journal",
+    "url": "https://www.wsj.com/risk-compliance-journal/the-morning-risk-report-senators-ask-ftc-to-probe-walmart-and-amazon-over-bots-made-in-america-data-e84cf6e7?siteid=yhoof2&yptr=yahoo"
+   },
+   {
+    "authority": 0.75,
+    "direction": "negative",
+    "evidence": [
+     "probe (-0.58)"
+    ],
+    "headline": "Amazon, Walmart Face FTC Probe Call Over AI Chatbots And \u2018Made In USA\u2019 Claims \u2014 AMZN, WMT Stocks In Focus",
+    "polarity": -0.58,
+    "published_at": "2026-09-17T20:21:13+00:00",
+    "source": "Yahoo",
+    "url": "https://finnhub.io/api/news?id=7e6dedaaa13da0af6296bef5f8c0a05151c883be143143daf53b76de4edff0ca"
+   },
+   {
+    "authority": 0.75,
+    "direction": "positive",
+    "evidence": [
+     "expands (+0.42)"
+    ],
+    "headline": "Walmart is betting big on the GLP-1 boom",
+    "polarity": 0.42,
+    "published_at": "2026-09-17T23:17:00+00:00",
+    "source": "Yahoo",
+    "url": "https://finnhub.io/api/news?id=ec7e9ed34c08d5454fb4f7456a14b1e120c51a96b1c8900a1e2b9d592bbf4628"
+   },
+   {
+    "authority": 0.75,
+    "direction": "positive",
+    "evidence": [
+     "undervalued (+0.55)"
+    ],
+    "headline": "Walmart (WMT) Could Be 31% Undervalued Following Its Marketplace And Advertising Push",
+    "polarity": 0.55,
+    "published_at": "2026-09-17T00:17:32+00:00",
+    "source": "Yahoo",
+    "url": "https://finnhub.io/api/news?id=5993cb391a8531696f9b18e07abacb8f6145f7f3e4401673d171a7f0a9017fd8"
+   },
+   {
+    "authority": 0.75,
+    "direction": "negative",
+    "evidence": [
+     "pressure (-0.35)"
+    ],
+    "headline": "The Waltons Are Getting Richer",
+    "polarity": -0.35,
+    "published_at": "2026-09-17T14:14:10+00:00",
+    "source": "Yahoo",
+    "url": "https://finnhub.io/api/news?id=7e44d61de688376613e5dabc12221bf5fc5d4fe653ad546684e522d6d158b02c"
+   },
+   {
+    "authority": 0.75,
+    "direction": "positive",
+    "evidence": [
+     "awarded (+0.45)"
+    ],
+    "headline": "Under pressure from Unifor, Amazon bumps up all Canadian wages",
+    "polarity": 0.45,
+    "published_at": "2026-09-16T18:54:00+00:00",
+    "source": "Yahoo",
+    "url": "https://finnhub.io/api/news?id=d6de3ab8fd23b944d45ce35a9174963dc0a4bdf3dd2169f1c5af1213793d3cea"
+   },
+   {
+    "authority": 0.75,
+    "direction": "positive",
+    "evidence": [
+     "earnings beat (+0.80)",
+     "upside (+0.55)",
+     "gains (+0.45)"
+    ],
+    "headline": "Walmart Q2 Earnings Beat Estimates but Can Higher Costs Limit Upside?",
+    "polarity": 0.777,
+    "published_at": "2026-09-14T15:42:00+00:00",
+    "source": "Yahoo",
+    "url": "https://finnhub.io/api/news?id=06c71fc408cee915686d46a5a876cc5a5ee0c66a8f059bf2646077ad6108c978"
+   },
+   {
+    "authority": 0.75,
+    "direction": "positive",
+    "evidence": [
+     "expanding (+0.42)"
+    ],
+    "headline": "How Investors Are Reacting To Walmart (WMT) Expanding Its Digital Marketplace With ADT Blu And RocketSports",
+    "polarity": 0.42,
+    "published_at": "2026-09-16T08:11:58+00:00",
+    "source": "Yahoo",
+    "url": "https://finnhub.io/api/news?id=fb0b9f3dba42eda2160bfa182f302805873100a2487e7abec5a731bd3a66ce12"
+   }
+  ],
+  "conviction": 11.7,
+  "data_completeness": 0.987,
+  "effective_weights": {
+   "news_score": 0.55,
+   "sec_tone_score": 0.25,
+   "social_score": 0.2
+  },
+  "evidence_z": -0.299,
+  "model_used": "lexicon",
+  "news_computed": true,
+  "news_document_count": 47,
+  "news_polarity": 0.0199,
+  "news_score": 51.0,
+  "overall_label": "Neutral",
+  "polarity_velocity": -0.0076,
+  "score": 38.25,
+  "sec_tone_computed": true,
+  "sec_tone_detail": {
+   "constraining_density": 0.00227,
+   "constraining_shift": -0.00025,
+   "filing_date": "2026-08-28",
+   "form": "10-Q",
+   "label": "Positive",
+   "litigious_density": 0.00114,
+   "litigious_shift": -0.00012,
+   "notes": [
+    "MD&A language leans constructive on results and outlook."
+   ],
+   "prior_filing_date": "2026-05-29",
+   "ticker": "WMT",
+   "tone_polarity": 0.3057,
+   "uncertainty_density": 0.00845,
+   "uncertainty_shift": -0.00108,
+   "url": "https://www.sec.gov/Archives/edgar/data/104169/000010416926000154/wmt-20260731.htm",
+   "word_count": 6154
+  },
+  "sec_tone_label": "Neutral",
+  "sec_tone_score": 56.67,
+  "sentiment_confidence": 0.987,
+  "signal_breakdown": [
+   {
+    "detail": "47 articles over the last week score +0.02 on average once weighted for publisher authority and recency: a balanced news picture",
+    "label": "News Sentiment",
+    "score": 51.0
+   },
+   {
+    "detail": "MD&A of the 10-Q filed 2026-08-28 reads neutral versus the 2026-05-29 filing",
+    "label": "SEC Filing Tone",
+    "score": 56.67
+   },
+   {
+    "detail": "27 retail messages score +0.03, 24-hour volume 3.2x the prior rate (volume spike, mixed tone)",
+    "label": "Social Sentiment",
+    "score": 51.42
+   }
+  ],
+  "social_computed": true,
+  "social_message_count": 27,
+  "social_polarity": 0.0285,
+  "social_score": 51.42,
+  "source_mix": {
+   "news": 47,
+   "social": 27
+  },
+  "ticker": "WMT",
+  "unavailable_sources": [
+   {
+    "channel": "news",
+    "name": "StockNewsAPI",
+    "reason": "No free tier, paid plans start at $19.99/mo.",
+    "to_enable": "Subscribe, then set STOCKNEWSAPI_KEY and add a fetch function here."
+   },
+   {
+    "channel": "social",
+    "name": "Twitter / X",
+    "reason": "API read access was withdrawn from the free tier; Basic is $100/mo.",
+    "to_enable": "Subscribe to an X API tier, then set X_BEARER_TOKEN."
+   },
+   {
+    "channel": "social",
+    "name": "Reddit (r/wallstreetbets, r/stocks)",
+    "reason": "Public JSON endpoints now return 403 to unauthenticated clients.",
+    "to_enable": "Register a free script app at reddit.com/prefs/apps, then set REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET. Reddit's free OAuth tier allows 100 requests/min, which is ample here."
+   }
+  ],
+  "velocity_label": "Volume spike, mixed tone",
+  "volume_velocity": 3.232
+ },
+ "sentiment_score": 38.25,
+ "showcase_snapshot": true,
+ "signal": "SELL",
+ "signal_strength": "MODERATE",
+ "snapshot_captured_at": "2026-09-18T22:53:56.731083+00:00",
+ "technical": {
+  "agreement": 0.09,
+  "analysis_notes": [
+   "RSI(14) 46.0 \u2192 momentum component 56/100",
+   "MACD histogram 0.4229 \u2192 trend component 61/100",
+   "Price $106.79 vs support 102.15 / resistance 109.35 \u2192 S/R component 28/100",
+   "Volume trend component 50/100",
+   "Moving-average alignment \u2192 trend-structure component 25/100 (SMA200 118.72 > SMA50 110.02 > SMA20 105.91)",
+   "Bollinger %B 0.62 \u2192 volatility-position component 46/100",
+   "ATR(14) is 1.63% of price: typical daily range",
+   "Trend strength r\u00b2=0.44: mixed regime, both families weighted near evenly"
+  ],
+  "conviction": 3.3,
+  "current_price": 106.79,
+  "data_completeness": 1.0,
+  "effective_weights": {
+   "bollinger_pctb": 0.1147,
+   "ma_alignment": 0.1976,
+   "macd_score": 0.189,
+   "obv_score": 0.0544,
+   "rsi_score": 0.1721,
+   "sr_score": 0.1361,
+   "volume_score": 0.0907,
+   "vwap_score": 0.0454
+  },
+  "evidence_z": -0.1129,
+  "macd_histogram": 0.422918,
+  "macd_line": -0.83803,
+  "macd_score": 60.66,
+  "resistance_levels": [
+   {
+    "level_type": "resistance",
+    "price": 117.0,
+    "strength": 3.0
+   },
+   {
+    "level_type": "resistance",
+    "price": 133.66,
+    "strength": 3.0
+   },
+   {
+    "level_type": "resistance",
+    "price": 109.35,
+    "strength": 1.0
+   },
+   {
+    "level_type": "resistance",
+    "price": 122.94,
+    "strength": 1.0
+   },
+   {
+    "level_type": "resistance",
+    "price": 129.69,
+    "strength": 1.0
+   }
+  ],
+  "rsi_14": 45.99,
+  "rsi_score": 56.01,
+  "score": 45.5,
+  "signal_breakdown": [
+   {
+    "detail": "RSI at 46 is in a neutral range",
+    "label": "RSI (14)",
+    "score": 56.0080714950774
+   },
+   {
+    "detail": "MACD histogram signals accelerating upward momentum",
+    "label": "MACD",
+    "score": 60.66082008465142
+   },
+   {
+    "detail": "Price action is trading near resistance ($109.35)",
+    "label": "Support/Resistance",
+    "score": 27.709806215003596
+   },
+   {
+    "detail": "Price $106.79 against SMA200 118.72 > SMA50 110.02 > SMA20 105.91: a bearish stack with shorter averages below longer ones",
+    "label": "MA Alignment (20/50/200)",
+    "score": 25.0
+   },
+   {
+    "detail": "Price is mid-envelope (%B 0.62)",
+    "label": "Bollinger %B",
+    "score": 45.84260792022086
+   },
+   {
+    "detail": "OBV is rising, volume is accumulating on up-days",
+    "label": "On-Balance Volume",
+    "score": 65.0
+   },
+   {
+    "detail": "Trading 1.2% above its 20-session VWAP",
+    "label": "VWAP Position",
+    "score": 60.0
+   }
+  ],
+  "signal_line": -1.260948,
+  "sr_score": 27.71,
+  "support_levels": [
+   {
+    "level_type": "support",
+    "price": 107.53,
+    "strength": 3.0
+   },
+   {
+    "level_type": "support",
+    "price": 126.15,
+    "strength": 2.0
+   },
+   {
+    "level_type": "support",
+    "price": 102.15,
+    "strength": 1.0
+   },
+   {
+    "level_type": "support",
+    "price": 112.73,
+    "strength": 1.0
+   },
+   {
+    "level_type": "support",
+    "price": 121.33,
+    "strength": 1.0
+   }
+  ],
+  "ticker": "WMT",
+  "volume_score": 50.0
+ },
+ "technical_score": 45.5,
+ "ticker": "WMT",
+ "time_horizon": "Medium Term (1-6 months)",
+ "uncertainty_note": "Confidence index represents a weighted composite of model scores. It is a heuristic measure, not a calibrated probability estimate. Reasonable uncertainty bands are \u00b120 points."
+}

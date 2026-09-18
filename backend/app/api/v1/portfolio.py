@@ -19,7 +19,7 @@ from sqlalchemy import create_engine, text
 from app.core.entitlements import resolve_entitlements, next_tier
 from app.core.config import get_settings
 from app.ingestion.market_data import MarketDataService
-from app.ingestion.rate_limiter import FallbackExhaustedError
+from app.ingestion.price_cache import get_prices
 
 logger = logging.getLogger("aureus.api.portfolio")
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
@@ -70,12 +70,15 @@ def _recalculate_portfolio_weights(portfolio_id: str) -> None:
             if not holdings:
                 return
 
+            # One quote per ticker for the whole instance, not one per
+            # holding per user. See app/ingestion/price_cache.py.
+            quotes = get_prices([h.ticker for h in holdings], service=svc)
+
             priced: list[tuple[str, float, float]] = []
             total_value = 0.0
             for h in holdings:
-                try:
-                    price = svc.fetch_latest_price(h.ticker)
-                except FallbackExhaustedError:
+                price = quotes.get(h.ticker.upper())
+                if price is None:
                     existing = conn.execute(
                         text("SELECT current_price FROM portfolio_holdings WHERE id = :id"),
                         {"id": h.id},

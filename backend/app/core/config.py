@@ -44,6 +44,49 @@ class Settings(BaseSettings):
     vapid_private_key: str = Field(default="")
     vapid_claim_sub: str = Field(default="mailto:push-admin@example.invalid")
 
+    # ── Price cache ───────────────────────────────────────────────────
+    # See app/ingestion/price_cache.py. Collapses repeated quotes for the
+    # same ticker into one provider call.
+    price_cache_seconds: int = Field(default=60)
+    demo_price_cache_seconds: int = Field(default=900)
+
+    # ── CORS ──────────────────────────────────────────────────────────
+    # Comma-separated. Production used to hardcode one hostname, which
+    # meant any other deployment — a demo on a tunnel, a staging host, a
+    # preview URL — silently refused every browser call it did not proxy
+    # server-side. The default keeps the previous behaviour.
+    cors_allowed_origins: str = Field(default="")
+
+    # ── Institutional Demo Mode ──────────────────────────────────────
+    # A presentation environment. When on, POST /api/v1/demo/session
+    # provisions a throwaway account on the top plan, and the analysis
+    # endpoints will serve a bundled showcase payload rather than fail
+    # when a provider is unreachable.
+    #
+    # Off by default, and deliberately not derived from app_env: a demo
+    # deployment IS production as far as every other setting is
+    # concerned, and a real production deployment must not hand out free
+    # Institutional accounts because someone set APP_ENV wrong.
+    demo_mode: bool = Field(default=False)
+
+    # The plan a demo session is provisioned on.
+    demo_tier: str = Field(default="institutional", pattern="^(sovereign|plus|elite|institutional)$")
+
+    # Credit allowance granted to each demo session. Enough for a couple
+    # of LLM-polished theses per visitor, not enough for one phone to
+    # spend the whole event's budget.
+    demo_credit_allowance: int = Field(default=2_000)
+
+    # How long a completed analysis stays servable to other visitors.
+    # The whole audience asking for AAPL should cost one pipeline run,
+    # not one per phone: without this every device pays full provider
+    # latency and the rate limits go first.
+    demo_analysis_cache_seconds: int = Field(default=6 * 3600)
+
+    # Non-demo deployments get the same warm cache, just briefly, so a
+    # double-click or a remount does not re-run the pipeline.
+    analysis_cache_seconds: int = Field(default=180)
+
     # ── Market scanner ───────────────────────────────────────────────
     # A single switch so an environment on a shared or tightly-limited API
     # key can run the rest of the platform without the background sweep.
@@ -115,6 +158,24 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        explicit = [o.strip() for o in self.cors_allowed_origins.split(",") if o.strip()]
+        if explicit:
+            return explicit
+        if self.is_production:
+            return ["https://app.aureusintelligence.com"]
+        return ["http://localhost:3000"]
+
+    @property
+    def price_cache_ttl(self) -> int:
+        return self.demo_price_cache_seconds if self.demo_mode else self.price_cache_seconds
+
+    @property
+    def analysis_cache_ttl(self) -> int:
+        """Warm-cache lifetime for a completed analysis, by environment."""
+        return self.demo_analysis_cache_seconds if self.demo_mode else self.analysis_cache_seconds
 
     @property
     def polygon_configured(self) -> bool:

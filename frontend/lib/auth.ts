@@ -13,9 +13,11 @@ declare module "next-auth" {
     email: string;
     tier: string;
     stripeCustomerId?: string;
+    /** True only for sessions minted by the demo provider below. */
+    demo?: boolean;
   }
   interface Session {
-    user: User & { tier: string };
+    user: User & { tier: string; demo?: boolean };
   }
 }
 
@@ -25,6 +27,7 @@ declare module "next-auth/jwt" {
     tier: string;
     tierCheckedAt?: number;
     stripeCustomerId?: string;
+    demo?: boolean;
   }
 }
 
@@ -62,6 +65,55 @@ export const authOptions: NextAuthOptions = {
         }
       },
     }),
+
+    // Institutional Demo Mode — passwordless entry to a throwaway
+    // showcase account, for presentations.
+    //
+    // It is a CredentialsProvider because that is the only NextAuth shape
+    // that can mint a session from a server-side decision, but it takes
+    // no password and verifies none: the whole check is DEMO_MODE being
+    // on in both this build and the backend. The `device` field is an
+    // opaque browser token, not a credential, and it exists so each phone
+    // in the room gets its own portfolio.
+    //
+    // Absent from the provider list entirely when demo mode is off, so
+    // the endpoint does not exist on a real deployment rather than
+    // existing and refusing.
+    ...(process.env.NEXT_PUBLIC_DEMO_MODE === "true"
+      ? [CredentialsProvider({
+          id: "demo",
+          name: "Institutional Demo",
+          credentials: { device: { label: "Device", type: "text" } },
+          async authorize(credentials) {
+            try {
+              const res = await fetch(`${API}/api/v1/demo/session`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-Internal-Secret": INTERNAL_SECRET,
+                },
+                body: JSON.stringify({ device: credentials?.device || "" }),
+              });
+              if (!res.ok) {
+                console.error("Demo session refused:", res.status);
+                return null;
+              }
+              const data = await res.json();
+              return {
+                id: data.user_id,
+                email: data.email,
+                name: data.display_name,
+                tier: data.tier,
+                stripeCustomerId: data.stripe_customer_id || "",
+                demo: true,
+              } as User;
+            } catch (err) {
+              console.error("Demo session failed:", err);
+              return null;
+            }
+          },
+        })]
+      : []),
 
     // Google OAuth — fixes "no way to sign up / log in with Google".
     // Requires GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in .env.local
@@ -115,6 +167,7 @@ export const authOptions: NextAuthOptions = {
         token.id               = user.id;
         token.tier              = user.tier;
         token.stripeCustomerId = user.stripeCustomerId;
+        token.demo             = user.demo === true;
         token.tierCheckedAt    = Date.now();
         return token;
       }
@@ -145,6 +198,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id               = token.id;
         session.user.tier              = token.tier;
         session.user.stripeCustomerId = token.stripeCustomerId;
+        session.user.demo             = token.demo === true;
       }
       return session;
     },

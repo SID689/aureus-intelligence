@@ -1,4 +1,25 @@
-const WS_BASE = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
+/**
+ * Where the sockets connect.
+ *
+ * The fallback used to be the literal `ws://localhost:8000`, which is only
+ * correct on the machine running the stack. On any other device — a phone
+ * on the same demo, a laptop reached through a tunnel — localhost is that
+ * device itself, so voice and the alert stream connected to nothing and
+ * failed silently.
+ *
+ * Same origin is the right default instead: next.config.ts proxies
+ * /api/v1/* to FastAPI, and that rewrite carries the WebSocket upgrade, so
+ * one public hostname serves the app and its sockets. Set
+ * NEXT_PUBLIC_WS_URL only where the two halves are on different hosts and
+ * the proxy in front of the app does not forward upgrades (Vercel, for
+ * one): point it straight at the backend.
+ */
+function wsBase(): string {
+  const env = process.env.NEXT_PUBLIC_WS_URL;
+  if (env) return env.replace(/\/$/, "");
+  if (typeof window === "undefined") return "";
+  return `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`;
+}
 
 export type AlertMessage = {
   type: "alert" | "connected" | "pending_alerts" | "ping" | "hitl_approval_required";
@@ -20,7 +41,7 @@ export function connectAlertStream(
   onMessage: (msg: AlertMessage) => void,
   onClose?: () => void,
 ): WebSocket {
-  const url = `${WS_BASE}/api/v1/ws/alerts/${userId}`;
+  const url = `${wsBase()}/api/v1/ws/alerts/${userId}`;
   const ws = new WebSocket(url);
 
   // Tracks a close WE asked for, so an aborted handshake can be told
@@ -112,7 +133,7 @@ export class VoiceWebSocket {
     if (this.ws?.readyState === WebSocket.OPEN) return;
     this.intentionalClose = false;
 
-    this.ws = new WebSocket(`${WS_BASE}/api/v1/ws/voice/${this.userId}`);
+    this.ws = new WebSocket(`${wsBase()}/api/v1/ws/voice/${this.userId}`);
 
     this.ws.onopen = () => {
       // Send session configuration immediately on connect

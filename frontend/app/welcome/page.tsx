@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DEMO_MODE } from "@/lib/demo";
 import type { Metadata } from "next";
 import Logo from "@/components/brand/Logo";
 import SiteFooter from "@/components/site/SiteFooter";
@@ -97,6 +98,9 @@ export default async function WelcomePage() {
             <a href="#plans" className="hover:text-aureus-text">Plans</a>
           </div>
           <div className="flex items-center gap-4">
+            {DEMO_MODE && (
+              <Link href="/demo" className="text-[13px] text-aureus-gold hover:text-aureus-goldbright">Live demo</Link>
+            )}
             <Link href="/sign-in" className="hidden sm:inline text-[13px] text-aureus-muted hover:text-aureus-text">Sign in</Link>
             <Link href="/sign-up" className="h-9 px-4 inline-flex items-center bg-aureus-gold text-aureus-ink text-[13px] font-semibold rounded-sm hover:bg-aureus-goldbright transition-colors">
               Create account
@@ -130,14 +134,28 @@ export default async function WelcomePage() {
                 behind it.
               </p>
               <div className="flex flex-wrap items-center gap-3 mt-10">
-                <Link href="/sign-up" className="h-11 px-6 inline-flex items-center bg-aureus-gold text-aureus-ink text-[14px] font-semibold rounded-sm hover:bg-aureus-goldbright transition-colors">
+                {/* On a demo build the showcase session is the primary
+                    action: a room of people with phones wants one tap, not
+                    a sign-up form. Sign-up stays, one step out. */}
+                {DEMO_MODE && (
+                  <Link href="/demo" className="h-11 px-6 inline-flex items-center bg-aureus-gold text-aureus-ink text-[14px] font-semibold rounded-sm hover:bg-aureus-goldbright transition-colors">
+                    Enter Institutional Demo
+                  </Link>
+                )}
+                <Link href="/sign-up" className={DEMO_MODE
+                  ? "h-11 px-6 inline-flex items-center border border-aureus-rulestrong text-aureus-text text-[14px] rounded-sm hover:border-aureus-gold transition-colors"
+                  : "h-11 px-6 inline-flex items-center bg-aureus-gold text-aureus-ink text-[14px] font-semibold rounded-sm hover:bg-aureus-goldbright transition-colors"}>
                   Create a free account
                 </Link>
                 <Link href="/sign-in" className="h-11 px-6 inline-flex items-center border border-aureus-rulestrong text-aureus-text text-[14px] rounded-sm hover:border-aureus-gold transition-colors">
                   Sign in
                 </Link>
               </div>
-              <p className="font-mono-num text-[12px] text-aureus-muted mt-5">Free plan: 15 full analyses a day. No card required.</p>
+              <p className="font-mono-num text-[12px] text-aureus-muted mt-5">
+                {DEMO_MODE
+                  ? "Showcase session: every feature unlocked, no account, no card."
+                  : "Free plan: 15 full analyses a day. No card required."}
+              </p>
             </div>
             <TearSheet />
           </div>

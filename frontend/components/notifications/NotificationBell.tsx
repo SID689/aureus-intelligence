@@ -110,7 +110,7 @@ export default function NotificationBell() {
     return (
       <Link
         href="/upgrade?feature=notifications&required_tier=elite"
-        className="relative shrink-0 p-1 text-aureus-muted hover:text-aureus-gold transition-colors"
+        className="tap-target relative shrink-0 p-1 text-aureus-muted hover:text-aureus-gold transition-colors"
         title="Strong Buy alerts are part of the Elite plan"
         aria-label="Strong Buy alerts (Elite plan)"
       >
@@ -124,7 +124,7 @@ export default function NotificationBell() {
     <div ref={rootRef} className="relative shrink-0">
       <button
         onClick={() => setOpen(!open)}
-        className={cn("relative p-1 transition-colors", open ? "text-aureus-gold" : "text-aureus-muted hover:text-aureus-text")}
+        className={cn("tap-target relative p-1 transition-colors", open ? "text-aureus-gold" : "text-aureus-muted hover:text-aureus-text")}
         aria-label={unread > 0 ? `Strong Buy alerts, ${unread} unread` : "Strong Buy alerts"}
         aria-expanded={open}
       >
@@ -213,7 +213,7 @@ export default function NotificationBell() {
                 View analysis →
               </button>
             </div>
-            <button onClick={() => setToast(null)} className="text-aureus-muted hover:text-aureus-text" aria-label="Dismiss">
+            <button onClick={() => setToast(null)} className="tap-target text-aureus-muted hover:text-aureus-text" aria-label="Dismiss">
               <IconClose className="w-3.5 h-3.5" />
             </button>
           </div>

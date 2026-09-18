@@ -105,7 +105,7 @@ function UpgradeInner() {
 
   return (
     <div className="space-y-8">
-      <button onClick={() => router.back()} className="text-[12.5px] text-aureus-muted hover:text-aureus-gold">Back</button>
+      <button onClick={() => router.back()} className="text-[12.5px] touch:min-h-[44px] touch:px-1 -ml-1 text-aureus-muted hover:text-aureus-gold">Back</button>
 
       {pitch ? (
         <section className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-x-12 gap-y-6 border-b border-aureus-rule pb-8">

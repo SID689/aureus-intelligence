@@ -81,6 +81,10 @@ def run_analysis_task(
         result_dict["elapsed_seconds"] = round(elapsed, 3)
 
         _store_result(job_id, "complete", result_dict)
+        # Also cache under the ticker, so the next caller asking for this
+        # name is answered without occupying a worker at all.
+        from app.analysis import result_cache
+        result_cache.store(ticker, time_horizon, result_dict)
 
         logger.info(
             "Analysis task complete",

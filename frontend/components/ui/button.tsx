@@ -24,11 +24,15 @@ const buttonVariants = cva(
         danger:  "border border-aureus-crimsondim text-aureus-crimson hover:bg-aureus-crimson/10 hover:border-aureus-crimson",
         success: "bg-aureus-emerald text-aureus-ink hover:bg-aureus-emeraldbright",
       },
+      // Heights below 44px are fine under a mouse and hard to hit with a
+      // thumb, so the two small sizes grow on coarse pointers only. The
+      // `touch:` variant is defined in tailwind.config.ts as
+      // (pointer: coarse); desktop layout is untouched.
       size: {
-        default: "h-9 px-4 text-sm",
-        sm:      "h-7 px-3 text-xs",
+        default: "h-9 touch:h-11 px-4 text-sm",
+        sm:      "h-7 touch:h-10 px-3 text-xs",
         lg:      "h-11 px-6 text-[15px]",
-        icon:    "h-9 w-9",
+        icon:    "h-9 w-9 touch:h-11 touch:w-11",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

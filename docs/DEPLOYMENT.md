@@ -1,5 +1,11 @@
 # Deploying Aureus for free
 
+> Putting the app in front of an audience for a presentation is a
+> different problem with a different answer: see
+> [DEMO_DEPLOYMENT.md](DEMO_DEPLOYMENT.md). A demo runs without the Celery
+> workers, which is what makes the free PaaS tiers ruled out below viable
+> for that case and only that case.
+
 ## What this app actually needs
 
 Measured on the running stack, not estimated:
@@ -255,6 +261,12 @@ docker compose exec -T frontend sh -c 'rm -rf /app/.next/* /app/.next/.[!.]*' &&
 - [ ] Deleting an account is handled by email today (the Privacy Policy
       promises deletion or de-identification within 30 days). Put an owner
       and a process behind that promise before launch.
+- [ ] `DEMO_MODE` and `NEXT_PUBLIC_DEMO_MODE` must both be false or unset.
+      Together they let anyone who reaches `/demo` provision a free
+      Institutional account, which is correct for a presentation host and
+      catastrophic for one taking payments. `docker compose exec -T backend
+      python -m scripts.seed_demo --purge` clears any accounts a demo left
+      behind.
 - [ ] Create the $12/month Plus price in Stripe and set `STRIPE_PRICE_PLUS`
       in `frontend/.env.local` beside the Elite and Institutional prices.
       Until it is set, choosing Plus returns a clear "no price configured"

@@ -26,6 +26,7 @@ from app.api.v1.quant     import router as quant_router
 from app.api.v1.account   import router as account_router
 from app.api.v1.catalysts import router as catalysts_router
 from app.api.v1.leaderboard import router as leaderboard_router
+from app.api.v1.demo       import router as demo_router
 
 settings = get_settings()
 setup_logging(level=settings.log_level, use_json=settings.is_production)
@@ -59,8 +60,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"] if not settings.is_production
-                  else ["https://app.aureusintelligence.com"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Authorization", "Content-Type", "X-Internal-Secret"],
@@ -83,6 +83,7 @@ app.include_router(account_router)
 app.include_router(games_router)
 app.include_router(catalysts_router)
 app.include_router(leaderboard_router)
+app.include_router(demo_router)
 
 
 @app.get("/health", tags=["ops"])
@@ -96,7 +97,7 @@ def health() -> dict:
     the drift is visible to monitoring rather than only to whoever reads
     the logs.
     """
-    payload: dict = {"status": "ok", "version": "0.6.0"}
+    payload: dict = {"status": "ok", "version": "0.6.0", "demo_mode": settings.demo_mode}
     try:
         from app.analysis.calibration import calibration_status
         cal = calibration_status()

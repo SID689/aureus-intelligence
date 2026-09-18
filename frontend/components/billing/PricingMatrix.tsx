@@ -172,11 +172,18 @@ export default function PricingMatrix({ plans, mode, currentTier, highlight, bus
 
   return (
     <div>
+      {/* The table is wider than a phone and scrolls sideways inside its
+          own box. Nothing about a cut-off column says so, and a reader who
+          does not discover the gesture concludes the cheapest plan is the
+          only one, so the affordance is stated. */}
+      <p className="sm:hidden text-[11.5px] text-aureus-muted pb-2">
+        Scroll the table sideways to compare all four plans.
+      </p>
       <div className="border border-aureus-rule bg-aureus-panel overflow-x-auto">
         <table className="w-full min-w-[880px] border-collapse text-left">
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 w-[15rem] bg-aureus-panel align-bottom px-5 pb-4 border-b border-aureus-rule font-normal">
+              <th className="sticky left-0 z-10 w-[9.5rem] sm:w-[15rem] bg-aureus-panel align-bottom px-4 sm:px-5 pb-4 border-b border-r sm:border-r-0 border-aureus-rule font-normal">
                 <span className="label-caps">Monthly, in US dollars</span>
               </th>
               {ordered.map((p) => {
@@ -201,13 +208,13 @@ export default function PricingMatrix({ plans, mode, currentTier, highlight, bus
             {GROUPS.map((g) => (
               <Fragment key={g.label}>
                 <tr>
-                  <th scope="colgroup" colSpan={ordered.length + 1} className="sticky left-0 bg-aureus-panel px-5 pt-6 pb-2 text-left font-normal">
+                  <th scope="colgroup" colSpan={ordered.length + 1} className="sticky left-0 bg-aureus-panel px-4 sm:px-5 pt-6 pb-2 text-left font-normal">
                     <span className="label-caps text-aureus-gold">{g.label}</span>
                   </th>
                 </tr>
                 {g.rows.map((r) => (
                   <tr key={r.label} className="border-t border-aureus-rulesoft">
-                    <th scope="row" className="sticky left-0 z-10 bg-aureus-panel px-5 py-2.5 text-[13px] font-normal text-aureus-soft">
+                    <th scope="row" className="sticky left-0 z-10 bg-aureus-panel px-4 sm:px-5 py-2.5 border-r sm:border-r-0 border-aureus-rule text-[13px] font-normal text-aureus-soft">
                       {r.label}
                       {r.note && <span className="block text-[11px] text-aureus-muted mt-0.5">{r.note}</span>}
                     </th>

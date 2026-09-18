@@ -45,7 +45,10 @@ export default withAuth(
         // the endpoint an unauthenticated user calls to become authenticated.
         // Without this, signup redirects to /sign-in before ever reaching the
         // backend, since the browser-side signup call has no token yet.
-        const publicPaths = ["/welcome", "/sign-in", "/sign-up", "/terms", "/privacy", "/api/auth", "/api/webhooks", "/api/v1/auth"];
+        // /demo is the presentation entry point and must be reachable by
+        // someone who has scanned a code and has no session yet; /demo/qr
+        // is the slide it is scanned from.
+        const publicPaths = ["/welcome", "/sign-in", "/sign-up", "/terms", "/privacy", "/demo", "/api/auth", "/api/webhooks", "/api/v1/auth"];
         const isPublic    = publicPaths.some((p) => req.nextUrl.pathname.startsWith(p));
         return isPublic || !!token;
       },
@@ -61,6 +64,6 @@ export const config = {
     // because fetching it required being signed in. Listing files one by
     // one (as `favicon.ico` was) fixes only the asset you remember;
     // excluding by extension covers every asset added later.
-    "/((?!_next/static|_next/image|favicon.ico|welcome|sign-in|sign-up|terms|privacy|sw\.js|api/auth|api/webhooks|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|avif|woff|woff2|ttf)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|welcome|sign-in|sign-up|terms|privacy|demo|sw\.js|api/auth|api/webhooks|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|avif|woff|woff2|ttf)$).*)",
   ],
 };

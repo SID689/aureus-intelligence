@@ -1,0 +1,972 @@
+{
+ "agreement": 1.0,
+ "bear_case": {
+  "points": [
+   {
+    "category": "Overstretched Valuation",
+    "detail": "A 28.8x price-to-book means the valuation rests almost entirely on intangible and future earnings power. Those are the first assumptions repriced when sentiment turns.",
+    "headline": "Very little of the price is backed by book value",
+    "metric_label": "P/B",
+    "metric_value": "28.8x"
+   },
+   {
+    "category": "Technical Deterioration",
+    "detail": "MACD histogram signals accelerating downward momentum Momentum turning before price is the usual sequence: it indicates the marginal buyer is stepping back while the trend still looks intact.",
+    "headline": "Trend momentum is rolling over",
+    "metric_label": "MACD",
+    "metric_value": "Negative histogram"
+   }
+  ],
+  "source": "deterministic",
+  "stance": "bear",
+  "summary": "Over the next one to six months, the evidence that argues against NVDA rests on Overstretched Valuation and Technical Deterioration. Each point below is derived from a metric that actually computed for this ticker; nothing is asserted without a number behind it.",
+  "what_would_change_this": [
+   "The Q3 2027 earnings report on Nov 17 (in 60 days, per the consensus calendar): a clear beat against consensus EPS of 2.52 would challenge the bearish read directly.",
+   "Earnings growing into the 27.4x multiple, rather than the multiple de-rating: would defuse the valuation objection.",
+   "Operating margin expanding from 65.2% would remove the cost-absorption concern.",
+   "A reclaim of the 50-day moving average on expanding volume would break the technical deterioration argument."
+  ]
+ },
+ "bull_case": {
+  "points": [
+   {
+    "category": "Momentum & Positioning",
+    "detail": "Price $219.34 against SMA20 218.61 > SMA50 213.88 > SMA200 198.17: a bullish stack with every horizon of buyer onside Every timeframe of buyer is positioned above cost, which historically removes the overhead supply that caps rallies.",
+    "headline": "Moving averages are stacked bullishly",
+    "metric_label": "MA Structure",
+    "metric_value": "Bullish stack"
+   },
+   {
+    "category": "Growth & Profitability",
+    "detail": "A 74.7% gross margin means each incremental dollar of revenue carries 74.7% of contribution before operating costs. That is the cushion that funds R&D and buybacks through a downturn without needing external capital.",
+    "headline": "Gross margin indicates genuine pricing power",
+    "metric_label": "Gross Margin",
+    "metric_value": "74.7%"
+   },
+   {
+    "category": "Growth & Profitability",
+    "detail": "An operating margin of 65.2% shows the cost base is not scaling with revenue: incremental sales drop through to profit rather than being consumed by headcount and overhead.",
+    "headline": "Operating leverage is already being realised",
+    "metric_label": "Operating Margin",
+    "metric_value": "65.2%"
+   },
+   {
+    "category": "Growth & Profitability",
+    "detail": "Revenue grew 83.4% year-over-year. Sustained at that rate the business roughly doubles in 1 years, which is what allows a premium multiple to be grown into rather than paid down.",
+    "headline": "Top line is compounding, not stalling",
+    "metric_label": "Revenue Growth",
+    "metric_value": "83.4%"
+   },
+   {
+    "category": "Growth & Profitability",
+    "detail": "ROE of 110.1% means retained earnings compound internally at a rate most alternative uses of that capital cannot match: the mechanical driver of long-run per-share value.",
+    "headline": "Capital is being reinvested at a high return",
+    "metric_label": "ROE",
+    "metric_value": "110.1%"
+   },
+   {
+    "category": "Catalysts & Event Risk",
+    "detail": "Reported Aug 26 (23 days ago): EPS of 2.22 against a 2.14 estimate. Prices have historically tended to keep drifting in the direction of a surprise for weeks afterwards, though the effect is weaker in large, heavily covered companies.",
+    "headline": "Beat consensus EPS by 3.8% in Q2 2027 earnings reported",
+    "metric_label": "EPS surprise",
+    "metric_value": "+3.8%"
+   }
+  ],
+  "source": "deterministic",
+  "stance": "bull",
+  "summary": "Over the next one to six months, the evidence that supports NVDA rests on Momentum & Positioning, Growth & Profitability and Catalysts & Event Risk. Each point below is derived from a metric that actually computed for this ticker, or from a dated event with its source; nothing is asserted without a number behind it.",
+  "what_would_change_this": [
+   "The Q3 2027 earnings report on Nov 17 (in 60 days, per the consensus calendar): a miss against consensus EPS of 2.52 would test this case sooner than any of the slower-moving evidence.",
+   "Revenue growth decelerating below 78.4% would undercut the compounding argument.",
+   "Gross margin compressing more than 300bps from 74.7% would signal the pricing power is not durable.",
+   "A close below the 200-day moving average would invalidate the trend-structure case regardless of the fundamentals."
+  ]
+ },
+ "catalysts": {
+  "as_of": "2026-09-18",
+  "counts": {
+   "high_impact_upcoming": 2,
+   "recent": 9,
+   "upcoming": 6
+  },
+  "horizon": "medium_term",
+  "primary": {
+   "date": "2026-08-26",
+   "date_confirmed": true,
+   "days_until": -23,
+   "description": "EPS 2.22 vs 2.14 consensus (+3.8%) \u00b7 revenue $96.22B",
+   "details": {
+    "eps_actual": 2.22,
+    "eps_estimate": 2.1384,
+    "quarter": 2,
+    "revenue_actual": 96221000000.0,
+    "revenue_estimate": 94008645045.0,
+    "surprise_pct": 3.82,
+    "year": 2027
+   },
+   "direction": "positive",
+   "group": "earnings",
+   "id": "702d147e-d415-4dc5-a489-a10b6571130b",
+   "impact": "high",
+   "relation": "recent",
+   "scope": "company",
+   "sector": null,
+   "source": "finnhub_earnings_calendar",
+   "source_url": null,
+   "ticker": "NVDA",
+   "time": "amc",
+   "timing": "recent",
+   "title": "Q2 2027 earnings reported",
+   "type": "earnings",
+   "type_label": "Earnings"
+  },
+  "recent": [
+   {
+    "date": "2026-09-16",
+    "date_confirmed": true,
+    "days_until": -2,
+    "description": "Policy statement at 2:00 p.m. ET, with the Summary of Economic Projections",
+    "details": {
+     "summary_of_economic_projections": true
+    },
+    "direction": "unknown",
+    "group": "macro",
+    "id": "8379c76d-7a3d-4e70-babb-2cec8f156d9f",
+    "impact": "high",
+    "scope": "macro",
+    "sector": null,
+    "source": "federal_reserve",
+    "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+    "ticker": null,
+    "time": "14:00 ET",
+    "timing": "recent",
+    "title": "FOMC rate decision + economic projections",
+    "type": "fomc",
+    "type_label": "FOMC"
+   },
+   {
+    "date": "2026-09-10",
+    "date_confirmed": true,
+    "days_until": -8,
+    "description": "$0.25 quarterly \u00b7 pays 2026-10-01",
+    "details": {
+     "cash_amount": 0.25,
+     "currency": "USD",
+     "declaration_date": "2026-08-26",
+     "dividend_type": "CD",
+     "frequency": 4,
+     "pay_date": "2026-10-01",
+     "record_date": "2026-09-10"
+    },
+    "direction": "neutral",
+    "group": "corporate",
+    "id": "d1ef01aa-6992-455d-ae2f-d17ffab511e8",
+    "impact": "low",
+    "scope": "company",
+    "sector": null,
+    "source": "polygon_dividends",
+    "source_url": null,
+    "ticker": "NVDA",
+    "time": null,
+    "timing": "recent",
+    "title": "Ex-dividend date",
+    "type": "dividend",
+    "type_label": "Dividend"
+   },
+   {
+    "date": "2026-09-02",
+    "date_confirmed": true,
+    "days_until": -16,
+    "description": "Form 8-K, Item 8.01",
+    "details": {
+     "accession": "0001045810-26-000078",
+     "filed": "2026-09-03",
+     "form": "8-K",
+     "item": "8.01"
+    },
+    "direction": "unknown",
+    "group": "corporate",
+    "id": "09e68702-c2af-4e92-ba7f-d2efa93837ae",
+    "impact": "low",
+    "scope": "company",
+    "sector": null,
+    "source": "sec_edgar_8k",
+    "source_url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000078/nvda-20260902.htm",
+    "ticker": "NVDA",
+    "time": null,
+    "timing": "recent",
+    "title": "Other material event",
+    "type": "other_material_event",
+    "type_label": "Material event"
+   },
+   {
+    "date": "2026-08-26",
+    "date_confirmed": true,
+    "days_until": -23,
+    "description": "EPS 2.22 vs 2.14 consensus (+3.8%) \u00b7 revenue $96.22B",
+    "details": {
+     "eps_actual": 2.22,
+     "eps_estimate": 2.1384,
+     "quarter": 2,
+     "revenue_actual": 96221000000.0,
+     "revenue_estimate": 94008645045.0,
+     "surprise_pct": 3.82,
+     "year": 2027
+    },
+    "direction": "positive",
+    "group": "earnings",
+    "id": "702d147e-d415-4dc5-a489-a10b6571130b",
+    "impact": "high",
+    "scope": "company",
+    "sector": null,
+    "source": "finnhub_earnings_calendar",
+    "source_url": null,
+    "ticker": "NVDA",
+    "time": "amc",
+    "timing": "recent",
+    "title": "Q2 2027 earnings reported",
+    "type": "earnings",
+    "type_label": "Earnings"
+   },
+   {
+    "date": "2026-08-17",
+    "date_confirmed": true,
+    "days_until": -32,
+    "description": "Form 8-K, Item 1.01",
+    "details": {
+     "accession": "0001045810-26-000069",
+     "filed": "2026-08-17",
+     "form": "8-K",
+     "item": "1.01"
+    },
+    "direction": "unknown",
+    "group": "deals",
+    "id": "03e775db-783e-4e28-8122-7a3042542381",
+    "impact": "medium",
+    "scope": "company",
+    "sector": null,
+    "source": "sec_edgar_8k",
+    "source_url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000069/nvda-20260817.htm",
+    "ticker": "NVDA",
+    "time": null,
+    "timing": "recent",
+    "title": "Entered a material definitive agreement",
+    "type": "material_agreement",
+    "type_label": "Material agreement"
+   },
+   {
+    "date": "2026-08-17",
+    "date_confirmed": true,
+    "days_until": -32,
+    "description": "Form 8-K, Item 2.03",
+    "details": {
+     "accession": "0001045810-26-000069",
+     "filed": "2026-08-17",
+     "form": "8-K",
+     "item": "2.03"
+    },
+    "direction": "unknown",
+    "group": "deals",
+    "id": "be87c500-4b47-4745-8791-0eca82414b50",
+    "impact": "low",
+    "scope": "company",
+    "sector": null,
+    "source": "sec_edgar_8k",
+    "source_url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000069/nvda-20260817.htm",
+    "ticker": "NVDA",
+    "time": null,
+    "timing": "recent",
+    "title": "Created a direct financial obligation",
+    "type": "financing",
+    "type_label": "Financing"
+   },
+   {
+    "date": "2026-07-29",
+    "date_confirmed": true,
+    "days_until": -51,
+    "description": "Policy statement at 2:00 p.m. ET",
+    "details": {
+     "summary_of_economic_projections": false
+    },
+    "direction": "unknown",
+    "group": "macro",
+    "id": "21401b58-2009-4605-a355-7b2d3bb31de0",
+    "impact": "high",
+    "scope": "macro",
+    "sector": null,
+    "source": "federal_reserve",
+    "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+    "ticker": null,
+    "time": "14:00 ET",
+    "timing": "recent",
+    "title": "FOMC rate decision",
+    "type": "fomc",
+    "type_label": "FOMC"
+   },
+   {
+    "date": "2026-06-28",
+    "date_confirmed": true,
+    "days_until": -82,
+    "description": "Form 8-K, Item 5.02",
+    "details": {
+     "accession": "0001045810-26-000060",
+     "filed": "2026-07-02",
+     "form": "8-K",
+     "item": "5.02"
+    },
+    "direction": "unknown",
+    "group": "corporate",
+    "id": "e35d7d25-b3d2-47aa-82e5-3b1a45df278b",
+    "impact": "medium",
+    "scope": "company",
+    "sector": null,
+    "source": "sec_edgar_8k",
+    "source_url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000060/nvda-20260628.htm",
+    "ticker": "NVDA",
+    "time": null,
+    "timing": "recent",
+    "title": "Director or officer departure or appointment",
+    "type": "leadership_change",
+    "type_label": "Leadership change"
+   },
+   {
+    "date": "2026-06-24",
+    "date_confirmed": true,
+    "days_until": -86,
+    "description": "Form 8-K, Item 5.07",
+    "details": {
+     "accession": "0001045810-26-000056",
+     "filed": "2026-06-30",
+     "form": "8-K",
+     "item": "5.07"
+    },
+    "direction": "neutral",
+    "group": "corporate",
+    "id": "9f7c8e40-0bb4-4f56-9f08-b765ff3d198d",
+    "impact": "low",
+    "scope": "company",
+    "sector": null,
+    "source": "sec_edgar_8k",
+    "source_url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000056/nvda-20260624.htm",
+    "ticker": "NVDA",
+    "time": null,
+    "timing": "recent",
+    "title": "Shareholder vote results",
+    "type": "shareholder_vote",
+    "type_label": "Shareholder vote"
+   }
+  ],
+  "sector": "Information Technology",
+  "sources": {
+   "dividends": "cached",
+   "earnings": "cached",
+   "sec_8k": "cached"
+  },
+  "ticker": "NVDA",
+  "unavailable": [
+   {
+    "name": "Economic data releases (CPI, payrolls, GDP)",
+    "reason": "Finnhub's economic calendar is a paid endpoint on this plan, and the Bureau of Labor Statistics prohibits automated retrieval of its release schedule.",
+    "to_enable": "A paid Finnhub plan or a licensed macro calendar feed."
+   },
+   {
+    "name": "Dedicated M&A deal database",
+    "reason": "There is no free structured deal feed. Deals appear here from SEC 8-K Items 1.01, 2.01 and 5.01 and from classified news coverage instead.",
+    "to_enable": "A licensed deals dataset."
+   },
+   {
+    "name": "Company-specific FDA advisory meetings",
+    "reason": "The free FDA calendar names the committee, not the sponsoring company, so a meeting cannot be tied to a ticker without guessing. Meetings are shown as sector events on Health Care names; company FDA decisions come through news.",
+    "to_enable": "A biotech catalyst dataset with sponsor attribution."
+   }
+  ],
+  "upcoming": [
+   {
+    "date": "2026-10-28",
+    "date_confirmed": true,
+    "days_until": 40,
+    "description": "Policy statement at 2:00 p.m. ET",
+    "details": {
+     "summary_of_economic_projections": false
+    },
+    "direction": "unknown",
+    "group": "macro",
+    "id": "48e92ca2-4e31-4f37-b41a-2b1d95df36ef",
+    "impact": "high",
+    "scope": "macro",
+    "sector": null,
+    "source": "federal_reserve",
+    "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+    "ticker": null,
+    "time": "14:00 ET",
+    "timing": "upcoming",
+    "title": "FOMC rate decision",
+    "type": "fomc",
+    "type_label": "FOMC"
+   },
+   {
+    "date": "2026-11-17",
+    "date_confirmed": null,
+    "days_until": 60,
+    "description": "Consensus EPS 2.52 \u00b7 revenue est. $111.27B",
+    "details": {
+     "eps_actual": null,
+     "eps_estimate": 2.5231,
+     "quarter": 3,
+     "revenue_actual": null,
+     "revenue_estimate": 111273704778.0,
+     "surprise_pct": null,
+     "year": 2027
+    },
+    "direction": "unknown",
+    "group": "earnings",
+    "id": "dca53600-aa59-461f-ba88-afb52c49e528",
+    "impact": "high",
+    "scope": "company",
+    "sector": null,
+    "source": "finnhub_earnings_calendar",
+    "source_url": null,
+    "ticker": "NVDA",
+    "time": "amc",
+    "timing": "upcoming",
+    "title": "Q3 2027 earnings",
+    "type": "earnings",
+    "type_label": "Earnings"
+   },
+   {
+    "date": "2026-12-09",
+    "date_confirmed": true,
+    "days_until": 82,
+    "description": "Policy statement at 2:00 p.m. ET, with the Summary of Economic Projections",
+    "details": {
+     "summary_of_economic_projections": true
+    },
+    "direction": "unknown",
+    "group": "macro",
+    "id": "42fbdc63-d437-4af7-94b6-04597509fcde",
+    "impact": "high",
+    "scope": "macro",
+    "sector": null,
+    "source": "federal_reserve",
+    "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+    "ticker": null,
+    "time": "14:00 ET",
+    "timing": "upcoming",
+    "title": "FOMC rate decision + economic projections",
+    "type": "fomc",
+    "type_label": "FOMC"
+   },
+   {
+    "date": "2027-01-27",
+    "date_confirmed": true,
+    "days_until": 131,
+    "description": "Policy statement at 2:00 p.m. ET",
+    "details": {
+     "summary_of_economic_projections": false
+    },
+    "direction": "unknown",
+    "group": "macro",
+    "id": "a80268d9-9b01-47f8-a3e4-0807b75b3f23",
+    "impact": "high",
+    "scope": "macro",
+    "sector": null,
+    "source": "federal_reserve",
+    "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+    "ticker": null,
+    "time": "14:00 ET",
+    "timing": "upcoming",
+    "title": "FOMC rate decision",
+    "type": "fomc",
+    "type_label": "FOMC"
+   },
+   {
+    "date": "2027-02-23",
+    "date_confirmed": null,
+    "days_until": 158,
+    "description": "Consensus EPS 2.80 \u00b7 revenue est. $127.29B",
+    "details": {
+     "eps_actual": null,
+     "eps_estimate": 2.7969,
+     "quarter": 4,
+     "revenue_actual": null,
+     "revenue_estimate": 127294692870.0,
+     "surprise_pct": null,
+     "year": 2027
+    },
+    "direction": "unknown",
+    "group": "earnings",
+    "id": "8ef7abf9-e748-4ec9-a602-674bc3351a67",
+    "impact": "high",
+    "scope": "company",
+    "sector": null,
+    "source": "finnhub_earnings_calendar",
+    "source_url": null,
+    "ticker": "NVDA",
+    "time": "amc",
+    "timing": "upcoming",
+    "title": "Q4 2027 earnings",
+    "type": "earnings",
+    "type_label": "Earnings"
+   },
+   {
+    "date": "2027-03-17",
+    "date_confirmed": true,
+    "days_until": 180,
+    "description": "Policy statement at 2:00 p.m. ET, with the Summary of Economic Projections",
+    "details": {
+     "summary_of_economic_projections": true
+    },
+    "direction": "unknown",
+    "group": "macro",
+    "id": "28aceb04-634d-4a7b-a367-0c1f2e1ccdd6",
+    "impact": "high",
+    "scope": "macro",
+    "sector": null,
+    "source": "federal_reserve",
+    "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+    "ticker": null,
+    "time": "14:00 ET",
+    "timing": "upcoming",
+    "title": "FOMC rate decision + economic projections",
+    "type": "fomc",
+    "type_label": "FOMC"
+   }
+  ],
+  "window": {
+   "forward_days": 180,
+   "lookback_days": 90
+  }
+ },
+ "confidence_index": 81.24,
+ "conviction": 44.3,
+ "disclaimer": "Aureus Intelligence provides software-generated informational analysis only. Nothing presented constitutes investment, legal, or tax advice, nor a recommendation to buy, hold, or sell any security. Past performance is not indicative of future results. All probabilistic outputs carry inherent uncertainty and should not be interpreted as guarantees of any outcome.",
+ "evidence_z": 0.8867,
+ "fundamental": {
+  "agreement": 1.0,
+  "analysis_notes": [
+   "DCF intrinsic value $239.73 vs current $219.34 (+8.5% margin of safety) \u2192 DCF component 64/100",
+   "Debt/Equity 0.05 \u2192 safety component 98/100",
+   "Current ratio 3.91 \u2192 liquidity component 100/100",
+   "Operating margin 65.2% \u2192 efficiency component 100/100",
+   "Revenue growth YoY 83.4% \u2192 growth component 100/100",
+   "4-yr revenue CAGR 68.3% \u2192 trend component 100/100",
+   "Gross margin 74.7% \u2192 moat component 100/100",
+   "ROE 110.1% \u2192 durability component 100/100"
+  ],
+  "conviction": 77.9,
+  "current_ratio": 3.9053,
+  "data_completeness": 1.0,
+  "dcf_detail": {
+   "current_price": 219.34,
+   "discount_rate": 0.1,
+   "intrinsic_value_per_share": 239.73,
+   "margin_of_safety": 0.0851,
+   "near_term_growth_rate": 0.4,
+   "projection_years": 5,
+   "terminal_growth_rate": 0.025
+  },
+  "dcf_signal": 64.18,
+  "dcf_skip_reason": null,
+  "debt_to_equity": 0.05383583503398117,
+  "effective_weights": {
+   "4-Year Revenue CAGR": 0.0885,
+   "Current Ratio": 0.0885,
+   "DCF Margin of Safety": 0.3982,
+   "Debt-to-Equity": 0.0885,
+   "Gross Margin": 0.0796,
+   "Operating Margin": 0.0885,
+   "Return on Equity": 0.0796,
+   "Revenue Growth (YoY)": 0.0885
+  },
+  "ev_to_ebitda": 39.660413188951544,
+  "evidence_z": 1.5589,
+  "fcf_yield": 0.01940549447797313,
+  "free_cash_flow": 102579265000.0,
+  "fundamental_data_provider": "Finnhub + SEC EDGAR",
+  "gross_margin": 0.7467,
+  "growth_score": 100.0,
+  "interest_coverage": 518.4046692607004,
+  "market_cap": 5286093849164.015,
+  "moat_score": 73.33,
+  "operating_margin": 0.6517000000000001,
+  "pb_ratio": 28.8075,
+  "pe_ratio": 27.4063,
+  "price_to_sales": 17.50886772024948,
+  "revenue_growth_yoy": 0.8338,
+  "roe": 1.1011,
+  "roic": 1.0075413486885756,
+  "safety_score": 99.4,
+  "score": 94.05,
+  "signal_breakdown": [
+   {
+    "detail": "Trading 8.5% below estimated intrinsic value of $239.73",
+    "label": "DCF Margin of Safety",
+    "score": 64.17811124155998
+   },
+   {
+    "detail": "D/E ratio of 0.05 is conservative",
+    "label": "Debt-to-Equity",
+    "score": 98.20547216553396
+   },
+   {
+    "detail": "Current ratio of 3.91 indicates solid short-term liquidity",
+    "label": "Current Ratio",
+    "score": 100.0
+   },
+   {
+    "detail": "Operating margin of 65.2% reflects efficient core operations",
+    "label": "Operating Margin",
+    "score": 100.0
+   },
+   {
+    "detail": "Revenue grew +83.4% year-over-year: outpacing the 20% benchmark",
+    "label": "Revenue Growth (YoY)",
+    "score": 100.0
+   },
+   {
+    "detail": "Revenue compounded at +68.3% annually over 4 years",
+    "label": "4-Year Revenue CAGR",
+    "score": 100.0
+   },
+   {
+    "detail": "Gross margin of 74.7% points to real pricing power",
+    "label": "Gross Margin",
+    "score": 100.0
+   },
+   {
+    "detail": "ROE of 110.1% reflects strong capital efficiency",
+    "label": "Return on Equity",
+    "score": 100.0
+   }
+  ],
+  "ticker": "NVDA"
+ },
+ "fundamental_data_provider": "Finnhub + SEC EDGAR",
+ "fundamental_score": 94.05,
+ "generated_at": "2026-09-18T22:53:48.287943",
+ "market_data_provider": "Polygon.io",
+ "module_weights_used": {
+  "fundamental": 0.35,
+  "sentiment": 0.3,
+  "technical": 0.35
+ },
+ "overall_data_completeness": 1.0,
+ "reasoning": "Over a Medium Term (1-6 months) horizon, NVDA scores 81.2/100 (BUY, strong conviction). What's helping the score: Current Ratio (Fundamental): Current ratio of 3.91 indicates solid short-term liquidity; Operating Margin (Fundamental): Operating margin of 65.2% reflects efficient core operations; Revenue Growth (YoY) (Fundamental): Revenue grew +83.4% year-over-year: outpacing the 20% benchmark. What's dragging on the score: Support/Resistance (Technical): Price action is positioned between clear support and resistance levels; MACD (Technical): MACD histogram signals accelerating downward momentum; VWAP Position (Technical): Trading 0.2% below its 20-session VWAP. The discounted cash flow model estimates intrinsic value at $239.73 per share versus a current price of $219.34: trading below the model's estimate by 8.5%. Module scores: fundamental 94/100 (based on complete data), technical 56/100 (based on complete data), sentiment 50/100 (based on complete data).",
+ "reasoning_source": "deterministic",
+ "sector": "Semiconductors",
+ "sector_comparison": {},
+ "sentiment": {
+  "agreement": 0.038,
+  "analysis_notes": [
+   "195 of 283 retrieved items never named NVDA and were excluded, so competitor and sector-wide news doesn't leak into this score.",
+   "News sub-score from 63 articles over 7 days, weighted by publisher authority and recency (48-hour half-life).",
+   "Coverage over the last 24 hours is running at 2.1x the prior period's daily rate, with tone +0.14 versus that baseline (volume spike, mixed tone).",
+   "Social sub-score from 25 StockTwits messages, with tone -0.14 against this ticker's own 7-day social history.",
+   "MD&A language leans constructive on results and outlook."
+  ],
+  "catalysts": [
+   {
+    "authority": 0.75,
+    "direction": "positive",
+    "evidence": [
+     "all-time high (+0.72)"
+    ],
+    "headline": "Breakout Watch: Savvy Investors Get Wired Up For This Nvidia, Amazon Partner",
+    "polarity": 0.72,
+    "published_at": "2026-09-18T20:00:58+00:00",
+    "source": "Yahoo",
+    "url": "https://finnhub.io/api/news?id=b47742e95425b7a2ae9ac0477a2272e031f3bce4ed2c2dfd5f4e401613058dc8"
+   },
+   {
+    "authority": 0.75,
+    "direction": "positive",
+    "evidence": [
+     "climbed (+0.50)"
+    ],
+    "headline": "Nvidia Stock Is Up 21% in Six Months. Here\u2019s What the Street Still Isn\u2019t Pricing In",
+    "polarity": 0.5,
+    "published_at": "2026-09-18T21:04:06+00:00",
+    "source": "Yahoo",
+    "url": "https://finnhub.io/api/news?id=e7befb3770a062088a8edf03cd759e5ed1cae5fb96adb61293e80dd6891b3269"
+   },
+   {
+    "authority": 0.75,
+    "direction": "negative",
+    "evidence": [
+     "warning (-0.70)"
+    ],
+    "headline": "Micron vs. Sandisk: Which AI Memory Stock Benefits More From Nvidia's $279 Billion Warning?",
+    "polarity": -0.7,
+    "published_at": "2026-09-17T01:41:00+00:00",
+    "source": "Yahoo",
+    "url": "https://finnhub.io/api/news?id=a9a812f7c6276b6dbe30b6faed089ff1a5d5d1cf9747632e1853dc600d89b2a7"
+   },
+   {
+    "authority": 0.75,
+    "direction": "negative",
+    "evidence": [
+     "concerns (-0.48)"
+    ],
+    "headline": "INTC, AMD, MU, NVDA: Chip Stocks Rally As Investors Look Past AI Concerns",
+    "polarity": -0.48,
+    "published_at": "2026-09-18T02:17:04+00:00",
+    "source": "Yahoo",
+    "url": "https://finnhub.io/api/news?id=4378b14402c47dbc455970d39bb38bbfedfbccf4e3f2090f555da41e4070bf03"
+   },
+   {
+    "authority": 0.75,
+    "direction": "positive",
+    "evidence": [
+     "advanced (+0.42)",
+     "advanced (+0.42)"
+    ],
+    "headline": "Zacks Investment Ideas feature highlights: NVIDIA, Advanced Micro Devices, Tempus, Moderna, Super Micro Computer and Aya Gold & Silver",
+    "polarity": 0.42,
+    "published_at": "2026-09-18T10:13:00+00:00",
+    "source": "Yahoo",
+    "url": "https://finnhub.io/api/news?id=64b3da817a58392d7d1677e7e792a15381f254e560b2786fcec01a1bf78d67e8"
+   },
+   {
+    "authority": 0.75,
+    "direction": "negative",
+    "evidence": [
+     "concerns (-0.48)"
+    ],
+    "headline": "S&P 500, Nasdaq, Dow End Higher As Drop In Oil Prices Allays Inflationary Concerns \u2014 NVDA, MCD, CRWV, LMT, AMZN In Focus",
+    "polarity": -0.48,
+    "published_at": "2026-09-17T22:22:14+00:00",
+    "source": "Yahoo",
+    "url": "https://finnhub.io/api/news?id=76076175e83a2373313f71db8c15ee9d311417efb3e1c58d94a9c15a669ec161"
+   },
+   {
+    "authority": 0.75,
+    "direction": "positive",
+    "evidence": [
+     "profitability (+0.35)"
+    ],
+    "headline": "Credo vs. NVIDIA After Earnings: Which AI Stock Should You Buy Now?",
+    "polarity": 0.35,
+    "published_at": "2026-09-18T19:00:00+00:00",
+    "source": "Yahoo",
+    "url": "https://finnhub.io/api/news?id=1a987b797f04f6a6813e4b88ee72612cd5427c46b8aa9b49e4c96394f9564768"
+   },
+   {
+    "authority": 0.55,
+    "direction": "positive",
+    "evidence": [
+     "surges (+0.70)",
+     "slowdown (-0.62)"
+    ],
+    "headline": "Nvidia CEO Jensen Huang Expects Chip Sales To Double Next Year as He Downplays AI Slowdown Calls: 'When a Product is Not Safe...'",
+    "polarity": 0.561,
+    "published_at": "2026-09-18T05:36:41+00:00",
+    "source": "Benzinga",
+    "url": "https://finnhub.io/api/news?id=67b57c063d9af2713a386cd0c112fdf7024b2b89bc2f655a1137262fde47bafa"
+   }
+  ],
+  "conviction": 0.4,
+  "data_completeness": 1.0,
+  "effective_weights": {
+   "news_score": 0.55,
+   "sec_tone_score": 0.25,
+   "social_score": 0.2
+  },
+  "evidence_z": 0.0125,
+  "model_used": "lexicon",
+  "news_computed": true,
+  "news_document_count": 63,
+  "news_polarity": 0.0697,
+  "news_score": 53.49,
+  "overall_label": "Neutral",
+  "polarity_velocity": 0.1369,
+  "score": 50.5,
+  "sec_tone_computed": true,
+  "sec_tone_detail": {
+   "constraining_density": 0.00652,
+   "constraining_shift": 0.00067,
+   "filing_date": "2026-08-26",
+   "form": "10-Q",
+   "label": "Positive",
+   "litigious_density": 0.00134,
+   "litigious_shift": 7e-05,
+   "notes": [
+    "MD&A language leans constructive on results and outlook."
+   ],
+   "prior_filing_date": "2026-05-20",
+   "ticker": "NVDA",
+   "tone_polarity": 0.2615,
+   "uncertainty_density": 0.01668,
+   "uncertainty_shift": -0.00188,
+   "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm",
+   "word_count": 5217
+  },
+  "sec_tone_label": "Neutral",
+  "sec_tone_score": 57.66,
+  "sentiment_confidence": 1.0,
+  "signal_breakdown": [
+   {
+    "detail": "63 articles over the last week score +0.07 on average once weighted for publisher authority and recency: a balanced news picture",
+    "label": "News Sentiment",
+    "score": 53.49
+   },
+   {
+    "detail": "MD&A of the 10-Q filed 2026-08-26 reads neutral versus the 2026-05-20 filing",
+    "label": "SEC Filing Tone",
+    "score": 57.66
+   },
+   {
+    "detail": "25 retail messages score +0.16, 24-hour volume 2.1x the prior rate (volume spike, mixed tone)",
+    "label": "Social Sentiment",
+    "score": 54.48
+   }
+  ],
+  "social_computed": true,
+  "social_message_count": 25,
+  "social_polarity": 0.158,
+  "social_score": 54.48,
+  "source_mix": {
+   "news": 63,
+   "social": 25
+  },
+  "ticker": "NVDA",
+  "unavailable_sources": [
+   {
+    "channel": "news",
+    "name": "StockNewsAPI",
+    "reason": "No free tier, paid plans start at $19.99/mo.",
+    "to_enable": "Subscribe, then set STOCKNEWSAPI_KEY and add a fetch function here."
+   },
+   {
+    "channel": "social",
+    "name": "Twitter / X",
+    "reason": "API read access was withdrawn from the free tier; Basic is $100/mo.",
+    "to_enable": "Subscribe to an X API tier, then set X_BEARER_TOKEN."
+   },
+   {
+    "channel": "social",
+    "name": "Reddit (r/wallstreetbets, r/stocks)",
+    "reason": "Public JSON endpoints now return 403 to unauthenticated clients.",
+    "to_enable": "Register a free script app at reddit.com/prefs/apps, then set REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET. Reddit's free OAuth tier allows 100 requests/min, which is ample here."
+   }
+  ],
+  "velocity_label": "Volume spike, mixed tone",
+  "volume_velocity": 2.059
+ },
+ "sentiment_score": 50.5,
+ "showcase_snapshot": true,
+ "signal": "BUY",
+ "signal_strength": "STRONG",
+ "snapshot_captured_at": "2026-09-18T22:53:48.291819+00:00",
+ "technical": {
+  "agreement": 0.165,
+  "analysis_notes": [
+   "RSI(14) 51.7 \u2192 momentum component 48/100",
+   "MACD histogram -1.2089 \u2192 trend component 40/100",
+   "Price $219.34 vs support 208.01 / resistance 232.39 \u2192 S/R component 36/100",
+   "Volume trend component 50/100",
+   "Moving-average alignment \u2192 trend-structure component 100/100 (SMA20 218.61 > SMA50 213.88 > SMA200 198.17)",
+   "Bollinger %B 0.53 \u2192 volatility-position component 49/100",
+   "ATR(14) is 2.96% of price: typical daily range",
+   "Trend strength r\u00b2=0.55: mixed regime, both families weighted near evenly"
+  ],
+  "conviction": 5.1,
+  "current_price": 219.34,
+  "data_completeness": 1.0,
+  "effective_weights": {
+   "bollinger_pctb": 0.1024,
+   "ma_alignment": 0.2156,
+   "macd_score": 0.2062,
+   "obv_score": 0.0537,
+   "rsi_score": 0.1536,
+   "sr_score": 0.1343,
+   "volume_score": 0.0895,
+   "vwap_score": 0.0448
+  },
+  "evidence_z": 0.1636,
+  "macd_histogram": -1.208946,
+  "macd_line": 0.490954,
+  "macd_score": 39.5,
+  "resistance_levels": [
+   {
+    "level_type": "resistance",
+    "price": 232.39,
+    "strength": 5.0
+   },
+   {
+    "level_type": "resistance",
+    "price": 215.07,
+    "strength": 3.0
+   }
+  ],
+  "rsi_14": 51.72,
+  "rsi_score": 47.85,
+  "score": 56.5,
+  "signal_breakdown": [
+   {
+    "detail": "RSI at 52 is in a neutral range",
+    "label": "RSI (14)",
+    "score": 47.85216994469232
+   },
+   {
+    "detail": "MACD histogram signals accelerating downward momentum",
+    "label": "MACD",
+    "score": 39.50385091915537
+   },
+   {
+    "detail": "Price action is positioned between clear support and resistance levels",
+    "label": "Support/Resistance",
+    "score": 36.17639987476146
+   },
+   {
+    "detail": "Price $219.34 against SMA20 218.61 > SMA50 213.88 > SMA200 198.17: a bullish stack with every horizon of buyer onside",
+    "label": "MA Alignment (20/50/200)",
+    "score": 100.0
+   },
+   {
+    "detail": "Price is mid-envelope (%B 0.53)",
+    "label": "Bollinger %B",
+    "score": 49.056072856320924
+   },
+   {
+    "detail": "OBV is rising, volume is accumulating on up-days",
+    "label": "On-Balance Volume",
+    "score": 65.0
+   },
+   {
+    "detail": "Trading 0.2% below its 20-session VWAP",
+    "label": "VWAP Position",
+    "score": 40.0
+   }
+  ],
+  "signal_line": 1.6999,
+  "sr_score": 36.18,
+  "support_levels": [
+   {
+    "level_type": "support",
+    "price": 189.91,
+    "strength": 2.0
+   },
+   {
+    "level_type": "support",
+    "price": 198.66,
+    "strength": 2.0
+   },
+   {
+    "level_type": "support",
+    "price": 208.01,
+    "strength": 2.0
+   },
+   {
+    "level_type": "support",
+    "price": 194.74,
+    "strength": 1.0
+   }
+  ],
+  "ticker": "NVDA",
+  "volume_score": 50.0
+ },
+ "technical_score": 56.5,
+ "ticker": "NVDA",
+ "time_horizon": "Medium Term (1-6 months)",
+ "uncertainty_note": "Confidence index represents a weighted composite of model scores. It is a heuristic measure, not a calibrated probability estimate. Reasonable uncertainty bands are \u00b120 points."
+}

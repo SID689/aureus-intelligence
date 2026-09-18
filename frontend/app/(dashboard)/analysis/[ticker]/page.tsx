@@ -131,9 +131,23 @@ function TickerAnalysisView() {
               {v && <span className={cn("px-2 py-1 font-mono-num text-[10.5px] uppercase tracking-[0.14em]", v.cls)}>{v.label}</span>}
             </div>
             {ready ? (
-              <p className="text-[12px] text-aureus-muted mt-2.5">
-                {data.time_horizon} · prices via {data.market_data_provider} · fundamentals via {data.fundamental_data_provider}
-              </p>
+              <>
+                <p className="text-[12px] text-aureus-muted mt-2.5">
+                  {data.time_horizon} · prices via {data.market_data_provider} · fundamentals via {data.fundamental_data_provider}
+                </p>
+                {(data.showcase_snapshot || data.degraded_source) && (
+                  <p className="text-[11.5px] text-aureus-gold mt-1.5">
+                    {data.degraded_source === "stale_cache"
+                      ? "Served from the last completed run: the data providers are not answering right now."
+                      : "Captured snapshot. Real engine output, recorded earlier rather than computed just now."}
+                    {data.snapshot_captured_at && (
+                      <span className="text-aureus-muted"> {new Date(data.snapshot_captured_at).toLocaleString("en-US", {
+                        dateStyle: "medium", timeStyle: "short",
+                      })}</span>
+                    )}
+                  </p>
+                )}
+              </>
             ) : loading ? <Skeleton className="h-3 w-72 mt-3" /> : null}
           </div>
 

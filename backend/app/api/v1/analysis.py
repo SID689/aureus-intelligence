@@ -29,6 +29,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from app.analysis import result_cache
 from app.core.entitlements import (
     Entitlements, check_quota, current_entitlements, record_usage, resolve_entitlements,
 )
@@ -117,6 +118,15 @@ def _apply_sentiment_entitlements(result: dict, ent) -> dict:
     return result
 
 
+def _write_job(job_id: str, payload: dict) -> None:
+    """Park a job's state where the poll endpoint will find it. Never raises:
+    a Redis hiccup should cost a retry, not the request."""
+    try:
+        get_redis_client().setex(f"analysis_result:{job_id}", 3600, json.dumps(payload, default=str))
+    except Exception as exc:
+        logger.warning("Could not write job status to Redis", extra={"job_id": job_id, "error": str(exc)})
+
+
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
 @router.post("/run", response_model=JobEnqueuedResponse, status_code=202)
@@ -139,16 +149,20 @@ def enqueue_analysis(request: AnalysisRequest) -> JobEnqueuedResponse:
     # the time the job runs.
     record_usage(request.user_id, "analysis_request", 1.0)
 
-    # Pre-write a "queued" status so the poll endpoint returns immediately
-    try:
-        redis = get_redis_client()
-        redis.setex(
-            f"analysis_result:{job_id}",
-            3600,
-            json.dumps({"status": "queued", "ticker": ticker, "time_horizon": request.time_horizon}),
+    # A recent run for this ticker and horizon answers the poll on its
+    # first call, and no worker is occupied. The job id is still issued so
+    # the client's poll-until-complete loop is unchanged.
+    warm = result_cache.fresh(ticker, request.time_horizon)
+    if warm is not None:
+        _write_job(job_id, {"status": "complete", **_apply_sentiment_entitlements(warm, ent)})
+        logger.info("Analysis served from the warm cache", extra={"ticker": ticker, "job_id": job_id})
+        return JobEnqueuedResponse(
+            job_id=job_id, ticker=ticker, time_horizon=request.time_horizon,
+            status="complete", poll_url=f"/api/v1/analysis/result/{job_id}",
         )
-    except Exception as exc:
-        logger.warning("Could not pre-write job status to Redis", extra={"error": str(exc)})
+
+    # Pre-write a "queued" status so the poll endpoint returns immediately
+    _write_job(job_id, {"status": "queued", "ticker": ticker, "time_horizon": request.time_horizon})
 
     # Dispatch to Celery
     run_analysis_task.apply_async(
@@ -223,8 +237,19 @@ def quick_analysis(
     ticker_clean = ticker.upper().strip()
     job_id       = str(uuid.uuid4())
 
+    # Metered before the cache is consulted. A cache hit costs nothing to
+    # serve, but the plan sells a number of analyses, not a number of
+    # pipeline runs, and exempting repeats would make that limit
+    # bypassable by re-requesting the same ticker.
     check_quota(user_id, ent, "analysis_request", "Analysis", "runs")
     record_usage(user_id, "analysis_request", 1.0)
+
+    warm = result_cache.fresh(ticker_clean, time_horizon)
+    if warm is not None:
+        return AnalysisResultResponse(
+            job_id=job_id, status="complete",
+            result=_apply_sentiment_entitlements(warm, ent),
+        )
 
     try:
         signal = run_ensemble_analysis(ticker=ticker_clean, time_horizon=time_horizon,
@@ -232,6 +257,7 @@ def quick_analysis(
         from dataclasses import asdict
         result_dict = asdict(signal)
         result_dict["generated_at"] = signal.generated_at.isoformat()
+        result_cache.store(ticker_clean, time_horizon, result_dict)
         result_dict = _apply_sentiment_entitlements(result_dict, ent)
 
         return AnalysisResultResponse(
@@ -240,12 +266,30 @@ def quick_analysis(
             result=result_dict,
         )
 
-    except FallbackExhaustedError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Market data unavailable for {ticker_clean}. Providers tried: {', '.join(exc.attempted_providers)}",
-        )
     except Exception as exc:
+        # Degrade before failing: a slightly old analysis is still an
+        # analysis, and an error page in the middle of a presentation is
+        # not recoverable by anyone watching. See result_cache for the
+        # ordering and why the snapshot is labelled.
+        served = result_cache.fallback(ticker_clean, time_horizon)
+        if served is not None:
+            payload, source = served
+            payload["degraded_source"] = source
+            logger.warning(
+                "Live analysis failed: serving %s", source,
+                extra={"ticker": ticker_clean, "error": str(exc)},
+            )
+            return AnalysisResultResponse(
+                job_id=job_id, status="complete",
+                result=_apply_sentiment_entitlements(payload, ent),
+            )
+
+        if isinstance(exc, FallbackExhaustedError):
+            raise HTTPException(
+                status_code=503,
+                detail=(f"Market data unavailable for {ticker_clean}. "
+                        f"Providers tried: {', '.join(exc.attempted_providers)}"),
+            )
         logger.error(
             "Quick analysis failed",
             extra={"ticker": ticker_clean, "error": str(exc)},

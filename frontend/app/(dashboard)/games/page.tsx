@@ -81,7 +81,7 @@ export default function GamesPage() {
                 <button
                   key={k}
                   onClick={() => setTab(k)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  className={`px-3 py-1.5 touch:min-h-[44px] rounded-md text-xs font-medium transition-colors ${
                     tab === k
                       ? "bg-aureus-gold text-aureus-ink font-semibold"
                       : "text-aureus-muted hover:text-aureus-text"
