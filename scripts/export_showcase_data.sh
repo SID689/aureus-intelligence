@@ -16,8 +16,8 @@
 # Nothing user-owned is exported: no users, portfolios, consents,
 # subscriptions, credits or game sessions. What ships is market data.
 #
-# Load it with:
-#   psql "$NEON_URL" -f showcase_data.sql
+# Load it with scripts/load_showcase_data.sh, which runs psql from inside
+# the postgres container so nothing has to be installed locally.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -53,4 +53,4 @@ docker compose exec -T db pg_dump \
   "${ARGS[@]}" | grep -v '^\\\(un\)\?restrict ' > "$OUT"
 
 printf 'wrote %s (%s)\n' "$OUT" "$(du -h "$OUT" | cut -f1)"
-printf 'load it with:  psql "$DATABASE_URL" -f %s\n' "$OUT"
+printf 'load it with:  ./scripts/load_showcase_data.sh "$DATABASE_URL" %s\n' "$OUT"

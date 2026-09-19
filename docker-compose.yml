@@ -106,8 +106,14 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - NEXT_PUBLIC_WS_URL=ws://localhost:8000
+      # Overridable, because these were previously hardcoded here and a
+      # value set in this block BEATS frontend/.env.local: Next reads
+      # process env before its own files. A demo behind a tunnel could
+      # therefore rewrite .env.local all it liked and the browser would
+      # still be told to open a socket to localhost:8000, which on a
+      # phone is the phone. Unset, the defaults are what they always were.
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-ws://localhost:8000}
     depends_on:
       - backend
     volumes:

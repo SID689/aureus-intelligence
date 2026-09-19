@@ -26,7 +26,14 @@ run() {
   if [ -z "$TARGET" ]; then
     docker compose exec -T db psql -v ON_ERROR_STOP=0 -U aureus -d aureus_dev -q -f - < "$file" > /tmp/migrate.out 2>&1
   else
-    psql -v ON_ERROR_STOP=0 -q "$TARGET" -f "$file" > /tmp/migrate.out 2>&1
+    # Through the container's psql, so a hosted database needs no client
+    # installed on this machine. Falls back to a local psql if the stack
+    # is not running.
+    if docker compose ps db --status running -q > /dev/null 2>&1 && [ -n "$(docker compose ps db --status running -q 2>/dev/null)" ]; then
+      docker compose exec -T db psql -v ON_ERROR_STOP=0 -q "$TARGET" -f - < "$file" > /tmp/migrate.out 2>&1
+    else
+      psql -v ON_ERROR_STOP=0 -q "$TARGET" -f "$file" > /tmp/migrate.out 2>&1
+    fi
   fi
   # psql prefixes its diagnostics with "psql:<file>:<line>: ", so ERROR is
   # never at the start of a line. Anchoring the match was the difference
@@ -62,7 +69,6 @@ run() {
 if [ -z "$TARGET" ]; then
   echo "applying to the local compose database"
 else
-  command -v psql >/dev/null || { echo "psql is not installed (brew install libpq)"; exit 1; }
   echo "applying to the database in the connection string given"
 fi
 

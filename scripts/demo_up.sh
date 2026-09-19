@@ -35,15 +35,33 @@ docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is not availab
 command -v cloudflared >/dev/null || fail "cloudflared is not installed. Run: brew install cloudflared"
 
 # ── Environment values the demo needs ────────────────────────────────
-# DEMO_MODE gates the whole presentation environment on the backend;
-# NEXT_PUBLIC_DEMO_MODE compiles the entry point into the frontend.
-grep -q '^DEMO_MODE=true' backend/.env 2>/dev/null \
-  || fail "DEMO_MODE=true is missing from backend/.env. See docs/DEMO_DEPLOYMENT.md."
-grep -q '^NEXT_PUBLIC_DEMO_MODE=true' "$ENV_FILE" 2>/dev/null \
-  || fail "NEXT_PUBLIC_DEMO_MODE=true is missing from $ENV_FILE."
+# DEMO_MODE gates the presentation environment on the backend;
+# NEXT_PUBLIC_DEMO_MODE compiles the entry point into the frontend. This
+# script sets both, so it pairs with demo_down.sh with no manual edit in
+# between.
+step "Switching the flags on"
+python3 - <<'FLAGS'
+import pathlib, re
+for path, key in (("backend/.env", "DEMO_MODE"),
+                  ("frontend/.env.local", "NEXT_PUBLIC_DEMO_MODE")):
+    p = pathlib.Path(path)
+    if not p.exists():
+        raise SystemExit(f"{path} does not exist. Copy it from the example first.")
+    text = p.read_text(encoding="utf-8")
+    if re.search(rf"(?m)^{key}=", text):
+        text = re.sub(rf"(?m)^{key}=.*$", f"{key}=true", text)
+    else:
+        text = text.rstrip("\n") + f"\n{key}=true\n"
+    p.write_text(text, encoding="utf-8")
+    print(f"  {path}: {key}=true")
+FLAGS
 
 step "Starting the stack"
 docker compose up -d
+# --force-recreate on the backend, whose environment comes from
+# `env_file:` and is fixed when the container is created: a restart keeps
+# whatever DEMO_MODE the container was born with.
+docker compose up -d --force-recreate backend > /dev/null
 docker compose exec -T db pg_isready -U aureus >/dev/null 2>&1 || sleep 5
 
 step "Seeding the showcase"
@@ -60,7 +78,7 @@ restore() {
   step "Stopping the tunnel and restoring the environment"
   kill "$TUNNEL_PID" 2>/dev/null || true
   [ -f "$BACKUP" ] && mv "$BACKUP" "$ENV_FILE"
-  docker compose restart frontend >/dev/null 2>&1 || true
+  docker compose up -d --force-recreate frontend >/dev/null 2>&1 || true
   printf "Done. The stack is still running: docker compose ps\n"
 }
 trap restore EXIT INT TERM
@@ -94,7 +112,13 @@ text = re.sub(r"(?m)^NEXT_PUBLIC_WS_URL=.*$", "# NEXT_PUBLIC_WS_URL unset for th
 open(path, "w", encoding="utf-8").write(text)
 PY
 
-docker compose restart frontend >/dev/null
+# --force-recreate, not restart: the frontend's NEXT_PUBLIC_* values come
+# from the compose `environment:` block, which is baked into the container
+# at creation and beats anything in .env.local. A plain restart would keep
+# pointing the browser at localhost:8000.
+NEXT_PUBLIC_API_URL="$PUBLIC_URL" \
+NEXT_PUBLIC_WS_URL="${PUBLIC_URL/https:/wss:}" \
+  docker compose up -d --force-recreate frontend >/dev/null
 printf "waiting for the frontend"
 for _ in $(seq 1 45); do
   if curl -fsS -o /dev/null "http://localhost:3000/demo" 2>/dev/null; then break; fi

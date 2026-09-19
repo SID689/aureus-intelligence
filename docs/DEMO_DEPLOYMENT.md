@@ -67,6 +67,19 @@ Four services, no card except Render's optional verification:
 | Postgres | Neon | 0.5 GB | None that matters here. |
 | Redis | Upstash | 500,000 commands/month | Nothing, as long as you do not run the Celery workers. See "Why no workers". |
 
+### Before any of it: the code has to be on GitHub
+
+Vercel and Render both deploy from a Git repository, and this one has no
+remote. Create an empty repository on GitHub, then:
+
+```bash
+git remote add origin https://github.com/<you>/aureus-intelligence.git
+git push -u origin main
+```
+
+Push before you start, because both platforms ask for the repository in
+their first screen.
+
 ### Why no workers, and why that is fine here
 
 The full stack runs three always-on Celery processes that between them
@@ -91,9 +104,12 @@ growing. Over a one-hour talk neither is visible.
 2. Apply the schema from your machine:
 
 ```bash
-brew install libpq && brew link --force libpq     # if psql is missing
 ./scripts/migrate.sh "postgresql://...neon.tech/neondb?sslmode=require"
 ```
+
+It runs psql from inside the `postgres:16` container the local stack
+already has, so there is no database client to install. Start the stack
+first if it is not up (`docker compose up -d db`).
 
 The script runs `db/schema.sql` and then every migration in order, each in
 its own psql invocation, which migration 014 requires: it adds a value to
@@ -138,8 +154,11 @@ data across from your local stack, which has a scanner history:
 
 ```bash
 ./scripts/export_showcase_data.sh showcase_data.sql
-psql "postgresql://...neon.tech/neondb?sslmode=require" -f showcase_data.sql
+./scripts/load_showcase_data.sh "postgresql://...neon.tech/neondb?sslmode=require"
 ```
+
+The loader prints the row counts on the target when it finishes, so you
+can see the board has something to show before you rely on it.
 
 That moves the scanner universe and its snapshots, the leaderboard, the
 catalyst calendar, the news wire, sentiment history and the signal
