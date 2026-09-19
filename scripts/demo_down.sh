@@ -84,9 +84,10 @@ Turning it back on for the next event: set DEMO_MODE=true in backend/.env
 and NEXT_PUBLIC_DEMO_MODE=true in frontend/.env.local, then
 ./scripts/demo_up.sh.
 
-To remove the code as well, revert the commit that added it:
+To remove the code as well, revert the two commits that added it:
 
-    git revert 57b34fd
+    git log --oneline --grep="Institutional Demo Mode" --grep="demo flags" --all
+    git revert <the two hashes that prints, newest first>
 
 Read that diff before you run it. It also carries fixes that have nothing
 to do with the demo and that you probably want to keep: the analysis warm

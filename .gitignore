@@ -37,3 +37,12 @@ showcase_data*.sql
 # Deployment worksheet with generated secrets, written by the assistant for
 # a one-off demo deployment. Local only.
 .demo-deploy/
+
+# Finder and editor duplicates. "env.example copy" has no leading dot, so
+# every .env* rule above missed it, and a real Stripe key reached the
+# history inside one. Match the shape, not the prefix.
+* copy
+* copy.*
+*\ copy
+*.orig
+*.bak
