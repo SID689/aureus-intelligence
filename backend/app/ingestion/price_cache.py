@@ -14,18 +14,16 @@ app at once is a hundred and eighty calls against a free tier that
 allows sixty a minute.
 
 The quote is identical for all of them. Caching it by ticker turns that
-hundred and eighty into six, which is the difference between a
-presentation that works and one that spends its first minute serving
-rate-limit errors.
+hundred and eighty into six, which is the difference between serving a
+burst of visitors and spending the first minute on rate-limit errors.
 
 =====================================================================
 TTL
 =====================================================================
-Sixty seconds normally. Long enough to collapse a burst, short enough
-that a position's value tracks the market on any timescale a person
-watching a portfolio page cares about. Demo deployments raise it, where
-a quote from earlier in the talk costs nothing and a rate-limit wall
-costs everything.
+Sixty seconds. Long enough to collapse a burst, short enough that a
+position's value tracks the market on any timescale a person watching a
+portfolio page cares about. Raise price_cache_seconds where provider
+quota is the binding constraint and a slightly older quote is not.
 
 Failures are cached too, briefly and separately. A ticker no provider
 can price does not become cheaper to ask about by being asked thirty

@@ -13,34 +13,31 @@ now every caller paid all of it. Two people asking for AAPL within the
 same minute ran the pipeline twice and got the same answer, because
 nothing in the inputs had changed.
 
-That is merely wasteful with a handful of users. In front of a room of
-people who all open the same ticker at once it is fatal: thirty phones
-means thirty pipeline runs, Finnhub's sixty-a-minute is gone in the
-first ten seconds, and the rest of the room watches a spinner resolve
-into an error.
+That is merely wasteful with a handful of users. With thirty callers
+asking for the same ticker at once it is fatal: thirty pipeline runs,
+Finnhub's sixty-a-minute gone in the first ten seconds, and everyone
+else watching a spinner resolve into an error.
 
 So a completed run is cached under the ticker, and subsequent callers
 are served from it. One pipeline run, one set of provider calls, the
-whole room answered in milliseconds.
+rest answered in milliseconds.
 
 =====================================================================
-WHY THE TTL IS SHORT OUTSIDE A DEMO
+WHY THE TTL IS SHORT
 =====================================================================
 Analysis output is a claim about right now. Three minutes is long enough
-to absorb a double-tap, a remount, or a room full of phones, and short
+to absorb a double-tap, a remount, or a burst of callers, and short
 enough that nobody is shown a verdict formed before a move they can see
-on the chart beside it. A demo deployment raises it to hours, because
-there the cost of a cold run is a visible stall in front of an audience
-and the cost of a slightly old snapshot is nothing.
+on the chart beside it.
 
 =====================================================================
 DEGRADATION ORDER
 =====================================================================
-    fresh cache  ->  live pipeline  ->  stale cache  ->  bundled snapshot
+    fresh cache  ->  live pipeline  ->  stale cache
 
 A stale entry beats an error page: an analysis from twenty minutes ago
-is still informative, a 503 is not. The bundled snapshot is last, is
-only consulted in demo mode, and is always labelled.
+is still informative, a 503 is not. Anything served that way is labelled
+so nobody reads it as a run from just now.
 
 Every read and write is wrapped: a Redis outage must slow this app down,
 never break it.
@@ -123,23 +120,4 @@ def fallback(ticker: str, horizon: str) -> tuple[dict[str, Any], str] | None:
     if hit is not None:
         return hit[0], "stale_cache"
 
-    if get_settings().demo_mode:
-        from app.demo.fixtures import load_analysis
-        snapshot = load_analysis(ticker, horizon)
-        if snapshot is not None:
-            return snapshot, "showcase_snapshot"
     return None
-
-
-def prime(ticker: str, horizon: str) -> dict[str, Any] | None:
-    """
-    The bundled snapshot, for warming a cold deployment before anyone
-    arrives. Only meaningful in demo mode; returns None otherwise.
-    """
-    if not get_settings().demo_mode:
-        return None
-    from app.demo.fixtures import load_analysis
-    payload = load_analysis(ticker, horizon)
-    if payload is not None:
-        store(ticker, horizon, payload)
-    return payload

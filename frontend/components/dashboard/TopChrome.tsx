@@ -13,7 +13,6 @@ import { usePortfolio } from "./PortfolioProvider";
 import { TickerTape, StatusDot, useClock, useMounted } from "@/components/ui/primitives";
 import { marketPhase } from "@/lib/format";
 import NotificationBell from "@/components/notifications/NotificationBell";
-import DemoBanner from "@/components/demo/DemoBanner";
 
 export default function TopChrome({ onOpenNav }: { onOpenNav?: () => void }) {
   const { holdings, loading } = usePortfolio();
@@ -32,9 +31,6 @@ export default function TopChrome({ onOpenNav }: { onOpenNav?: () => void }) {
 
   return (
     <div className="sticky top-0 z-20">
-      {/* Inside the sticky block, so the demo label does not scroll away
-          from the app it is labelling. Renders nothing for real sessions. */}
-      <DemoBanner />
       <TickerTape
         items={tape}
         note={loading ? "Loading positions" : "Tape is empty, add a position and it starts running."}

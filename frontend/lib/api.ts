@@ -197,13 +197,10 @@ export interface FullAnalysis {
   // Dated events around this analysis. The theses cite these; the score does not use them.
   catalysts?: CatalystTimelineData;
   generated_at: string;
-  // Set when the payload came from a captured snapshot rather than a run
-  // just now, because a provider was unreachable or the deployment is a
-  // demo that ships pre-captured figures. The page says so: a snapshot
-  // presented as live analysis is the one thing this must never do.
-  showcase_snapshot?: boolean;
-  snapshot_captured_at?: string;
-  degraded_source?: "stale_cache" | "showcase_snapshot" | string;
+  // Set when the providers could not be reached and the last completed
+  // run was served instead. The page says so: a cached analysis shown as
+  // a fresh one is the one thing this must never do.
+  degraded_source?: "stale_cache" | string;
 }
 
 export const getFullAnalysis = (

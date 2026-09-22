@@ -2,17 +2,17 @@
  * Where the sockets connect.
  *
  * The fallback used to be the literal `ws://localhost:8000`, which is only
- * correct on the machine running the stack. On any other device — a phone
- * on the same demo, a laptop reached through a tunnel — localhost is that
- * device itself, so voice and the alert stream connected to nothing and
- * failed silently.
+ * correct on the machine running the stack. On any other device, a phone
+ * on the same network or a laptop reached through a proxy, localhost is
+ * that device itself, so voice and the alert stream connected to nothing
+ * and failed silently.
  *
  * Same origin is the right default instead: next.config.ts proxies
  * /api/v1/* to FastAPI, and that rewrite carries the WebSocket upgrade, so
  * one public hostname serves the app and its sockets. Set
  * NEXT_PUBLIC_WS_URL only where the two halves are on different hosts and
- * the proxy in front of the app does not forward upgrades (Vercel, for
- * one): point it straight at the backend.
+ * the proxy in front of the app does not forward upgrades: point it
+ * straight at the backend.
  */
 function wsBase(): string {
   const env = process.env.NEXT_PUBLIC_WS_URL;

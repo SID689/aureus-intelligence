@@ -26,7 +26,6 @@ from app.api.v1.quant     import router as quant_router
 from app.api.v1.account   import router as account_router
 from app.api.v1.catalysts import router as catalysts_router
 from app.api.v1.leaderboard import router as leaderboard_router
-from app.api.v1.demo       import router as demo_router
 
 settings = get_settings()
 setup_logging(level=settings.log_level, use_json=settings.is_production)
@@ -83,7 +82,6 @@ app.include_router(account_router)
 app.include_router(games_router)
 app.include_router(catalysts_router)
 app.include_router(leaderboard_router)
-app.include_router(demo_router)
 
 
 @app.get("/health", tags=["ops"])
@@ -97,7 +95,7 @@ def health() -> dict:
     the drift is visible to monitoring rather than only to whoever reads
     the logs.
     """
-    payload: dict = {"status": "ok", "version": "0.6.0", "demo_mode": settings.demo_mode}
+    payload: dict = {"status": "ok", "version": "0.6.0"}
     try:
         from app.analysis.calibration import calibration_status
         cal = calibration_status()

@@ -135,16 +135,9 @@ function TickerAnalysisView() {
                 <p className="text-[12px] text-aureus-muted mt-2.5">
                   {data.time_horizon} · prices via {data.market_data_provider} · fundamentals via {data.fundamental_data_provider}
                 </p>
-                {(data.showcase_snapshot || data.degraded_source) && (
+                {data.degraded_source && (
                   <p className="text-[11.5px] text-aureus-gold mt-1.5">
-                    {data.degraded_source === "stale_cache"
-                      ? "Served from the last completed run: the data providers are not answering right now."
-                      : "Captured snapshot. Real engine output, recorded earlier rather than computed just now."}
-                    {data.snapshot_captured_at && (
-                      <span className="text-aureus-muted"> {new Date(data.snapshot_captured_at).toLocaleString("en-US", {
-                        dateStyle: "medium", timeStyle: "short",
-                      })}</span>
-                    )}
+                    Served from the last completed run: the data providers are not answering right now.
                   </p>
                 )}
               </>
