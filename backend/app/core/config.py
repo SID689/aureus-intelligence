@@ -49,6 +49,20 @@ class Settings(BaseSettings):
     # same ticker into one provider call.
     price_cache_seconds: int = Field(default=60)
 
+    # ── Signup trial ──────────────────────────────────────────────────
+    # New accounts are provisioned on this tier, as a trial, for this
+    # many days. Set signup_trial_tier to "" (or signup_trial_days to 0)
+    # and signup goes back to provisioning the free plan directly.
+    #
+    # A trial is an ordinary subscription row with status 'trialing' and
+    # an end date, so it expires by itself: the active_user_subscriptions
+    # view (migration 015) stops returning it and entitlement resolution
+    # falls back to sovereign. Nothing has to run on a schedule to take
+    # the plan away, which matters because a missed cron would otherwise
+    # mean free top-tier accounts forever.
+    signup_trial_tier: str = Field(default="institutional")
+    signup_trial_days: int = Field(default=60)
+
     # ── CORS ──────────────────────────────────────────────────────────
     # Comma-separated. Production used to hardcode one hostname, which
     # meant any other deployment, a staging host or a preview URL,
@@ -133,6 +147,10 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
+
+    @property
+    def signup_trial_enabled(self) -> bool:
+        return bool(self.signup_trial_tier.strip()) and self.signup_trial_days > 0
 
     @property
     def cors_origins(self) -> list[str]:

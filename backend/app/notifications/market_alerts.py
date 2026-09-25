@@ -48,10 +48,9 @@ _ENTITLED_RECIPIENTS = text("""
     INSERT INTO user_notifications (user_id, alert_id)
     SELECT DISTINCT u.id, CAST(:id AS uuid)
       FROM users u
-      JOIN user_subscriptions us ON us.user_id = u.id
+      JOIN active_user_subscriptions us ON us.user_id = u.id
       JOIN subscription_tiers st ON st.id = us.tier_id
      WHERE st.leaderboard_enabled
-       AND us.status IN ('active', 'trialing')
        AND u.is_active
        AND u.deleted_at IS NULL
     ON CONFLICT (user_id, alert_id) DO NOTHING

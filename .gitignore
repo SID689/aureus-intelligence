@@ -38,3 +38,7 @@ celerybeat.pid
 *\ copy
 *.orig
 *.bak
+
+# Local deployment worksheet with generated secrets. Never committed.
+.deploy/
+market_data*.sql

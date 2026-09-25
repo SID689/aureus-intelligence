@@ -175,7 +175,8 @@ def get_balance(user_id: str) -> Balance:
     return Balance(Decimal(str(row[0])), Decimal(str(row[1])), Decimal(str(row[2])))
 
 
-def grant_allowance(user_id: str, credits: int, reason: str = "subscription_period") -> None:
+def grant_allowance(user_id: str, credits: int, reason: str = "subscription_period",
+                    period_days: int | None = None) -> None:
     """
     Set the period allowance and reset consumption.
 
@@ -184,6 +185,10 @@ def grant_allowance(user_id: str, credits: int, reason: str = "subscription_peri
     lapsed-then-resumed subscriber starts the new period clean instead of
     inheriting an old overdraft. `purchased_credits` is untouched — those
     were paid for separately and must survive the reset.
+
+    `period_days` overrides the default month. A signup trial runs longer
+    than a billing month and is granted once, so its account should say
+    so rather than claiming a period that ended weeks ago.
     """
     try:
         with _engine().begin() as conn:
@@ -191,15 +196,15 @@ def grant_allowance(user_id: str, credits: int, reason: str = "subscription_peri
                 text("""
                     INSERT INTO credit_accounts
                         (user_id, allowance_credits, consumed_credits, period_start, period_end)
-                    VALUES (:u, :c, 0, now(), now() + interval '1 month')
+                    VALUES (:u, :c, 0, now(), now() + make_interval(days => :days))
                     ON CONFLICT (user_id) DO UPDATE
                        SET allowance_credits = :c,
                            consumed_credits  = 0,
                            period_start      = now(),
-                           period_end        = now() + interval '1 month',
+                           period_end        = now() + make_interval(days => :days),
                            updated_at        = now()
                 """),
-                {"u": user_id, "c": credits},
+                {"u": user_id, "c": credits, "days": period_days or 30},
             )
             conn.execute(
                 text("""INSERT INTO credit_transactions
@@ -407,9 +412,9 @@ def issue_api_key(user_id: str, name: str = "Default key",
     with _engine().begin() as conn:
         allowed = conn.execute(
             text("""SELECT st.api_keys_allowed
-                      FROM user_subscriptions us
+                      FROM active_user_subscriptions us
                       JOIN subscription_tiers st ON st.id = us.tier_id
-                     WHERE us.user_id = :u AND us.status IN ('active','trialing')
+                     WHERE us.user_id = :u
                      LIMIT 1"""),
             {"u": user_id},
         ).scalar()

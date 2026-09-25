@@ -70,12 +70,11 @@ def _query_affected_holdings(tickers: list[str]) -> list[dict]:
                     FROM portfolio_holdings ph
                     JOIN portfolios p          ON ph.portfolio_id = p.id
                     JOIN users u               ON p.user_id = u.id
-                    JOIN user_subscriptions us ON u.id = us.user_id
+                    JOIN active_user_subscriptions us ON u.id = us.user_id
                     JOIN subscription_tiers sub_tiers ON us.tier_id = sub_tiers.id
                     WHERE ph.ticker = ANY(:tickers)
                       AND u.is_active = true
                       AND u.deleted_at IS NULL
-                      AND us.status IN ('active', 'trialing')
                       AND ph.current_weight IS NOT NULL
                     ORDER BY u.id, ph.ticker
                 """),

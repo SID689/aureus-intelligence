@@ -1,0 +1,81 @@
+# Render blueprint for the Aureus API.
+#
+# Deploys the FastAPI web service only. The Celery worker, agent worker
+# and beat scheduler are absent: between them they issue roughly 900,000
+# Redis commands a day, which exhausts a free serverless Redis tier in
+# about thirteen hours, and Render's free plan has no background worker
+# type to put them on.
+#
+# Nothing a visitor does needs them. The analysis the UI calls runs
+# inline in this process, as do backtests, the quant lab, education and
+# games. What the workers would do is refresh data in the background:
+# the scanner that ranks the leaderboard, the news wire, the catalyst
+# calendar and periodic re-pricing. Bootstrap those once with
+# scripts/export_market_data.sh, and add a paid worker when the site has
+# enough traffic to justify keeping them current.
+#
+# Render dashboard -> New -> Blueprint -> this repository.
+
+services:
+  - type: web
+    name: aureus-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    # The image's own CMD carries --reload and a hardcoded port, which is
+    # right for local development and wrong here: Render assigns the port
+    # and a reloader would double the memory of a 512 MB instance.
+    dockerCommand: sh -c "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+
+      # Every new account starts on a 60-day Institutional trial. It is an
+      # ordinary subscription row with an end date, so it expires by
+      # itself; nothing has to run on a schedule to take the plan away.
+      # Set SIGNUP_TRIAL_TIER to an empty value to go back to signing
+      # people up on the free plan.
+      - key: SIGNUP_TRIAL_TIER
+        value: institutional
+      - key: SIGNUP_TRIAL_DAYS
+        value: "60"
+
+      # No workers are running, so nothing would consume a scan the beat
+      # scheduler queued. Leaving the scanner on would only spend provider
+      # quota against a queue nobody reads.
+      - key: SCANNER_ENABLED
+        value: "false"
+
+      # Values Render cannot know. The blueprint asks for these.
+      - key: DATABASE_URL          # Neon, the POOLED connection string
+        sync: false
+      - key: REDIS_URL             # Upstash, rediss://
+        sync: false
+      - key: SECRET_KEY            # openssl rand -base64 32
+        sync: false
+      - key: INTERNAL_API_SECRET   # must match the frontend's exactly
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS  # the Vercel URL, once it exists
+        sync: false
+      - key: SEC_EDGAR_USER_AGENT  # "Your Name you@example.com", or SEC 403s
+        sync: false
+
+      # Optional. Every one can stay empty: prices fall through to Yahoo
+      # and theses fall back to deterministic prose rather than failing.
+      # ANTHROPIC_API_KEY is the one worth setting, because it is what
+      # turns the bull and bear cases into written analysis.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: POLYGON_API_KEY
+        sync: false
+      - key: FINNHUB_API_KEY
+        sync: false
+      - key: ALPHA_VANTAGE_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false

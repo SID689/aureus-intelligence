@@ -262,10 +262,9 @@ def resolve_entitlements(user_id: str, use_cache: bool = True) -> Entitlements:
             row = conn.execute(
                 text(f"""
                     SELECT {_TIER_COLUMNS}
-                      FROM user_subscriptions us
+                      FROM active_user_subscriptions us
                       JOIN subscription_tiers st ON st.id = us.tier_id
                      WHERE us.user_id = :uid
-                       AND us.status IN ('active', 'trialing')
                      ORDER BY us.created_at DESC
                      LIMIT 1
                 """),

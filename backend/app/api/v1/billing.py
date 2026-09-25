@@ -113,8 +113,7 @@ def login(req: LoginRequest) -> dict:
                         us.stripe_customer_id
                     FROM users u
                     LEFT JOIN profiles p ON p.user_id = u.id
-                    LEFT JOIN user_subscriptions us ON us.user_id = u.id
-                        AND us.status IN ('active', 'trialing')
+                    LEFT JOIN active_user_subscriptions us ON us.user_id = u.id
                     LEFT JOIN subscription_tiers st ON st.id = us.tier_id
                     WHERE u.email = :email
                       AND u.is_active = true
@@ -175,6 +174,43 @@ def _create_stripe_customer(email: str, name: str) -> str:
         return ""
 
 
+def _grant_trial_credits(result: dict) -> None:
+    """
+    Fund a newly provisioned trial.
+
+    Called after the provisioning transaction commits, not inside it: a
+    credit grant opens its own connection, and rolling the signup back
+    around it would leave credits attached to a user that does not exist.
+    The reverse failure is harmless, because credits only decide whether
+    theses are written by a model or assembled deterministically.
+
+    The whole trial is funded in one grant. Nothing re-grants on a
+    schedule, so a trial longer than a billing month would otherwise run
+    dry halfway through with no way to notice.
+    """
+    days = int(result.get("trial_days") or 0)
+    monthly = int(result.get("monthly_credits") or 0)
+    if days <= 0 or monthly <= 0:
+        return
+    months = max(1, -(-days // 30))          # ceiling division
+    from app.billing.credits import grant_allowance
+    grant_allowance(result["user_id"], monthly * months,
+                    reason=f"signup_trial_{result['tier']}", period_days=days)
+
+
+def _signup_plan() -> tuple[str, int]:
+    """
+    The plan a brand new account is created on, and for how many days.
+
+    Returns ("sovereign", 0) when no trial is configured, which is the
+    behaviour this function replaced.
+    """
+    settings = get_settings()
+    if not settings.signup_trial_enabled:
+        return "sovereign", 0
+    return settings.signup_trial_tier.strip().lower(), settings.signup_trial_days
+
+
 def _provision_new_user(
     conn, email: str, display_name: str, country_code: str,
     password_hash: str | None, auth_provider: str,
@@ -199,22 +235,52 @@ def _provision_new_user(
     )
 
     stripe_customer_id = _create_stripe_customer(email, display_name)
+    tier_name, trial_days = _signup_plan()
 
-    sovereign_tier = conn.execute(
-        text("SELECT id FROM subscription_tiers WHERE tier_name = 'sovereign'"),
+    tier_row = conn.execute(
+        text("SELECT id, monthly_credits FROM subscription_tiers WHERE tier_name = :t"),
+        {"t": tier_name},
     ).fetchone()
-    if sovereign_tier:
+
+    if tier_row is None and tier_name != "sovereign":
+        # A trial tier that is not in the database is a configuration
+        # error, and the safe reading of it is the free plan. Provisioning
+        # nothing at all would leave the account with no subscription row.
+        logger.error("Configured signup trial tier does not exist, falling back to sovereign",
+                     extra={"configured_tier": tier_name})
+        tier_name, trial_days = "sovereign", 0
+        tier_row = conn.execute(
+            text("SELECT id, monthly_credits FROM subscription_tiers WHERE tier_name = 'sovereign'"),
+        ).fetchone()
+
+    if tier_row:
         conn.execute(
             text("""
-                INSERT INTO user_subscriptions (id, user_id, tier_id, stripe_customer_id, status)
-                VALUES (gen_random_uuid(), :uid, :tier_id, :cust_id, 'active')
+                INSERT INTO user_subscriptions
+                    (id, user_id, tier_id, stripe_customer_id, status,
+                     current_period_start, current_period_end)
+                VALUES (gen_random_uuid(), :uid, :tier_id, :cust_id, :status,
+                        now(),
+                        CASE WHEN :days > 0 THEN now() + make_interval(days => :days) END)
             """),
-            {"uid": user_id, "tier_id": str(sovereign_tier.id), "cust_id": stripe_customer_id or f"pending_{user_id}"},
+            {
+                "uid": user_id,
+                "tier_id": str(tier_row.id),
+                "cust_id": stripe_customer_id or f"pending_{user_id}",
+                # 'trialing' rather than 'active' is what makes the end
+                # date binding: active_user_subscriptions only date-checks
+                # trials, because a paid subscription's status is Stripe's
+                # to move.
+                "status": "trialing" if trial_days > 0 else "active",
+                "days": trial_days,
+            },
         )
 
     return {
         "user_id": user_id, "email": email, "display_name": display_name or email,
-        "tier": "sovereign", "stripe_customer_id": stripe_customer_id,
+        "tier": tier_name, "stripe_customer_id": stripe_customer_id,
+        "trial_days": trial_days,
+        "monthly_credits": int(tier_row.monthly_credits or 0) if tier_row else 0,
     }
 
 
@@ -236,7 +302,10 @@ def signup(req: SignupRequest) -> dict:
                 conn, req.email, req.display_name, req.country_code,
                 password_hash=pw_hash, auth_provider="password",
             )
-        logger.info("New user signed up", extra={"user_id": result["user_id"], "email": req.email})
+        _grant_trial_credits(result)
+        logger.info("New user signed up",
+                    extra={"user_id": result["user_id"], "email": req.email,
+                           "tier": result["tier"], "trial_days": result.get("trial_days")})
         return result
     except HTTPException:
         raise
@@ -273,7 +342,7 @@ def oauth_upsert(req: OAuthUpsertRequest, x_internal_secret: str = Header(defaul
                     SELECT u.id, u.email, p.display_name, st.tier_name, us.stripe_customer_id
                     FROM users u
                     LEFT JOIN profiles p ON p.user_id = u.id
-                    LEFT JOIN user_subscriptions us ON us.user_id = u.id AND us.status IN ('active','trialing')
+                    LEFT JOIN active_user_subscriptions us ON us.user_id = u.id
                     LEFT JOIN subscription_tiers st ON st.id = us.tier_id
                     WHERE u.email = :email
                 """),
@@ -296,7 +365,10 @@ def oauth_upsert(req: OAuthUpsertRequest, x_internal_secret: str = Header(defaul
                 text("UPDATE users SET external_auth_id = :ext WHERE id = :uid"),
                 {"ext": req.external_id, "uid": result["user_id"]},
             )
-        logger.info("New OAuth user provisioned", extra={"email": req.email, "provider": req.provider})
+        _grant_trial_credits(result)
+        logger.info("New OAuth user provisioned",
+                    extra={"email": req.email, "provider": req.provider,
+                           "tier": result["tier"], "trial_days": result.get("trial_days")})
         return result
     except Exception as exc:
         logger.error("OAuth upsert failed", extra={"error": str(exc)}, exc_info=True)

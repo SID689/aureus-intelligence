@@ -188,9 +188,8 @@ def subscriber_counts() -> dict[str, int]:
         with _engine().connect() as conn:
             rows = conn.execute(text("""
                 SELECT st.tier_name, count(*)
-                  FROM user_subscriptions us
+                  FROM active_user_subscriptions us
                   JOIN subscription_tiers st ON st.id = us.tier_id
-                 WHERE us.status IN ('active','trialing')
                  GROUP BY st.tier_name
             """)).fetchall()
         return {str(r[0]): int(r[1]) for r in rows}
@@ -204,9 +203,10 @@ def monthly_recurring_revenue() -> Decimal:
         with _engine().connect() as conn:
             total = conn.execute(text("""
                 SELECT COALESCE(SUM(st.price_cents), 0)
-                  FROM user_subscriptions us
+                  FROM active_user_subscriptions us
                   JOIN subscription_tiers st ON st.id = us.tier_id
-                 WHERE us.status IN ('active','trialing')
+                 WHERE us.status = 'active'
+                   AND us.stripe_subscription_id IS NOT NULL
             """)).scalar() or 0
         return Decimal(total) / 100
     except Exception:
