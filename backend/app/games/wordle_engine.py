@@ -112,17 +112,38 @@ def daily_puzzle_index(day: date) -> int:
     return (day - EPOCH).days
 
 
+def _shuffled_answers() -> list[WordEntry]:
+    """
+    The answer bank in a fixed, non-alphabetical order.
+
+    Ordered by a hash of each word, so the sequence is stable across
+    processes and deploys but is not the order the list is written in. A
+    player reading the source still learns the order; the point is that
+    someone who merely notices today's answer cannot infer tomorrow's
+    from the shape of the list.
+    """
+    return sorted(ANSWERS, key=lambda e: hashlib.sha256(f"finwordle:order:{e.word}".encode()).hexdigest())
+
+
+_CYCLE: list[WordEntry] = _shuffled_answers()
+
+
 def daily_word(day: date) -> WordEntry:
     """
-    The answer for a given calendar day — identical for every user.
+    The answer for a given calendar day, identical for every user.
 
-    Hashing the date rather than indexing sequentially avoids a trivially
-    predictable sequence (a player who solves today's word shouldn't be
-    able to derive tomorrow's just by taking the next list entry), while
-    still being fully deterministic and reproducible.
+    WHY A CYCLE RATHER THAN A HASH OF THE DATE
+    This used to hash the date and take the result modulo the bank size,
+    which samples WITH REPLACEMENT: over a year of 365 days and 96
+    answers, one word came up nine times while two never appeared at all.
+    Players notice a repeat inside a fortnight, and an expanded
+    dictionary that still repeats defeats the point of expanding it.
+
+    Walking a fixed permutation guarantees every answer appears once
+    before any appears twice, so the bank size IS the repeat interval:
+    96 answers means 96 days.
     """
-    digest = hashlib.sha256(f"finwordle:{day.isoformat()}".encode()).hexdigest()
-    return ANSWERS[int(digest, 16) % len(ANSWERS)]
+    return _CYCLE[(day - EPOCH).days % len(_CYCLE)]
 
 
 def practice_word(seed: str) -> WordEntry:
