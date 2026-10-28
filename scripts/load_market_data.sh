@@ -26,7 +26,25 @@ fi
 
 echo "loading $FILE ($(du -h "$FILE" | cut -f1))"
 # ON_ERROR_STOP off: conflicts on a re-run are rows correctly skipped.
-docker compose exec -T db psql -v ON_ERROR_STOP=0 "$TARGET" -f - < "$FILE" | tail -15
+#
+# The output goes to a file rather than through `tail`, which was showing
+# the last fifteen lines and therefore hiding every error that happened
+# before them. A load that fails on the first table and succeeds on the
+# last looked identical to one that worked.
+LOG=$(mktemp)
+docker compose exec -T db psql -v ON_ERROR_STOP=0 "$TARGET" -f - < "$FILE" > "$LOG" 2>&1 || true
+
+rows=$(grep -c '^INSERT' "$LOG" || true)
+errs=$(grep -c 'ERROR:' "$LOG" || true)
+printf '  %s insert statements applied, %s error(s)\n' "$rows" "$errs"
+
+if [ "$errs" -gt 0 ]; then
+  echo
+  echo "  distinct errors:"
+  grep 'ERROR:' "$LOG" | sed 's/^psql:[^:]*:[0-9]*: //' | sort -u | head -10 | sed 's/^/    /'
+  echo
+  echo "  full log: $LOG"
+fi
 
 echo
 echo "row counts on the target:"

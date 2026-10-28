@@ -34,8 +34,11 @@ TABLES=(
   news_articles
   sentiment_snapshots
   signal_calibration
-  pattern_scenarios
 )
+# NOT pattern_scenarios: every row has a NOT NULL user_id and is one
+# player's completed round, so it is per-user state rather than market
+# data. Exporting it sent rows referencing local accounts into a database
+# that has no users, and the foreign key refused all of them.
 
 ARGS=()
 for t in "${TABLES[@]}"; do ARGS+=(--table="public.$t"); done
