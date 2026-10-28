@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, Newsreader } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 /**
@@ -71,7 +72,22 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/*
+          Visit counting, from the host we are already on.
+
+          Cookieless and without a device identifier, so it needs no
+          consent banner and nothing to decline — which is the only
+          reason it is here rather than a tag manager. The privacy policy
+          describes it, and must keep describing it if this stays.
+
+          It reports nothing in development and nothing on a deployment
+          where Web Analytics has not been switched on in the Vercel
+          project. Silence here means that switch, not a broken script.
+        */}
+        <Analytics />
+      </body>
     </html>
   );
 }

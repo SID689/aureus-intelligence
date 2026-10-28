@@ -52,7 +52,13 @@ const sections: LegalSection[] = [
         <h3>Cookies</h3>
         <p>
           We use only strictly necessary cookies, which keep you signed in and protect sign-in forms against forgery. We do
-          not use advertising cookies, cross-site tracking or third-party analytics.
+          not use advertising cookies or cross-site tracking.
+        </p>
+        <p>
+          To count visits, our hosting provider records the page you opened, the site you arrived from, and your
+          approximate country and device type. This sets no cookie and stores no identifier on your device. What we see
+          is aggregate — how many people read a page, not which pages you read — and none of it follows you to other
+          sites.
         </p>
       </>
     ),
@@ -213,9 +219,10 @@ export default function PrivacyPage() {
       summary={
         <p>
           <strong>In short.</strong> We collect what the Service needs to run your account, analyses, portfolio,
-          learning and alerts. Stripe handles your card. We use only strictly necessary cookies, run no third-party
-          analytics, and never sell your information. AI features send security data, and voice questions you ask, to
-          model providers. Email {LEGAL.contact.privacy} to access or delete your data.
+          learning and alerts. Stripe handles your card. We use only strictly necessary cookies, run no advertising or
+          cross-site tracking, and never sell your information. Our host counts visits in aggregate, without cookies.
+          AI features send security data, and voice questions you ask, to model providers. Email
+          {LEGAL.contact.privacy} to access or delete your data.
         </p>
       }
       sections={sections}
