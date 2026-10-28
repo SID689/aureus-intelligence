@@ -24,10 +24,6 @@ services:
     region: oregon
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    # The image's own CMD carries --reload and a hardcoded port, which is
-    # right for local development and wrong here: Render assigns the port
-    # and a reloader would double the memory of a 512 MB instance.
-    dockerCommand: sh -c "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     healthCheckPath: /health
     envVars:
       - key: APP_ENV
