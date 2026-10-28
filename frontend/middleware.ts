@@ -38,6 +38,25 @@ export default withAuth(
     return NextResponse.next({ request: { headers: requestHeaders } });
   },
   {
+    // Where a visitor with no session is sent. This is withAuth's own
+    // setting, not authOptions' — they are deliberately different.
+    // authOptions.pages.signIn stays /sign-in, because that is where
+    // signIn() and auth errors belong: someone who asked to sign in
+    // wants the form.
+    //
+    // Arriving at / is not that request. It is a stranger at the front
+    // door, and the front door is /welcome: the method, the coverage,
+    // the disclosure and the plans, with sign-up and sign-in on it.
+    // Dropping that person straight onto a password field asks them to
+    // authenticate to something they have not been told about yet.
+    //
+    // app/(dashboard)/layout.tsx already redirects to /welcome for the
+    // same reason, but middleware resolves first, so that line never ran
+    // and the landing page was unreachable for everyone who most needed
+    // it. The two now agree, and the layout remains the backstop if
+    // middleware is ever bypassed.
+    pages: { signIn: "/welcome" },
+
     callbacks: {
       // Allow public pages; protect everything under (dashboard)
       authorized: ({ token, req }) => {
