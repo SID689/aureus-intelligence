@@ -39,7 +39,14 @@ async def lifespan(app: FastAPI):
         get_redis_client().ping()
         logger.info("Redis: OK")
     except Exception as exc:
-        raise RuntimeError("Redis unreachable") from exc
+        # The host, not just the fact. A deployment that forgot REDIS_URL
+        # and one whose Redis is genuinely down produce the same sentence
+        # otherwise, and they are fixed in completely different places.
+        from app.core.redis_client import safe_url
+        raise RuntimeError(
+            f"Redis unreachable at {safe_url(settings.redis_url)}. "
+            "Check REDIS_URL is set for this environment."
+        ) from exc
     logger.info("Providers", extra={
         "polygon":      settings.polygon_configured,
         "anthropic":    settings.anthropic_configured,

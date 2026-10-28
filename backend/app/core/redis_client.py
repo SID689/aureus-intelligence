@@ -11,12 +11,36 @@ Used for:
 
 import logging
 from functools import lru_cache
+from urllib.parse import urlsplit, urlunsplit
 
 import redis
 
 from app.core.config import get_settings
 
 logger = logging.getLogger("aureus.redis")
+
+
+def safe_url(url: str) -> str:
+    """
+    A connection URL with the password removed, for logging.
+
+    Managed Redis hands you credentials inside the URL, so logging the
+    URL logs the password into whatever collects the service's output.
+    The host and port are the parts worth seeing when a connection fails;
+    the secret never is.
+    """
+    try:
+        parts = urlsplit(url)
+        if parts.password:
+            user = parts.username or ""
+            netloc = f"{user}:***@{parts.hostname}" if user else f"***@{parts.hostname}"
+            if parts.port:
+                netloc += f":{parts.port}"
+            return urlunsplit((parts.scheme, netloc, parts.path, "", ""))
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+    except Exception:  # noqa: BLE001
+        # Never let a logging helper be the thing that breaks startup.
+        return "<unparseable redis url>"
 
 
 @lru_cache(maxsize=1)
@@ -35,11 +59,17 @@ def get_redis_client() -> redis.Redis:
         retry_on_timeout=True,
         health_check_interval=30,
     )
+    target = safe_url(settings.redis_url)
     try:
         client.ping()
-        logger.info("Redis connection established", extra={"url": settings.redis_url})
+        logger.info("Redis connection established", extra={"redis": target})
     except redis.ConnectionError as exc:
-        logger.error("Redis connection failed, rate limiting and caching unavailable", extra={"error": str(exc)})
+        # Name the host that was actually tried. "Redis unreachable" on its
+        # own sends you looking at the Redis provider when the usual cause
+        # is REDIS_URL being unset, which leaves the compose service name
+        # `redis` as the target and that resolves nowhere else.
+        logger.error("Redis connection failed, rate limiting and caching unavailable",
+                     extra={"redis": target, "error": str(exc)})
         raise
     return client
 
