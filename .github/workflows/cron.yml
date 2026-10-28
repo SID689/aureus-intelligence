@@ -1,0 +1,107 @@
+# The heartbeat for scheduled work.
+#
+# Celery beat does not run in production: Render's free tier has web
+# services and nothing else, so there is no worker to consume a queue and
+# no platform cron to fill one. Without this, every scheduled job in the
+# codebase never runs once deployed, and market data stays frozen at
+# whatever was seeded.
+#
+# GitHub Actions is the scheduler because the repository is already here:
+# no extra account, no extra bill, and the secrets live where the code
+# does. The work itself still happens on Render -- this only makes the
+# call.
+#
+# WHAT IT NEEDS (Settings -> Secrets and variables -> Actions)
+#   API_BASE_URL         https://your-api.onrender.com   (no trailing slash)
+#   INTERNAL_API_SECRET  identical to Render's value
+#
+# WHAT TO EXPECT
+# GitHub's smallest interval is five minutes and delivery is best effort
+# -- runs are frequently minutes late and are dropped outright when the
+# platform is busy. That is tolerable here because the endpoint decides
+# what is due rather than trusting the caller's timing, so a late or
+# missed call delays work instead of corrupting it. Cadences finer than
+# the interval collapse into it: the 15-second news cycle gets one run
+# per call.
+#
+# GitHub also disables scheduled workflows in a repository with no
+# activity for 60 days, and emails first. If the schedule goes quiet,
+# check that before debugging the API.
+#
+# A five-minute ping has a second use: it keeps the free Render instance
+# from idling out, so visitors stop meeting the ~50s cold start.
+
+name: Scheduled jobs
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  # So it can be run by hand from the Actions tab, which is also the
+  # fastest way to test the wiring.
+  workflow_dispatch:
+
+# A slow tick must never be lapped by the next one. The endpoint holds a
+# Redis lock as well, so this is the outer of two guards.
+concurrency:
+  group: scheduled-jobs
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run whatever is due
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
+        run: |
+          set -uo pipefail
+
+          if [ -z "${API_BASE_URL:-}" ] || [ -z "${INTERNAL_API_SECRET:-}" ]; then
+            echo "::error::API_BASE_URL or INTERNAL_API_SECRET is not set in repository secrets."
+            exit 1
+          fi
+
+          # --max-time 180 because the first call after the instance has
+          # idled pays the cold start before any work begins.
+          #
+          # The secret goes in a header via -H with a variable, so it is
+          # never in the process list or the log. curl's output is the
+          # job report; only the status code decides pass or fail.
+          code=$(curl --silent --show-error \
+                      --max-time 180 \
+                      --retry 2 --retry-delay 10 --retry-connrefused \
+                      --output response.json \
+                      --write-out '%{http_code}' \
+                      --request POST \
+                      --header "X-Internal-Secret: ${INTERNAL_API_SECRET}" \
+                      "${API_BASE_URL}/api/v1/cron/tick") || true
+
+          echo "HTTP ${code}"
+          # jq is preinstalled on ubuntu-latest; fall back to raw output.
+          jq . response.json 2>/dev/null || cat response.json || true
+          echo
+
+          case "${code}" in
+            200)
+              # "partial" means some job failed. Surfaced as a warning,
+              # not a failure: one bad provider call should not read as a
+              # broken schedule, and the body says which job it was.
+              if jq -e '.status == "partial"' response.json >/dev/null 2>&1; then
+                echo "::warning::Some scheduled jobs failed. See the failed list above."
+              fi
+              ;;
+            403)
+              echo "::error::Rejected. INTERNAL_API_SECRET here does not match Render's."
+              exit 1 ;;
+            503)
+              echo "::error::The API has no INTERNAL_API_SECRET configured, or Redis is unreachable."
+              exit 1 ;;
+            000)
+              echo "::error::No response from ${API_BASE_URL}. Wrong URL, or the service is down."
+              exit 1 ;;
+            *)
+              echo "::error::Unexpected HTTP ${code}."
+              exit 1 ;;
+          esac

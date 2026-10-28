@@ -34,6 +34,7 @@ from app.workers.celery_app import celery_app  # noqa: F401
 
 celery_app.set_default()
 from app.api.v1.analysis  import router as analysis_router
+from app.api.v1.cron      import router as cron_router
 from app.api.v1.ws        import router as ws_router
 from app.api.v1.voice     import router as voice_router
 from app.api.v1.billing   import router as billing_router
@@ -113,6 +114,7 @@ app.include_router(account_router)
 app.include_router(games_router)
 app.include_router(catalysts_router)
 app.include_router(leaderboard_router)
+app.include_router(cron_router)
 
 
 @app.get("/health", tags=["ops"])
