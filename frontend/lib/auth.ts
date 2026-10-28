@@ -63,10 +63,16 @@ export const authOptions: NextAuthOptions = {
       },
     }),
 
-    // Google OAuth — fixes "no way to sign up / log in with Google".
-    // Requires GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in .env.local
-    // (see setup instructions). If unset, this provider silently has
-    // no effect and only the credentials form is shown.
+    // Google OAuth. Requires GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET,
+    // in .env.local locally and in the host's environment in production
+    // — and, on Google's side, this deployment's own callback URL, which
+    // Google rejects unless registered in advance.
+    //
+    // Unset, the provider is absent rather than broken. Nothing here
+    // reports that: components/auth/GoogleSignIn.tsx is what keeps the
+    // button off the page to match, by asking getProviders() instead of
+    // assuming. Hardcoding the button again would restore the original
+    // bug, a live site offering a sign-in method that went nowhere.
     ...(process.env.GOOGLE_CLIENT_ID
       ? [GoogleProvider({
           clientId: process.env.GOOGLE_CLIENT_ID,

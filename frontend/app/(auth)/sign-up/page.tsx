@@ -4,7 +4,8 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signup } from "@/lib/api";
-import AuthFrame, { GoogleMark, authInput } from "@/components/auth/AuthFrame";
+import AuthFrame, { authInput } from "@/components/auth/AuthFrame";
+import GoogleSignIn from "@/components/auth/GoogleSignIn";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -44,17 +45,7 @@ export default function SignUpPage() {
       lead="The free plan includes fifteen full analyses a day, the complete curriculum and backtesting. No card required."
       below={<>Already have an account? <Link href="/sign-in" className="text-aureus-gold hover:text-aureus-goldbright">Sign in</Link></>}
     >
-      <button
-        type="button"
-        onClick={() => signIn("google", { callbackUrl: "/" })}
-        className="w-full h-10 border border-aureus-rulestrong rounded-sm text-[13.5px] text-aureus-text hover:border-aureus-gold transition-colors flex items-center justify-center gap-2.5"
-      >
-        <GoogleMark /> Continue with Google
-      </button>
-
-      <div className="flex items-center gap-3 my-6 label-caps">
-        <span className="flex-1 h-px bg-aureus-rule" />or with email<span className="flex-1 h-px bg-aureus-rule" />
-      </div>
+      <GoogleSignIn />
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && (

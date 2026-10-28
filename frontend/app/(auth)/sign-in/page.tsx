@@ -3,7 +3,8 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import AuthFrame, { GoogleMark, authInput } from "@/components/auth/AuthFrame";
+import AuthFrame, { authInput } from "@/components/auth/AuthFrame";
+import GoogleSignIn from "@/components/auth/GoogleSignIn";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -31,17 +32,7 @@ export default function SignInPage() {
       lead="Continue to your research desk."
       below={<>New to Aureus? <Link href="/sign-up" className="text-aureus-gold hover:text-aureus-goldbright">Create an account</Link></>}
     >
-      <button
-        type="button"
-        onClick={() => signIn("google", { callbackUrl: "/" })}
-        className="w-full h-10 border border-aureus-rulestrong rounded-sm text-[13.5px] text-aureus-text hover:border-aureus-gold transition-colors flex items-center justify-center gap-2.5"
-      >
-        <GoogleMark /> Continue with Google
-      </button>
-
-      <div className="flex items-center gap-3 my-6 label-caps">
-        <span className="flex-1 h-px bg-aureus-rule" />or with email<span className="flex-1 h-px bg-aureus-rule" />
-      </div>
+      <GoogleSignIn />
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
