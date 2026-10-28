@@ -45,30 +45,36 @@ def _store_result(job_id: str, status: str, payload: dict) -> None:
         logger.error("Failed to store analysis result in Redis", extra={"job_id": job_id, "error": str(exc)})
 
 
-@shared_task(
-    name="app.workers.analysis_tasks.run_analysis_task",
-    bind=True,
-    max_retries=2,
-    default_retry_delay=10,
-    queue="market-data",
-    track_started=True,
-)
-def run_analysis_task(
-    self,
+def execute_analysis(
     job_id: str,
     ticker: str,
     time_horizon: Literal["short_term", "medium_term", "long_term"],
 ) -> dict:
     """
-    Execute full ensemble analysis for a ticker and cache the result.
+    The analysis pipeline itself, with no Celery in it.
 
-    Args:
-        job_id:       UUID issued by the API layer — used as the Redis key.
-        ticker:       Asset symbol.
-        time_horizon: Analysis time horizon.
+    This is separate from the task below because the queue is not always
+    there. Render's free tier runs web services only — a background worker
+    costs money — so a deployment can legitimately have an API and no
+    worker at all. When the API enqueued unconditionally, every analysis
+    on such a deployment returned a job id, wrote "queued", and then sat
+    at "queued" until the key expired an hour later, because nothing was
+    consuming the queue. The product's main feature failed silently and
+    looked, from the client, exactly like slowness.
+
+    So the work lives here and the two callers differ only in where they
+    run it: the task hands it to a worker, the API can run it in a
+    background thread in its own process. Both write the same Redis keys
+    in the same order, so the client's poll-until-complete loop cannot
+    tell them apart.
+
+    Stores "running" on entry and "complete" or "failed" on exit. Raises
+    only for unexpected errors, and only after recording the failure, so
+    a caller that can retry may — and one that cannot has still told the
+    client the truth.
     """
     start_time = time.monotonic()
-    logger.info("Analysis task started", extra={"job_id": job_id, "ticker": ticker})
+    logger.info("Analysis started", extra={"job_id": job_id, "ticker": ticker})
 
     # Mark as in-progress so poll endpoint returns status immediately
     _store_result(job_id, "running", {"ticker": ticker, "time_horizon": time_horizon})
@@ -87,7 +93,7 @@ def run_analysis_task(
         result_cache.store(ticker, time_horizon, result_dict)
 
         logger.info(
-            "Analysis task complete",
+            "Analysis complete",
             extra={
                 "job_id": job_id,
                 "ticker": ticker,
@@ -107,16 +113,47 @@ def run_analysis_task(
             job_id, "failed",
             {"error": f"No market data available for {ticker}. Providers tried: {', '.join(exc.attempted_providers)}"},
         )
-        # Don't retry on data-not-found — it won't succeed
+        # Not raised: retrying a ticker with no data anywhere will not
+        # succeed, and the client has already been told why.
         return {"job_id": job_id, "status": "failed"}
 
     except Exception as exc:
         logger.error(
-            "Analysis task error",
+            "Analysis error",
             extra={"job_id": job_id, "ticker": ticker, "error": str(exc)},
             exc_info=True,
         )
         _store_result(job_id, "failed", {"error": "Internal analysis error. Please try again."})
+        raise
+
+
+@shared_task(
+    name="app.workers.analysis_tasks.run_analysis_task",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=10,
+    queue="market-data",
+    track_started=True,
+)
+def run_analysis_task(
+    self,
+    job_id: str,
+    ticker: str,
+    time_horizon: Literal["short_term", "medium_term", "long_term"],
+) -> dict:
+    """
+    Run the pipeline in a worker, with retries.
+
+    Args:
+        job_id:       UUID issued by the API layer — used as the Redis key.
+        ticker:       Asset symbol.
+        time_horizon: Analysis time horizon.
+    """
+    try:
+        return execute_analysis(job_id, ticker, time_horizon)
+    except Exception as exc:
+        # execute_analysis has already logged this and written "failed",
+        # so a retry that also fails leaves the client no worse informed.
         try:
             raise self.retry(exc=exc)
         except self.MaxRetriesExceededError:

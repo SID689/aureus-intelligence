@@ -21,12 +21,13 @@ to return analysis results without the required regulatory language.
 
 import json
 import logging
+import os
 import uuid
 from typing import Any, Literal
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from app.analysis import result_cache
@@ -34,7 +35,20 @@ from app.core.entitlements import (
     Entitlements, check_quota, current_entitlements, record_usage, resolve_entitlements,
 )
 from app.core.redis_client import get_redis_client
-from app.workers.analysis_tasks import run_analysis_task
+from app.workers.analysis_tasks import execute_analysis, run_analysis_task
+
+# Run the pipeline in this process instead of dispatching to Celery.
+#
+# For deployments that have no worker. Render's free tier runs web
+# services only, so "an API with no worker behind it" is a real shape,
+# and the unconditional dispatch this replaces meant every analysis on
+# such a deployment sat at "queued" until its key expired — the main
+# feature of the product, failing silently, looking just like slowness.
+#
+# Off by default, so a deployment that does have workers keeps using
+# them: a dedicated worker survives a request cycle, scales on its own
+# and does not compete with the request it was serving.
+_INLINE = os.getenv("ANALYSIS_INLINE", "").lower() in {"1", "true", "yes"}
 
 logger = logging.getLogger("aureus.api.analysis")
 
@@ -129,8 +143,24 @@ def _write_job(job_id: str, payload: dict) -> None:
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
+def _run_inline(job_id: str, ticker: str, time_horizon: str) -> None:
+    """
+    execute_analysis in a background task, with nothing allowed to escape.
+
+    It raises on unexpected errors so a Celery worker can retry. There is
+    no retry here, and an exception raised out of a background task is
+    logged by the server and otherwise lost — so it is caught. The client
+    is not left waiting either way: execute_analysis writes "failed"
+    before it raises.
+    """
+    try:
+        execute_analysis(job_id, ticker, time_horizon)  # type: ignore[arg-type]
+    except Exception:
+        logger.exception("In-process analysis failed", extra={"job_id": job_id, "ticker": ticker})
+
+
 @router.post("/run", response_model=JobEnqueuedResponse, status_code=202)
-def enqueue_analysis(request: AnalysisRequest) -> JobEnqueuedResponse:
+def enqueue_analysis(request: AnalysisRequest, background_tasks: BackgroundTasks) -> JobEnqueuedResponse:
     """
     Enqueue an ensemble analysis job.
     Returns a job_id immediately; the heavy work runs in a Celery worker.
@@ -164,17 +194,22 @@ def enqueue_analysis(request: AnalysisRequest) -> JobEnqueuedResponse:
     # Pre-write a "queued" status so the poll endpoint returns immediately
     _write_job(job_id, {"status": "queued", "ticker": ticker, "time_horizon": request.time_horizon})
 
-    # Dispatch to Celery
-    run_analysis_task.apply_async(
-        kwargs={
-            "job_id": job_id,
-            "ticker": ticker,
-            "time_horizon": request.time_horizon,
-        },
-        task_id=job_id,
-    )
-
-    logger.info("Analysis job enqueued", extra={"job_id": job_id, "ticker": ticker})
+    if _INLINE:
+        # Runs after this response is sent, in this process. The client
+        # gets the same 202 and the same job id, and polls the same key;
+        # only the thing filling that key is different.
+        background_tasks.add_task(_run_inline, job_id, ticker, request.time_horizon)
+        logger.info("Analysis running in-process", extra={"job_id": job_id, "ticker": ticker})
+    else:
+        run_analysis_task.apply_async(
+            kwargs={
+                "job_id": job_id,
+                "ticker": ticker,
+                "time_horizon": request.time_horizon,
+            },
+            task_id=job_id,
+        )
+        logger.info("Analysis job enqueued", extra={"job_id": job_id, "ticker": ticker})
 
     return JobEnqueuedResponse(
         job_id=job_id,

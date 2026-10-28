@@ -38,6 +38,13 @@ services:
       --timeout-keep-alive 120
     restart: always
     env_file: ./backend/.env
+    environment:
+      # Lets the worker-less path be exercised locally without editing
+      # .env, which compose only reads when a container is created:
+      #   ANALYSIS_INLINE=true docker compose up -d --force-recreate backend
+      # Empty by default, so the normal local stack keeps using the
+      # workers it has.
+      ANALYSIS_INLINE: ${ANALYSIS_INLINE:-}
     ports:
       - "8000:8000"
     depends_on:

@@ -9,6 +9,30 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.core.logging_config import setup_logging
 from app.core.redis_client import get_redis_client
+
+# Imported for its side effect, which is the only reason it is here.
+#
+# The tasks are @shared_task, so they bind to whichever Celery app is
+# current in the process that touches them. This process never created
+# one, so they bound to Celery's "default" app, whose broker_url is None
+# — and kombu then falls back to amqp://localhost. Every apply_async
+# from the API tried to reach a RabbitMQ that has never existed in this
+# stack and raised ConnectionRefused, so POST /analysis/run answered 500
+# in every environment, local included.
+#
+# Importing this module runs create_celery_app(). That is not enough on
+# its own: a Celery instance makes itself current only for the thread
+# that built it, and FastAPI runs sync endpoints in a threadpool worker,
+# where the lookup falls back to the default app again. set_default()
+# sets it process-wide, for every thread.
+#
+# Which is why the obvious version of this fix appears to work when you
+# test it in a one-thread script and keeps failing in the server.
+#
+# Do not "clean up" either line.
+from app.workers.celery_app import celery_app  # noqa: F401
+
+celery_app.set_default()
 from app.api.v1.analysis  import router as analysis_router
 from app.api.v1.ws        import router as ws_router
 from app.api.v1.voice     import router as voice_router

@@ -47,8 +47,24 @@ services:
       - key: SCANNER_ENABLED
         value: "false"
 
+      # Same reason, opposite conclusion. The scanner above is scheduled
+      # work nobody misses if it stops; analysis is the product, and it
+      # dispatched to the same absent worker — so every run on this
+      # deployment reported "queued" and stayed there until the key
+      # expired. This makes the API run the pipeline itself.
+      #
+      # Remove it the day a worker exists, and not before.
+      - key: ANALYSIS_INLINE
+        value: "true"
+
       # Values Render cannot know. The blueprint asks for these.
-      - key: DATABASE_URL          # Neon, the POOLED connection string
+      # Neon's DIRECT connection string — the hostname WITHOUT "-pooler".
+      # The pooled endpoint is PgBouncer: it rejects search_path in the
+      # startup options and applies no role defaults, so current_schema()
+      # comes back empty and every unqualified query fails with
+      # "relation does not exist" against a database that has all 39
+      # tables.
+      - key: DATABASE_URL
         sync: false
       - key: REDIS_URL             # Upstash, rediss://
         sync: false
