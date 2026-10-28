@@ -68,7 +68,17 @@ def get_redis_client() -> redis.Redis:
         # own sends you looking at the Redis provider when the usual cause
         # is REDIS_URL being unset, which leaves the compose service name
         # `redis` as the target and that resolves nowhere else.
-        logger.error("Redis connection failed, rate limiting and caching unavailable",
+        #
+        # The second hint is for managed Redis, which is TLS-only. A
+        # plaintext connection to a TLS endpoint is not refused, it is
+        # ACCEPTED and then dropped, so the error reads "Connection closed
+        # by server" and says nothing about encryption. One missing letter
+        # in the scheme, and nothing in the stack trace points at it.
+        hint = ""
+        if settings.redis_url.startswith("redis://") and "closed by server" in str(exc).lower():
+            hint = (" The server accepted the connection and then closed it, which is what a "
+                    "TLS-only endpoint does when reached in plaintext. Try rediss:// instead.")
+        logger.error("Redis connection failed, rate limiting and caching unavailable%s" % hint,
                      extra={"redis": target, "error": str(exc)})
         raise
     return client
